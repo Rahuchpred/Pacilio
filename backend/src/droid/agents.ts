@@ -9,7 +9,7 @@ import type spacetimedb from '../index';
 import {
   FactoryClient,
   finalReply,
-  toSteps,
+  toEvents,
   type AutonomyLevel,
 } from './factory';
 import { agentTickSchedule } from './tables';
@@ -74,6 +74,7 @@ export function droidAgents(stdb: Schema) {
         sessionId: undefined,
         result: undefined,
         error: undefined,
+        todos: undefined,
         lastSeq: 0n,
         createdBy: ctx.sender,
         createdAt: ctx.timestamp,
@@ -238,26 +239,50 @@ export function droidAgents(stdb: Schema) {
             if (!current || current.status !== 'running') return;
 
             let lastSeq = current.lastSeq;
-            for (const step of toSteps(settled)) {
-              const seq = BigInt(step.seq);
+            let todos = current.todos;
+            for (const event of toEvents(settled)) {
+              const seq = BigInt(event.seq);
               if (seq <= current.lastSeq) continue;
+              if (seq > lastSeq) lastSeq = seq;
+
+              if (event.type === 'result') {
+                const step = [...tx.db.agentStep.taskId.filter(task.id)].find(
+                  s => s.toolUseId === event.toolUseId
+                );
+                if (step) {
+                  tx.db.agentStep.id.update({
+                    ...step,
+                    result: event.result,
+                    status: event.isError ? 'error' : 'ok',
+                  });
+                }
+                continue;
+              }
+
               tx.db.agentStep.insert({
                 id: 0n,
                 taskId: task.id,
                 seq,
-                role: step.role,
-                kind: step.kind,
-                summary: step.summary,
+                role: event.role,
+                kind: event.kind,
+                text: event.text,
+                toolUseId: event.toolUseId,
+                toolName: event.toolName,
+                input: event.input,
+                result: undefined,
+                status: event.kind === 'tool' ? 'running' : undefined,
+                riskLevel: event.riskLevel,
+                parentToolUseId: event.parentToolUseId,
                 at: tx.timestamp,
               });
-              if (seq > lastSeq) lastSeq = seq;
+              if (event.todos) todos = JSON.stringify(event.todos);
             }
 
             const steerQueued = [...tx.db.agentOutbox.iter()].some(o => o.taskId === task.id);
             if (reply !== undefined && !steerQueued) {
-              updateTask(tx, task.id, { status: 'done', result: reply, lastSeq });
+              updateTask(tx, task.id, { status: 'done', result: reply, lastSeq, todos });
             } else if (lastSeq !== current.lastSeq) {
-              updateTask(tx, task.id, { lastSeq });
+              updateTask(tx, task.id, { lastSeq, todos });
             }
           });
         } catch (err) {

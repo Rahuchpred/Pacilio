@@ -23,9 +23,19 @@ export interface SessionSettings {
 
 export interface ContentBlock {
   type: string;
+  id?: string;
+  // text
   text?: string;
+  // thinking (readable only for some providers; OpenAI puts a summary on the message)
+  thinking?: string;
+  // tool_use
   name?: string;
   input?: Record<string, unknown>;
+  scriptExecution?: { outerToolUseId?: string };
+  // tool_result
+  toolUseId?: string;
+  content?: string | { type: string; text?: string }[];
+  isError?: boolean;
 }
 
 export interface Message {
@@ -34,6 +44,8 @@ export interface Message {
   role: 'user' | 'assistant' | 'tool' | 'system';
   content: ContentBlock[];
   createdAt: number;
+  openaiReasoningSummary?: string;
+  hiddenFromUserViews?: boolean;
 }
 
 export class FactoryError extends Error {
@@ -125,34 +137,124 @@ function isSystemReminder(block: ContentBlock): boolean {
   return block.type === 'text' && !!block.text?.startsWith('<system-reminder>');
 }
 
-export interface AgentStep {
-  seq: number;
-  role: string;
-  kind: 'text' | 'tool';
-  summary: string;
+// Keep big diffs and command output from bloating rows.
+const MAX_FIELD_CHARS = 4000;
+
+function truncate(s: string): string {
+  return s.length > MAX_FIELD_CHARS
+    ? `${s.slice(0, MAX_FIELD_CHARS)}… [${s.length - MAX_FIELD_CHARS} more chars]`
+    : s;
 }
 
-// Human-readable steps for a progress feed: assistant/user text and tool calls.
-export function toSteps(messages: Message[]): AgentStep[] {
-  const steps: AgentStep[] = [];
+function str(v: unknown): string | undefined {
+  return typeof v === 'string' && v ? v : undefined;
+}
+
+// One-line description for a tool card, e.g. the command or file it touched.
+function describeTool(name: string, input: Record<string, unknown> = {}): string {
+  const explicit =
+    str(input.summary) ??
+    str(input.command) ??
+    str(input.file_path) ??
+    str(input.directory_path) ??
+    str(input.pattern);
+  if (explicit) return explicit;
+
+  switch (name) {
+    case 'ApplyPatch': {
+      // "*** Add File: /path" → "Add File /path"
+      const ops = [...(str(input.input) ?? '').matchAll(/^\*\*\* (\w+ File): (.+)$/gm)];
+      return ops.map(([, op, path]) => `${op} ${path}`).join(', ');
+    }
+    case 'Glob':
+      return Array.isArray(input.patterns) ? input.patterns.join(', ') : '';
+    case 'TodoWrite':
+      return 'Updated plan';
+    case 'Script':
+      return 'Ran tools in parallel';
+    default:
+      return '';
+  }
+}
+
+// Shell failures come back as text with isError unset.
+const FAILURE_PATTERN = /Command failed \(exit code: [1-9]|exited with code [1-9]|tool call failed/i;
+
+function resultText(content: ContentBlock['content']): string {
+  if (typeof content === 'string') return content;
+  return (content ?? []).map(part => part.text ?? '').join('\n');
+}
+
+// A new row for the feed: chat text, a reasoning summary, or a tool call.
+export interface StepEvent {
+  type: 'step';
+  seq: number;
+  role: string;
+  kind: 'text' | 'thinking' | 'tool';
+  text: string;
+  toolUseId?: string;
+  toolName?: string;
+  input?: string;
+  riskLevel?: string;
+  // Set when the tool ran inside a parallel Script call
+  parentToolUseId?: string;
+  // Present on TodoWrite calls: the agent's current plan
+  todos?: unknown[];
+}
+
+// The outcome of an earlier tool call, matched by toolUseId.
+export interface ResultEvent {
+  type: 'result';
+  seq: number;
+  toolUseId: string;
+  result: string;
+  isError: boolean;
+}
+
+export type AgentEvent = StepEvent | ResultEvent;
+
+export function toEvents(messages: Message[]): AgentEvent[] {
+  const events: AgentEvent[] = [];
   for (const m of messages) {
+    if (m.hiddenFromUserViews) continue;
     for (const block of m.content) {
       if (isSystemReminder(block)) continue;
+
       if (block.type === 'text' && block.text) {
-        steps.push({ seq: m.seq, role: m.role, kind: 'text', summary: block.text });
-      } else if (block.type === 'tool_use' && block.name) {
-        const summary =
-          typeof block.input?.summary === 'string' ? block.input.summary : '';
-        steps.push({
+        events.push({ type: 'step', seq: m.seq, role: m.role, kind: 'text', text: block.text });
+      } else if (block.type === 'thinking') {
+        const text = block.thinking || m.openaiReasoningSummary;
+        if (text) {
+          events.push({ type: 'step', seq: m.seq, role: m.role, kind: 'thinking', text });
+        }
+      } else if (block.type === 'tool_use' && block.name && block.id) {
+        const input = block.input ?? {};
+        events.push({
+          type: 'step',
           seq: m.seq,
           role: m.role,
           kind: 'tool',
-          summary: summary ? `${block.name}: ${summary}` : block.name,
+          text: describeTool(block.name, input),
+          toolUseId: block.id,
+          toolName: block.name,
+          input: truncate(JSON.stringify(input)),
+          riskLevel: str(input.riskLevel),
+          parentToolUseId: block.scriptExecution?.outerToolUseId,
+          todos: block.name === 'TodoWrite' && Array.isArray(input.todos) ? input.todos : undefined,
+        });
+      } else if (block.type === 'tool_result' && block.toolUseId) {
+        const text = resultText(block.content);
+        events.push({
+          type: 'result',
+          seq: m.seq,
+          toolUseId: block.toolUseId,
+          result: truncate(text),
+          isError: block.isError ?? FAILURE_PATTERN.test(text),
         });
       }
     }
   }
-  return steps;
+  return events;
 }
 
 // The agent's reply for the turn, if the newest message is assistant text.

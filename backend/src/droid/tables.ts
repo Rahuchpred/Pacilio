@@ -16,6 +16,8 @@ export const agentTask = table(
     // The agent's latest reply, set when a turn finishes
     result: t.string().optional(),
     error: t.string().optional(),
+    // The agent's latest TodoWrite plan as JSON: [{ id, content, status, priority }]
+    todos: t.string().optional(),
     // Highest Factory message seq already copied into agent_step
     lastSeq: t.u64(),
     createdBy: t.identity(),
@@ -24,7 +26,9 @@ export const agentTask = table(
   }
 );
 
-// Live progress feed: the agent's text and tool calls, in order.
+// Live feed of everything the agent does, in order (seq).
+// kind: 'text' (chat from user or assistant), 'thinking' (reasoning summary),
+// or 'tool' (a tool call; result/status fill in when it finishes).
 export const agentStep = table(
   { name: 'agent_step', public: true },
   {
@@ -33,7 +37,19 @@ export const agentStep = table(
     seq: t.u64(),
     role: t.string(),
     kind: t.string(),
-    summary: t.string(),
+    // Message text, reasoning summary, or a one-line tool description
+    text: t.string(),
+    toolUseId: t.string().optional(),
+    toolName: t.string().optional(),
+    // Tool arguments as JSON (truncated)
+    input: t.string().optional(),
+    // Tool output (truncated), set when the result arrives
+    result: t.string().optional(),
+    // 'running' | 'ok' | 'error' for tools
+    status: t.string().optional(),
+    riskLevel: t.string().optional(),
+    // Groups tools that ran together inside one parallel Script call
+    parentToolUseId: t.string().optional(),
     at: t.timestamp(),
   }
 );
