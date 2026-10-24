@@ -284,19 +284,19 @@
    1.3s and rests, so it reads as calm work rather than an alarm. */
 .v-trimmed .lv-check .pnode {
   position: relative;
-  transition: background-color 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+  transition: background 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
 }
 .v-trimmed .lv-check.is-working .pnode:not(.far-card) {
-  background-color: color-mix(in srgb, var(--color-action-decide) 16%, var(--color-bg-canvas));
+  background: color-mix(in srgb, var(--color-action-decide) 16%, var(--color-bg-canvas));
   border-color: var(--color-action-decide);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.8);
 }
 .v-trimmed .lv-check.is-done .pnode:not(.far-card) {
-  background-color: var(--color-status-cleared-soft);
+  background: var(--color-status-cleared-soft);
   border-color: color-mix(in srgb, var(--color-status-cleared) 45%, transparent);
 }
 .v-trimmed .lv-check.is-issue .pnode:not(.far-card) {
-  background-color: var(--color-status-disputed-soft);
+  background: var(--color-status-disputed-soft);
   border-color: color-mix(in srgb, var(--color-status-disputed) 45%, transparent);
 }
 /* The sheen: a soft white band sliding across. It animates background-position,
