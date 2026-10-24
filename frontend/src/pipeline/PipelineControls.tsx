@@ -10,6 +10,7 @@ export function PipelineControls() {
   const run = useReducer(reducers.runInbound);
   const pause = useReducer(reducers.pauseInbound);
   const restart = useReducer(reducers.restartInbound);
+  const tidy = useReducer(reducers.tidyPipelineLayout);
   const [busy, setBusy] = useState(false);
 
   const running = statuses.filter(s => s.enabled).length;
@@ -41,6 +42,14 @@ export function PipelineControls() {
           title="Clears the feed and replays every source from the start"
         >
           Restart
+        </button>
+        <button
+          className="btn btn-quiet"
+          onClick={act(() => tidy())}
+          disabled={busy}
+          title="Put every card back in the default layout, for everyone"
+        >
+          Tidy
         </button>
       </div>
     </div>

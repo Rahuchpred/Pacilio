@@ -160,6 +160,12 @@ export function inbound(stdb: Schema) {
     }
   );
 
+  // Snap every pipeline node back to the default layout and size, for everyone.
+  const tidyPipelineLayout = stdb.reducer(ctx => {
+    for (const row of [...ctx.db.pipelineLayout.iter()]) ctx.db.pipelineLayout.nodeId.delete(row.nodeId);
+    for (const row of [...ctx.db.pipelineNodeSize.iter()]) ctx.db.pipelineNodeSize.nodeId.delete(row.nodeId);
+  });
+
   // ─── Whole-pipeline controls (the UI's Run / Pause / Restart) ─────────────
 
   function setAll(ctx: Ctx, enabled: boolean) {
@@ -363,6 +369,7 @@ export function inbound(stdb: Schema) {
     resetInboundSource,
     movePipelineNode,
     resizePipelineNode,
+    tidyPipelineLayout,
     runInbound,
     pauseInbound,
     restartInbound,

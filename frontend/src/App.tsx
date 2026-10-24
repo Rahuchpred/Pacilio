@@ -4,7 +4,6 @@ import { Board } from './Board';
 import { TopBar } from './TopBar';
 import { PipelineControls } from './pipeline/PipelineControls';
 import { PipelineActivityProvider } from './pipeline/activity';
-import { ReviewQueue } from './pipeline/ReviewQueue';
 import '@xyflow/react/dist/style.css';
 import '../../design-system/src/tokens/tokens.css';
 import './App.css';
@@ -22,7 +21,6 @@ function App() {
       <PipelineActivityProvider>
         <Board />
         <PipelineControls />
-        <ReviewQueue />
         <TopBar />
       </PipelineActivityProvider>
     </ReactFlowProvider>

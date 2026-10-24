@@ -59,8 +59,8 @@ ${resetLedger ? `\nThis run starts over: overwrite ledger.json with {"rows": []}
 Each row in ledger.json "rows":
 {"row": n, "event_id": "...", "date": "YYYY-MM-DD", "source": "nessie|stripe|ledger|cord",
  "counterparty": "...", "description": "...", "category": "...", "amount_cents": signed integer,
- "currency": "USD", "status": "ok|void|review|refunded", "note": "...", "duplicate_of": event_id or null,
- "recommendation": "void|refund|chase|keep" (review rows only, else null)}
+ "currency": "USD", "status": "ok|void|review|refunded|following_up", "note": "...", "duplicate_of": event_id or null,
+ "recommendation": "void|refund|follow_up|keep" (review rows only, else null)}
 Categories (use exactly one): ${CATEGORIES.join('; ')}.
 Amounts: positive = money in, negative = money out.
 
@@ -73,19 +73,44 @@ Amounts: positive = money in, negative = money out.
 ## For each new event
 1. Add a row (keep row numbers increasing). Classify it.
 2. Compare it with every existing row. Look for:
-   - Data-entry duplicate: the same document recorded twice with small differences (typo, casing, a date off by a day or two, an amount off by 1–5% or rounded). Money did not move twice.
-   - Double charge: money actually moved twice for one thing (e.g. two bank purchases from the same vendor for the same item and amount).
-   - Mismatch: a payment or charge that disagrees with its bill, invoice or receipt.
+   - Data-entry duplicate: the same document recorded twice with small differences (typo, casing, a date off by a day or two, an amount off a little or rounded). Money did not move twice.
+   - Double payment: money actually left twice for one thing (e.g. two bank payments for the same bill).
+   - Mismatch: a payment that disagrees with its bill, invoice or receipt (paid more or less than billed).
+   - Missing paperwork: money moved with no bill, invoice or receipt behind it.
+   Normal, not problems (mark "ok"): our own money moving (cash float withdrawals, crew payroll transfers,
+   box office deposits, Stripe payouts); a payment whose bill hasn't reached the ledger yet (bills often arrive
+   after payment: note "Awaiting bill <number>"); separate bills or payments with different document numbers.
+   Only ask a person when something is actually wrong: money left twice for one document, an amount that
+   disagrees with its bill, invoice or receipt, or a duplicate entry you aren't sure about.
 3. Decide:
-   - status "ok": nothing wrong (you may note a match, e.g. "Pays bill AV-0423").
-   - status "void": a data-entry duplicate you are at least 85% sure of. Set duplicate_of.
-   - status "review": anything you are less sure of, any double charge, any mismatch. A person decides.
-     Recommend one action: "void" (it's a duplicate entry), "refund" (only for a Stripe charge that should be returned),
-     "chase" (ask the vendor or customer about it), or "keep" (looks fine on balance).
+   - status "ok": nothing wrong. Put a short match in "note" if there is one, e.g. "Pays bill AV-0423".
+   - status "void": an obvious data-entry duplicate (same counterparty, same document, tiny differences). Set duplicate_of.
+   - status "review": anything else that's wrong or unclear. A person decides, so write it up well (below).
+
+## Writing up a "review" item (a person reads this and decides in seconds)
+- title: what's wrong, in under 10 words, with the counterparty. "ACME charged twice for bill AV-0423".
+- what_happened: 1–2 plain sentences with the amounts, dates and row numbers. Say what doesn't add up.
+  "The bank paid ACME $1,250.00 on Oct 20 (row 3) and again on Oct 25 (row 14). Bill AV-0423 is for $1,250.00 once."
+- evidence: 2–4 short lines, each naming a row and its source. "Row 3 · Nessie · −$1,250.00 · Oct 20".
+- action: exactly one of
+    "void"      – the row is a duplicate entry in our books; remove it. No money moves.
+    "refund"    – only for a Stripe ticket charge we should give back; Settle refunds it on Stripe.
+    "follow_up" – we need the other party to act or explain (refund an overpayment, send a missing bill or receipt,
+                  confirm a charge). Settle will email them.
+    "keep"      – the row is fine on reflection; leave it.
+- fix: one sentence saying exactly what the action does to which row. "Void row 14, the second −$1,250.00 payment."
+  For follow_up, say what we're asking for: "Ask ACME to refund the duplicate $1,250.00 payment."
+- question: a direct yes/no question for the person, with the amount. "Void the second $1,250.00 ACME payment?"
+- follow_up is only for outside parties (a vendor, sponsor or customer), never for our own accounts or staff.
+- For follow_up only: follow_up_to (the counterparty), follow_up_subject, and follow_up_message — a short, polite
+  email (3–5 sentences) that states the problem with amounts, dates and document numbers and says exactly what we need.
+Rules: never mention percentages, confidence or probabilities. Never say "chase". Use the counterparty's name, real
+amounts (like $1,250.00) and dates. Don't invent bills, people or facts that aren't in the ledger.
 
 ## Human decisions to apply first
 ${decisions.length ? decisions.map(d => `- event ${d.event_id}: ${d.action}${d.note ? ` (${d.note})` : ''}`).join('\n') : '- none'}
-Apply them to the matching rows: void → status "void"; refund → status "refunded"; keep → status "ok"; note who decided in "note" as "Decided by a person".
+Apply them to the matching rows: void → status "void"; refund → status "refunded"; keep → status "ok";
+follow_up → status "following_up" with note "Following up with <counterparty>". Add "Decided by a person" to the note.
 
 ## New events (JSON)
 ${events.length ? JSON.stringify(events) : '[] (no new events this run; just apply the decisions and re-render)'}
@@ -97,8 +122,10 @@ Write ledger.json, then run ${RENDER_CMD} once. Don't change the sheet design; t
 When the files are written, reply with ONLY this JSON and nothing else:
 {"summary": "one sentence, past tense, with counts",
  "decisions": [{"event_id": "...", "status": "ok|void|review", "category": "...", "note": "...",
-   "duplicate_of": "event_id or null", "recommendation": "void|refund|chase|keep or null",
-   "confidence": 0.0-1.0, "question": "for review only: a direct yes/no question with the amount",
-   "reason": "for review/void: the evidence, naming the rows or events"}]}
+   "duplicate_of": "event_id or null",
+   "review": null or {"title": "...", "what_happened": "...", "evidence": ["...", "..."], "action": "void|refund|follow_up|keep",
+     "fix": "...", "question": "...", "follow_up_to": "... or null", "follow_up_subject": "... or null",
+     "follow_up_message": "... or null"}}]}
+"review" is required when status is "review" and null otherwise.
 Include every new event exactly once.`;
 }

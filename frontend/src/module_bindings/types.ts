@@ -248,6 +248,18 @@ export const PipelineTickSchedule = __t.object("PipelineTickSchedule", {
 });
 export type PipelineTickSchedule = __Infer<typeof PipelineTickSchedule>;
 
+export const ReviewDetail = __t.object("ReviewDetail", {
+  itemId: __t.u64(),
+  title: __t.string(),
+  whatHappened: __t.string(),
+  evidence: __t.string(),
+  fix: __t.string(),
+  followUpTo: __t.option(__t.string()),
+  followUpSubject: __t.option(__t.string()),
+  followUpMessage: __t.option(__t.string()),
+});
+export type ReviewDetail = __Infer<typeof ReviewDetail>;
+
 export const ReviewItem = __t.object("ReviewItem", {
   id: __t.u64(),
   eventId: __t.u64(),

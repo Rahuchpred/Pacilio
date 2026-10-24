@@ -4,6 +4,7 @@ import { useProcedure, useTable } from 'spacetimedb/react';
 import { procedures, tables } from '../module_bindings';
 import type { InboundEvent, InboundSourceStatus } from '../module_bindings/types';
 import { usePipelineActivity } from './activity';
+import { FollowUpsNode } from './FollowUps';
 import { Money } from './Money';
 import type { ChipState } from './chipStates';
 import {
@@ -114,7 +115,6 @@ export function AgentNode() {
         <h3>Main agent</h3>
         <AgentStatus />
       </div>
-      <p className="node-meta">Droid on the Factory computer · classifies, reconciles and flags</p>
       <dl className="node-stats">
         <div>
           <dt>Waiting</dt>
@@ -140,7 +140,8 @@ export function AgentNode() {
             ? `Working on ${processing} ${processing === 1 ? 'event' : 'events'}…`
             : lastRun?.summary ?? 'Waiting for the first batch'}
       </p>
-      <Handle type="source" position={Position.Right} isConnectable={false} />
+      {/* Out to the follow-ups and the ledger below */}
+      <Handle id="out" type="source" position={Position.Bottom} isConnectable={false} />
       {/* Where event threads come in, one per side */}
       {SIDES.map(([side, position]) => (
         <Handle
@@ -182,7 +183,7 @@ export function LedgerNode() {
         lineClassName="ledger-resize-line"
         handleClassName="ledger-resize-handle"
       />
-      <Handle type="target" position={Position.Left} isConnectable={false} />
+      <Handle type="target" position={Position.Top} isConnectable={false} />
       <div className="node-head">
         <h3>Master ledger.xlsx</h3>
         <div className="ledger-actions">
@@ -192,9 +193,7 @@ export function LedgerNode() {
           </button>
         </div>
       </div>
-      <p className="node-meta">
-        {error ?? 'Built by the agent on the Factory computer · Ledger, Needs review and Summary sheets'}
-      </p>
+      {error && <p className="node-error">{error}</p>}
       <div className="ledger-frame nodrag nowheel">
         {doc ? (
           // Sandboxed: the agent's page can't run scripts or reach this app
@@ -216,13 +215,10 @@ export function EventNode({ data }: NodeProps) {
   return (
     <div
       className={`event-chip is-${state}${isNew ? ' is-new' : ''}`}
-      title={`${event.kind.replace(/_/g, ' ')} · ${event.description}`}
+      title={`${SOURCE_TITLES[event.source] ?? event.source} · ${event.kind.replace(/_/g, ' ')} · ${event.description}`}
     >
-      <div className="chip-top">
-        <span className="chip-source">{SOURCE_TITLES[event.source] ?? event.source}</span>
-        <Money amountMinor={event.amountMinor} currency={event.currency} />
-      </div>
-      <div className="chip-party">{event.counterparty}</div>
+      <span className="chip-party">{event.counterparty}</span>
+      <Money amountMinor={event.amountMinor} currency={event.currency} />
       {/* The thread to the agent leaves from whichever side faces it */}
       {SIDES.map(([side, position]) => (
         <Handle
@@ -238,4 +234,10 @@ export function EventNode({ data }: NodeProps) {
   );
 }
 
-export const pipelineNodeTypes = { source: SourceNode, agent: AgentNode, ledger: LedgerNode, event: EventNode };
+export const pipelineNodeTypes = {
+  source: SourceNode,
+  agent: AgentNode,
+  ledger: LedgerNode,
+  followups: FollowUpsNode,
+  event: EventNode,
+};

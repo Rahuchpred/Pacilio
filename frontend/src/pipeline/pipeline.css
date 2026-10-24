@@ -204,9 +204,13 @@
 
 .event-chip {
   box-sizing: border-box;
-  width: 196px;
-  height: 56px;
-  padding: var(--space-sm) var(--space-md);
+  width: 176px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: 0 var(--space-sm);
   font-family: var(--font-sans);
   font-size: var(--type-label-size);
   line-height: var(--type-label-line);
@@ -214,43 +218,28 @@
   background: var(--color-bg-canvas);
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-sm);
-  cursor: default;
+  cursor: grab;
 }
 
 .event-chip.is-new {
   animation: chip-arrive 1800ms var(--motion-ease);
 }
 
-.chip-top {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-sm);
-}
-
-.chip-source {
-  color: var(--color-text-tertiary);
-  white-space: nowrap;
-}
-
 .chip-party {
-  margin-top: var(--space-2xs);
-  font-size: var(--type-small-size);
-  line-height: var(--type-small-line);
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* Handed to the agent in its current run */
+/* Handed to the agent in its current run: a soft tint, no extra border */
 .event-chip.is-processing {
   background: var(--color-status-held-soft);
-  border-color: var(--color-status-held);
 }
 
 /* Finished by the agent: green, then gone */
 .event-chip.is-done {
   background: var(--color-status-cleared-soft);
-  border-color: var(--color-status-cleared);
   animation: chip-done 2600ms var(--motion-ease) forwards;
 }
 
@@ -295,10 +284,12 @@
 
 .thread.is-processing .react-flow__edge-path {
   stroke: var(--color-status-held);
+  opacity: 0.45;
 }
 
 .thread.is-done .react-flow__edge-path {
   stroke: var(--color-status-cleared);
+  opacity: 0.45;
 }
 
 /* Thread anchor points stay invisible */
@@ -394,90 +385,61 @@
   background: var(--color-bg-surface);
 }
 
-/* ─── Needs your OK (human action queue) ───────────────────────────────── */
+/* ─── Follow-ups (what the agent needs a person for) ─────────────────── */
 
-.review-queue {
-  position: fixed;
-  top: 64px;
-  right: var(--space-lg);
-  z-index: 15;
-  width: 360px;
-  max-height: calc(100vh - 88px);
-  display: flex;
-  flex-direction: column;
-  font-family: var(--font-sans);
-  font-size: var(--type-small-size);
-  line-height: var(--type-small-line);
-  color: var(--color-text-primary);
-  background: var(--color-bg-canvas);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-md);
+.followups-node {
+  width: 560px;
 }
 
-.review-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-md) var(--space-lg);
-  border: 0;
-  background: none;
-  font: inherit;
-  font-size: var(--type-body-size);
-  font-weight: var(--type-subheading-weight);
-  color: inherit;
-  cursor: pointer;
-}
-
-.review-count {
-  min-width: 22px;
-  padding: 0 var(--space-xs);
-  border-radius: var(--radius-full);
-  background: var(--color-status-held-soft);
-  color: var(--color-status-held);
-  font-size: var(--type-label-size);
-  line-height: 20px;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-}
-
-.review-body {
-  overflow-y: auto;
-  border-top: 1px solid var(--color-border-default);
-}
-
-.review-applying,
-.review-empty {
-  margin: 0;
-  padding: var(--space-md) var(--space-lg);
+.followup-applying {
+  margin: var(--space-sm) 0 0;
   color: var(--color-text-secondary);
 }
 
-.review-applying {
-  border-bottom: 1px solid var(--color-border-default);
+.followups-scroll {
+  max-height: 760px;
+  overflow-y: auto;
+  margin-top: var(--space-md);
+  border-top: 1px solid var(--color-border-default);
+  cursor: default;
 }
 
-.review-list {
+.followup-list {
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.review-card {
-  padding: var(--space-md) var(--space-lg);
+.followup-card {
+  padding: var(--space-lg) 0;
   border-bottom: 1px solid var(--color-border-default);
 }
 
-.review-card:last-child {
+.followup-card:last-child {
   border-bottom: 0;
 }
 
-.review-question {
+.followup-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.followup-head h4 {
   margin: 0;
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  font-weight: var(--type-subheading-weight);
+}
+
+.followup-what {
+  margin: var(--space-xs) 0 0;
   font-size: var(--type-body-size);
   line-height: var(--type-body-line);
 }
 
-.review-event {
+.followup-event {
   display: flex;
   justify-content: space-between;
   gap: var(--space-md);
@@ -487,25 +449,74 @@
   border-radius: var(--radius-sm);
 }
 
-.review-reason,
-.review-suggestion {
+.followup-evidence {
   margin: var(--space-sm) 0 0;
+  padding-left: var(--space-lg);
   color: var(--color-text-secondary);
 }
 
-.review-suggestion strong {
-  font-weight: var(--type-label-weight);
-  color: var(--color-text-primary);
+.followup-evidence li + li {
+  margin-top: var(--space-2xs);
 }
 
-.review-actions {
+.followup-fix {
+  margin-top: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+}
+
+.followup-label {
+  font-size: var(--type-label-size);
+  line-height: var(--type-label-line);
+  font-weight: var(--type-label-weight);
+  color: var(--color-text-secondary);
+}
+
+.followup-fix p {
+  margin: var(--space-2xs) 0 0;
+}
+
+.followup-email {
+  margin-top: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-bg-sunken);
+  border-radius: var(--radius-sm);
+}
+
+.followup-email summary {
+  cursor: pointer;
+  font-weight: var(--type-label-weight);
+}
+
+.followup-subject {
+  margin: var(--space-sm) 0 0;
+  font-weight: var(--type-label-weight);
+}
+
+.followup-body {
+  margin: var(--space-xs) 0 0;
+  white-space: pre-wrap;
+}
+
+.followup-note {
+  margin: var(--space-sm) 0 0;
+  color: var(--color-text-tertiary);
+}
+
+.followup-question {
+  margin: var(--space-md) 0 0;
+  font-weight: var(--type-label-weight);
+}
+
+.followup-actions {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-xs);
-  margin-top: var(--space-md);
+  margin-top: var(--space-sm);
 }
 
-.review-error {
+.followup-error {
   margin: var(--space-sm) 0 0;
   color: var(--color-action-reject);
 }

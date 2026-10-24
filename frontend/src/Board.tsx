@@ -107,8 +107,11 @@ export function Board() {
   useEffect(() => {
     setPipelineNodes(prev =>
       prev.map(n => {
+        if (n.dragging || resizing.current.has(n.id)) return n;
+        // No saved spot (e.g. after Tidy) → back to the default layout
         const row = layoutRows.find(r => r.nodeId === n.id);
-        return row && !n.dragging && !resizing.current.has(n.id) ? { ...n, position: { x: row.x, y: row.y } } : n;
+        const fallback = PIPELINE_NODES.find(d => d.id === n.id)?.position ?? n.position;
+        return { ...n, position: row ? { x: row.x, y: row.y } : fallback };
       })
     );
   }, [layoutRows]);
@@ -117,8 +120,11 @@ export function Board() {
   useEffect(() => {
     setPipelineNodes(prev =>
       prev.map(n => {
+        if (resizing.current.has(n.id)) return n;
         const row = sizeRows.find(r => r.nodeId === n.id);
-        return row && !resizing.current.has(n.id) ? { ...n, width: row.width, height: row.height } : n;
+        const fallback = PIPELINE_NODES.find(d => d.id === n.id);
+        if (row) return { ...n, width: row.width, height: row.height };
+        return fallback?.width ? { ...n, width: fallback.width, height: fallback.height } : n;
       })
     );
   }, [sizeRows]);

@@ -5,13 +5,13 @@
 // Kept ASCII-only (non-ASCII is written as \u escapes) so its byte size equals
 // its length for the upload. Avoid "$" followed by "{" (template literal).
 
-export const RENDER_VERSION = 'v4';
+export const RENDER_VERSION = 'v5';
 // Versioned name: Factory's upload won't overwrite an existing file, and an
 // older agent-written settle/render.py may still be on the computer
 export const RENDER_PATH = `settle/tools/render-${RENDER_VERSION}.py`;
 
-export const RENDER_SCRIPT = String.raw`# settle-render v4 -- provided by Settle. Do not edit.
-# Run: python3 /home/factory-user/settle/tools/render-v4.py /home/factory-user/settle
+export const RENDER_SCRIPT = String.raw`# settle-render v5 -- provided by Settle. Do not edit.
+# Run: python3 /home/factory-user/settle/tools/render-v5.py /home/factory-user/settle
 """Render settle/ledger.json into ledger.html (an Excel-style window) and ledger.xlsx."""
 import datetime
 import html
@@ -32,12 +32,14 @@ STATUS_LABEL = {
     "void": "\u2715 Void",
     "review": "! Review",
     "refunded": "\u21ba Refunded",
+    "following_up": "\u2709 Following up",
 }
 SOURCE_LABEL = {"nessie": "Nessie", "stripe": "Stripe", "ledger": "Ledger", "cord": "Receipts"}
 FILLS = {
     "void": ("FFC7CE", "9C0006"),
     "review": ("FFEB9C", "9C5700"),
     "refunded": ("EDEDED", "404040"),
+    "following_up": ("DDEBF7", "1F4E78"),
 }
 
 
@@ -76,7 +78,7 @@ def cells(row, with_recommendation=False):
         row.get("note", "") or "",
     ]
     if with_recommendation:
-        values.append((row.get("recommendation") or "").capitalize())
+        values.append((row.get("recommendation") or "").replace("_", " ").capitalize())
     return values
 
 
@@ -113,6 +115,7 @@ tr.void td{background:#ffc7ce;color:#9c0006}
 tr.void td.num{text-decoration:line-through}
 tr.review td{background:#ffeb9c;color:#9c5700}
 tr.refunded td{background:#ededed;color:#404040}
+tr.following_up td{background:#ddebf7;color:#1f4e78}
 tr.total td{font-weight:700;border-top:3px double #444}
 .tabs{height:28px;flex:none;display:flex;align-items:stretch;background:#f3f3f3;border-top:1px solid #d4d4d4;
   padding-left:44px}

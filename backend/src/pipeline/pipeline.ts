@@ -22,9 +22,18 @@ const MAX_WAIT_MICROS = 10_000_000n;
 const MAX_HTML_CHARS = 2_000_000;
 
 const OUTCOMES = ['ok', 'void', 'review'] as const;
-const RECOMMENDATIONS = ['void', 'refund', 'chase', 'keep'] as const;
-// What a person can choose in the queue (chase arrives with email follow-ups)
-const HUMAN_ACTIONS = ['void', 'refund', 'keep'] as const;
+const ACTIONS = ['void', 'refund', 'follow_up', 'keep'] as const;
+// What a person can choose in the queue (follow-up emails are sent later; for
+// now choosing it marks the row as being followed up)
+const HUMAN_ACTIONS = ACTIONS;
+
+function normalizeAction(value: string | null | undefined): string {
+  const v = (value ?? '').toLowerCase().replace(/[\s-]+/g, '_');
+  if (v === 'chase' || v === 'email' || v === 'followup') return 'follow_up';
+  return (ACTIONS as readonly string[]).includes(v) ? v : 'keep';
+}
+
+const clip = (s: unknown, max: number) => (typeof s === 'string' ? s.trim().slice(0, max) : '');
 const STOPPED_TASK = ['failed', 'cancelled'];
 
 // ─── State helpers ──────────────────────────────────────────────────────────
@@ -76,6 +85,7 @@ export function resetPipeline(ctx: Ctx) {
   for (const r of [...ctx.db.agentRun.iter()]) ctx.db.agentRun.id.delete(r.id);
   for (const r of [...ctx.db.eventReview.iter()]) ctx.db.eventReview.eventId.delete(r.eventId);
   for (const r of [...ctx.db.reviewItem.iter()]) ctx.db.reviewItem.id.delete(r.id);
+  for (const r of [...ctx.db.reviewDetail.iter()]) ctx.db.reviewDetail.itemId.delete(r.itemId);
   for (const r of [...ctx.db.ledgerDocument.iter()]) ctx.db.ledgerDocument.id.delete(r.id);
   updateAgent(ctx, { status: 'idle', currentRunId: undefined, lastError: undefined, resetLedger: true });
 }
@@ -148,14 +158,27 @@ function startRun(ctx: Ctx): boolean {
   return true;
 }
 
+interface ReviewWriteUp {
+  title?: string;
+  what_happened?: string;
+  evidence?: string[];
+  action?: string;
+  fix?: string;
+  question?: string;
+  follow_up_to?: string | null;
+  follow_up_subject?: string | null;
+  follow_up_message?: string | null;
+}
+
 interface Decision {
   event_id: string;
   status: string;
   category?: string;
   note?: string;
   duplicate_of?: string | null;
+  review?: ReviewWriteUp | null;
+  // Older reply shape, still accepted
   recommendation?: string | null;
-  confidence?: number;
   question?: string;
   reason?: string;
 }
@@ -198,17 +221,18 @@ function applyDecisions(ctx: Ctx, run: Run, summary: string, decisions: Decision
       });
     }
     if (outcome === 'review') {
-      const recommendation = (RECOMMENDATIONS as readonly string[]).includes(d.recommendation ?? '')
-        ? (d.recommendation as string)
-        : 'keep';
-      ctx.db.reviewItem.insert({
+      const r = d.review ?? {};
+      const action = normalizeAction(r.action ?? d.recommendation);
+      const whatHappened = clip(r.what_happened ?? d.reason ?? d.note, 600);
+      const item = ctx.db.reviewItem.insert({
         id: 0n,
         eventId: BigInt(id),
         runId: run.id,
-        question: d.question || d.note || 'Does this look right?',
-        reason: d.reason || d.note || '',
-        recommendation,
-        confidence: Math.min(1, Math.max(0, Number(d.confidence) || 0)),
+        question: clip(r.question ?? d.question, 300) || 'Does this look right?',
+        reason: whatHappened,
+        recommendation: action,
+        // Not shown to people; kept for the table shape
+        confidence: 0,
         duplicateOf: toId(d.duplicate_of),
         status: 'open',
         decision: undefined,
@@ -216,6 +240,18 @@ function applyDecisions(ctx: Ctx, run: Run, summary: string, decisions: Decision
         decidedAt: undefined,
         resultNote: undefined,
         createdAt: ctx.timestamp,
+      });
+      const evidence = Array.isArray(r.evidence) ? r.evidence.map(e => clip(e, 200)).filter(Boolean).slice(0, 6) : [];
+      const isFollowUp = action === 'follow_up';
+      ctx.db.reviewDetail.insert({
+        itemId: item.id,
+        title: clip(r.title, 120) || clip(d.note, 120) || 'Needs a look',
+        whatHappened,
+        evidence: JSON.stringify(evidence),
+        fix: clip(r.fix, 400),
+        followUpTo: isFollowUp ? clip(r.follow_up_to, 120) || undefined : undefined,
+        followUpSubject: isFollowUp ? clip(r.follow_up_subject, 160) || undefined : undefined,
+        followUpMessage: isFollowUp ? clip(r.follow_up_message, 2000) || undefined : undefined,
       });
     }
   }
@@ -236,7 +272,7 @@ function applyDecisions(ctx: Ctx, run: Run, summary: string, decisions: Decision
       recommendation: 'keep',
       confidence: 0,
       duplicateOf: undefined,
-      status: 'open',
+      status: 'open',  // the agent's reply skipped this event
       decision: undefined,
       decidedBy: undefined,
       decidedAt: undefined,

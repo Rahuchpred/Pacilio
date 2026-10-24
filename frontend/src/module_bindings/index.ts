@@ -56,6 +56,7 @@ import RunInboundReducer from "./run_inbound_reducer";
 import SetInboundSourceReducer from "./set_inbound_source_reducer";
 import SetNameReducer from "./set_name_reducer";
 import SteerAgentTaskReducer from "./steer_agent_task_reducer";
+import TidyPipelineLayoutReducer from "./tidy_pipeline_layout_reducer";
 
 // Import all procedure arg schemas
 import * as AgentFileUrlProcedure from "./agent_file_url_procedure";
@@ -79,6 +80,7 @@ import NodeRow from "./node_table";
 import PipelineAgentRow from "./pipeline_agent_table";
 import PipelineLayoutRow from "./pipeline_layout_table";
 import PipelineNodeSizeRow from "./pipeline_node_size_table";
+import ReviewDetailRow from "./review_detail_table";
 import ReviewItemRow from "./review_item_table";
 import ToolInstallRow from "./tool_install_table";
 import UserRow from "./user_table";
@@ -273,6 +275,17 @@ const tablesSchema = __schema({
       { name: 'pipeline_node_size_node_id_key', constraint: 'unique', columns: ['nodeId'] },
     ],
   }, PipelineNodeSizeRow),
+  reviewDetail: __table({
+    name: 'review_detail',
+    indexes: [
+      { accessor: 'itemId', name: 'review_detail_item_id_idx_btree', algorithm: 'btree', columns: [
+        'itemId',
+      ] },
+    ],
+    constraints: [
+      { name: 'review_detail_item_id_key', constraint: 'unique', columns: ['itemId'] },
+    ],
+  }, ReviewDetailRow),
   reviewItem: __table({
     name: 'review_item',
     indexes: [
@@ -335,6 +348,7 @@ const reducersSchema = __reducers(
   __reducerSchema("set_inbound_source", SetInboundSourceReducer),
   __reducerSchema("set_name", SetNameReducer),
   __reducerSchema("steer_agent_task", SteerAgentTaskReducer),
+  __reducerSchema("tidy_pipeline_layout", TidyPipelineLayoutReducer),
 );
 
 /** The schema information for all procedures in this module. This is defined the same way as the procedures would have been defined in the server. */

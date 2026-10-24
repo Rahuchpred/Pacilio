@@ -65,7 +65,7 @@ export const reviewItem = table(
     question: t.string(),
     // Why the agent flagged it (evidence)
     reason: t.string(),
-    // 'void' | 'refund' | 'keep' | 'chase'
+    // 'void' | 'refund' | 'follow_up' | 'keep'
     recommendation: t.string(),
     confidence: t.f64(),
     duplicateOf: t.u64().optional(),
@@ -77,6 +77,26 @@ export const reviewItem = table(
     // What happened when the decision ran, e.g. the Stripe refund id
     resultNote: t.string().optional(),
     createdAt: t.timestamp(),
+  }
+);
+
+// The agent's full write-up for a flagged item: what's wrong, the proof, the
+// fix, and (for follow-ups) who to contact and a draft message.
+export const reviewDetail = table(
+  { name: 'review_detail', public: true },
+  {
+    itemId: t.u64().primaryKey(),
+    // Short headline, e.g. "ACME charged twice for bill AV-0423"
+    title: t.string(),
+    // Plain explanation with amounts, dates and ledger rows
+    whatHappened: t.string(),
+    // JSON array of short evidence lines, each naming a row/event and source
+    evidence: t.string(),
+    // Exactly what the recommended action changes
+    fix: t.string(),
+    followUpTo: t.string().optional(),
+    followUpSubject: t.string().optional(),
+    followUpMessage: t.string().optional(),
   }
 );
 
@@ -114,6 +134,7 @@ export const pipelineTables = {
   agentRun,
   eventReview,
   reviewItem,
+  reviewDetail,
   ledgerDocument,
   toolInstall,
   pipelineTickSchedule,

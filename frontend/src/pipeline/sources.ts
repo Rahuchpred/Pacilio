@@ -13,6 +13,7 @@ export const SOURCE_TITLES: Record<string, string> = Object.fromEntries(SOURCES.
 
 export const AGENT_NODE_ID = 'pipeline:agent';
 export const LEDGER_NODE_ID = 'pipeline:master-ledger';
+export const FOLLOWUPS_NODE_ID = 'pipeline:followups';
 export const agentHandleId = (source: string) => `in:${source}`;
 export const sourceNodeId = (name: string) => `pipeline:${name}`;
 export const isPipelineId = (id: string) => id.startsWith('pipeline:');
@@ -25,9 +26,12 @@ const SOURCE_X = 0;
 const SOURCE_GAP_Y = 200;
 const AGENT_X = 900;
 const AGENT_Y = 230;
-// The ledger sits past the outermost ring of chips
-const LEDGER_X = AGENT_X + 1150;
-const LEDGER_Y = AGENT_Y - 200;
+// Below the inputs: Follow-ups, with the Master ledger lined up beside it
+export const FOLLOWUPS_X = SOURCE_X;
+export const FOLLOWUPS_Y = SOURCE_GAP_Y * 4 + 60;
+export const FOLLOWUPS_WIDTH = 560;
+export const LEDGER_X = FOLLOWUPS_X + FOLLOWUPS_WIDTH + 60;
+export const LEDGER_Y = FOLLOWUPS_Y;
 export const LEDGER_WIDTH = 1400;
 export const LEDGER_HEIGHT = 820;
 
@@ -45,6 +49,7 @@ export const PIPELINE_NODES: Node[] = [
     ...fixed,
   })),
   { id: AGENT_NODE_ID, type: 'agent', position: { x: AGENT_X, y: AGENT_Y }, data: {}, ...fixed },
+  { id: FOLLOWUPS_NODE_ID, type: 'followups', position: { x: FOLLOWUPS_X, y: FOLLOWUPS_Y }, data: {}, ...fixed },
   {
     id: LEDGER_NODE_ID,
     type: 'ledger',
@@ -60,16 +65,20 @@ export const PIPELINE_NODES: Node[] = [
 // One wire per source into the agent (events travel along it as packets),
 // and one from the agent to the ledger it writes.
 export function pipelineEdges(running: Set<string>, agentWorking: boolean): Edge[] {
-  const ledgerEdge: Edge = {
-    id: 'pipeline:edge:master-ledger',
+  const outEdge = (id: string, target: string): Edge => ({
+    id,
     source: AGENT_NODE_ID,
-    target: LEDGER_NODE_ID,
+    sourceHandle: 'out',
+    target,
     deletable: false,
     selectable: false,
     animated: agentWorking,
     className: agentWorking ? 'pipeline-edge is-running' : 'pipeline-edge',
-  };
-  return [ledgerEdge, ...SOURCES.map(source => ({
+  });
+  return [
+    outEdge('pipeline:edge:master-ledger', LEDGER_NODE_ID),
+    outEdge('pipeline:edge:followups', FOLLOWUPS_NODE_ID),
+    ...SOURCES.map(source => ({
     id: `pipeline:edge:${source.name}`,
     type: 'packet',
     source: sourceNodeId(source.name),
@@ -84,16 +93,16 @@ export function pipelineEdges(running: Set<string>, agentWorking: boolean): Edge
 
 // ─── Event chips around the agent ───────────────────────────────────────────
 
-export const CHIP_WIDTH = 196;
-export const CHIP_HEIGHT = 56;
+export const CHIP_WIDTH = 176;
+export const CHIP_HEIGHT = 32;
 // Events not yet finished by the agent, shown as chips (newest kept)
 export const MAX_CHIPS = 32;
 
 // Chips sit on a grid of cells in rectangular rings around the agent, so they
 // never overlap. Rings fill outward above, right of and below the agent; the
 // side the wires come in from stays open.
-const CELL_W = CHIP_WIDTH + 12;
-const CELL_H = CHIP_HEIGHT + 12;
+const CELL_W = CHIP_WIDTH + 10;
+const CELL_H = CHIP_HEIGHT + 10;
 const MARGIN = 24;
 
 function ringSlots(count: number, agentW: number, agentH: number): { x: number; y: number }[] {
@@ -167,9 +176,10 @@ export function eventChipNodes(chips: ChipEvent[], agent: Node | undefined, move
   });
 }
 
-// A thread from every chip into the agent, on the side it faces.
+// A thread into the agent for the chips it's working on (and just finished);
+// waiting chips sit quietly in the ring without one.
 export function chipThreads(chipNodes: Node[]): Edge[] {
-  return chipNodes.map(n => {
+  return chipNodes.filter(n => (n.data as { state: string }).state !== 'waiting').map(n => {
     const { side, state } = n.data as { side: ChipSide; state: string };
     return {
       id: `thread:${n.id}`,
