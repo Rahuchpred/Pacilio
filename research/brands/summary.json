@@ -1,0 +1,207 @@
+{
+  "ramp": {
+    "mode": "light",
+    "colors": {
+      "accent": "#e4f222",
+      "background": "#ffffff",
+      "text": "#0c0a08"
+    },
+    "h1": {
+      "fontFamily": "Lausanne",
+      "fontSize": "64px",
+      "fontWeight": 400,
+      "lineHeight": "64px",
+      "letterSpacing": "-0.01px",
+      "fontFallbacks": [
+        "Lausanne",
+        "Arial",
+        "sans-serif"
+      ]
+    },
+    "p": {
+      "fontFamily": "Lausanne",
+      "fontSize": "16px",
+      "fontWeight": 400,
+      "lineHeight": "24px",
+      "letterSpacing": "0px",
+      "fontFallbacks": [
+        "Lausanne",
+        "Arial",
+        "sans-serif"
+      ]
+    },
+    "spacing": {
+      "xs": "4px",
+      "sm": "12px",
+      "md": "20px",
+      "lg": "32px",
+      "xl": "128px"
+    },
+    "buttonPrimary": {
+      "backgroundColor": "#1a1919",
+      "color": "#ffffff",
+      "borderRadius": "6px",
+      "padding": "12px 16px",
+      "fontSize": "14px",
+      "fontWeight": 400
+    },
+    "brandColors": [
+      {
+        "hex": "#e4f222",
+        "name": "Herbery Honey",
+        "source": "site"
+      },
+      {
+        "hex": "#747c1c",
+        "name": "Pacifika",
+        "source": "logo"
+      },
+      {
+        "hex": "#2d2d17",
+        "name": "Metal Construction Green",
+        "source": "logo"
+      },
+      {
+        "hex": "#040404",
+        "name": "Armor Wash",
+        "source": "logo"
+      }
+    ]
+  },
+  "stripe": {
+    "mode": "light",
+    "colors": {
+      "accent": "#533afd",
+      "background": "#ffffff",
+      "text": "#000eff"
+    },
+    "h1": {
+      "fontFamily": "sohne-var",
+      "fontSize": "48px",
+      "fontWeight": 300,
+      "lineHeight": "55.2px",
+      "letterSpacing": "-0.96px",
+      "fontFallbacks": [
+        "sohne-var",
+        "SF Pro Display",
+        "sans-serif"
+      ]
+    },
+    "p": {
+      "fontFamily": "sohne-var",
+      "fontSize": "14px",
+      "fontWeight": 300,
+      "lineHeight": "35.2px",
+      "letterSpacing": "-0.64px",
+      "fontFallbacks": [
+        "sohne-var",
+        "SF Pro Display",
+        "sans-serif"
+      ]
+    },
+    "spacing": {
+      "xs": "6px",
+      "sm": "14px",
+      "md": "24px",
+      "lg": "36px",
+      "xl": "80px"
+    },
+    "buttonPrimary": {
+      "backgroundColor": "#533afd",
+      "color": "#ffffff",
+      "borderRadius": "4px",
+      "padding": "15.5px 24px 16.5px",
+      "fontSize": "16px",
+      "fontWeight": 400
+    },
+    "brandColors": [
+      {
+        "hex": "#533afd",
+        "name": "Meteor Shower",
+        "source": "site"
+      },
+      {
+        "hex": "#ae9cfc",
+        "name": "Shy Moment",
+        "source": "logo"
+      },
+      {
+        "hex": "#040404",
+        "name": "Armor Wash",
+        "source": "logo"
+      }
+    ]
+  },
+  "mercury": {
+    "mode": "dark",
+    "colors": {
+      "accent": "#5266eb",
+      "background": "#171721",
+      "text": "#ededf3"
+    },
+    "h1": {
+      "fontFamily": "arcadiaDisplay",
+      "fontSize": "62px",
+      "fontWeight": 480,
+      "lineHeight": "68.369px",
+      "letterSpacing": "0px",
+      "fontFallbacks": [
+        "arcadiaDisplay",
+        "arcadiaDisplay Fallback"
+      ]
+    },
+    "p": {
+      "fontFamily": "arcadia",
+      "fontSize": "16px",
+      "fontWeight": 400,
+      "lineHeight": "24px",
+      "letterSpacing": "0.24px",
+      "fontFallbacks": [
+        "arcadia",
+        "arcadia Fallback"
+      ]
+    },
+    "spacing": {
+      "xs": "8px",
+      "sm": "16px",
+      "md": "24px",
+      "lg": "40px",
+      "xl": "112px"
+    },
+    "buttonPrimary": {
+      "backgroundColor": "#5266eb",
+      "color": "#ffffff",
+      "borderRadius": "32px",
+      "padding": "12px 20px",
+      "fontSize": "16px",
+      "fontWeight": 420
+    },
+    "brandColors": [
+      {
+        "hex": "#5266eb",
+        "name": "Flickering Sea",
+        "source": "site"
+      },
+      {
+        "hex": "#171721",
+        "name": "River Styx",
+        "source": "site"
+      },
+      {
+        "hex": "#7c7c86",
+        "name": "Silver Surfer",
+        "source": "logo"
+      },
+      {
+        "hex": "#31313f",
+        "name": "Parisian Night",
+        "source": "logo"
+      },
+      {
+        "hex": "#ececf3",
+        "name": "Silver Phoenix",
+        "source": "logo"
+      }
+    ]
+  }
+}
