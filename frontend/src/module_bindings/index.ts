@@ -44,6 +44,7 @@ import DeleteEdgeReducer from "./delete_edge_reducer";
 import DeleteNodeReducer from "./delete_node_reducer";
 import MoveCursorReducer from "./move_cursor_reducer";
 import MoveNodeReducer from "./move_node_reducer";
+import MovePipelineNodeReducer from "./move_pipeline_node_reducer";
 import PauseInboundReducer from "./pause_inbound_reducer";
 import RecordPaymentReducer from "./record_payment_reducer";
 import RenameNodeReducer from "./rename_node_reducer";
@@ -69,6 +70,7 @@ import EdgeRow from "./edge_table";
 import InboundEventRow from "./inbound_event_table";
 import InboundSourceStatusRow from "./inbound_source_status_table";
 import NodeRow from "./node_table";
+import PipelineLayoutRow from "./pipeline_layout_table";
 import UserRow from "./user_table";
 
 /** Type-only namespace exports for generated type groups. */
@@ -195,6 +197,17 @@ const tablesSchema = __schema({
       { name: 'node_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, NodeRow),
+  pipelineLayout: __table({
+    name: 'pipeline_layout',
+    indexes: [
+      { accessor: 'nodeId', name: 'pipeline_layout_node_id_idx_btree', algorithm: 'btree', columns: [
+        'nodeId',
+      ] },
+    ],
+    constraints: [
+      { name: 'pipeline_layout_node_id_key', constraint: 'unique', columns: ['nodeId'] },
+    ],
+  }, PipelineLayoutRow),
   user: __table({
     name: 'user',
     indexes: [
@@ -220,6 +233,7 @@ const reducersSchema = __reducers(
   __reducerSchema("delete_node", DeleteNodeReducer),
   __reducerSchema("move_cursor", MoveCursorReducer),
   __reducerSchema("move_node", MoveNodeReducer),
+  __reducerSchema("move_pipeline_node", MovePipelineNodeReducer),
   __reducerSchema("pause_inbound", PauseInboundReducer),
   __reducerSchema("record_payment", RecordPaymentReducer),
   __reducerSchema("rename_node", RenameNodeReducer),

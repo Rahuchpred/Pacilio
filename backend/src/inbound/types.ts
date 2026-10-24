@@ -1,3 +1,4 @@
+import type { Random } from 'spacetimedb/server';
 import type { Http } from '../droid/factory';
 
 // Normalized shape every source emits, whatever API it came from.
@@ -50,6 +51,8 @@ export interface SourceContext {
   // Read this database, for sources backed by our own tables. The callback
   // gets the transaction context; sources cast it to the schema's ctx type.
   withTx<T>(fn: (tx: unknown) => T): T;
+  // SpacetimeDB's seeded RNG, for simulations
+  random: Random;
 }
 
 export interface PollResult {
@@ -68,6 +71,12 @@ export interface Source {
   // Env keys that must be set for this source to run
   readonly requiredEnv: string[];
   poll(ctx: SourceContext, state: string, limit: number): PollResult;
+  // While running, create fresh activity in the source system before polling
+  // (a sale, a bill, a deposit). Returns the source's updated state; keep its
+  // own keys under `sim` so they don't collide with poll's.
+  simulate?(ctx: SourceContext, state: string): string;
+  // Chance per tick (every 5s) that simulate runs
+  readonly simulateChance?: number;
 }
 
 // ─── Shared helpers for sources ─────────────────────────────────────────────

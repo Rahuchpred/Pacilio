@@ -1,6 +1,8 @@
+import { Timestamp } from 'spacetimedb';
 import type { InferSchema, ReducerCtx } from 'spacetimedb/server';
 import type spacetimedb from '../../index';
-import { parseState, type InboundEventDraft, type Source } from '../types';
+import { SHOW, SPONSORS, VENDORS, addDays, amountBetween, pick } from '../simulation';
+import { parseState, type InboundEventDraft, type Source, type SourceContext } from '../types';
 
 // Our mock accounting system (backend/src/accounting): bills, invoices and the
 // payments booked against them. Read straight from this database, no HTTP.
@@ -19,6 +21,87 @@ function describe(lines: Line[], memo: string): string {
   return lines.map(l => l.description).join('; ') || memo;
 }
 
+// ─── Simulation ─────────────────────────────────────────────────────────────
+
+const initials = (name: string) => name.split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 3);
+
+function simulateLedger(ctx: SourceContext): void {
+  const now = ctx.now();
+  const roll = ctx.random();
+  ctx.withTx(raw => {
+    const tx = raw as Ctx;
+    const openBills = [...tx.db.accountingBill.iter()].filter(b => b.balanceMinor > 0n);
+    const openInvoices = [...tx.db.accountingInvoice.iter()].filter(i => i.balanceMinor > 0n);
+    const open = [
+      ...openBills.map(doc => ({ docType: 'bill' as const, doc })),
+      ...openInvoices.map(doc => ({ docType: 'invoice' as const, doc })),
+    ];
+
+    // Settle something that's open: usually in full, sometimes half now
+    if (roll < 0.35 && open.length) {
+      const { docType, doc } = pick(ctx.random, open);
+      const full = ctx.random() < 0.8;
+      const amount = full ? doc.balanceMinor : doc.balanceMinor / 2n;
+      const balanceMinor = doc.balanceMinor - amount;
+      const status = balanceMinor === 0n ? 'paid' : 'open';
+      if (docType === 'bill') tx.db.accountingBill.id.update({ ...doc, balanceMinor, status } as typeof openBills[number]);
+      else tx.db.accountingInvoice.id.update({ ...doc, balanceMinor, status } as typeof openInvoices[number]);
+      tx.db.accountingPayment.insert({
+        id: 0n,
+        docType,
+        docId: doc.id,
+        amountMinor: amount,
+        paidAt: tx.timestamp,
+        method: docType === 'bill' ? pick(ctx.random, ['ach', 'card', 'check']) : 'ach',
+        reference: full ? '' : 'Partial payment',
+      });
+      return;
+    }
+
+    const docNumber = (prefix: string) => `${prefix}-${ctx.random.integerInRange(1000, 9999)}`;
+    const base = {
+      id: 0n,
+      txnDate: Timestamp.fromDate(now),
+      currency: 'USD',
+      status: 'open',
+      createdAt: tx.timestamp,
+    };
+
+    // A sponsor invoice now and then; otherwise a vendor bill for the show
+    if (roll < 0.55) {
+      const sponsor = pick(ctx.random, SPONSORS);
+      const total = BigInt(amountBetween(ctx.random, sponsor.min, sponsor.max));
+      tx.db.accountingInvoice.insert({
+        ...base,
+        customer: sponsor.name,
+        docNumber: docNumber('INV'),
+        dueDate: Timestamp.fromDate(addDays(now, 30)),
+        lines: [{ description: `${sponsor.item} - ${SHOW}`, amountMinor: total }],
+        totalMinor: total,
+        balanceMinor: total,
+        memo: 'Net 30',
+      });
+      return;
+    }
+
+    const vendor = pick(ctx.random, VENDORS);
+    const main = BigInt(amountBetween(ctx.random, vendor.min, vendor.max));
+    const lines = [{ description: `${vendor.item} - ${SHOW}`, amountMinor: main }];
+    if (ctx.random() < 0.3) lines.push({ description: 'Delivery and setup', amountMinor: BigInt(amountBetween(ctx.random, 5_000, 20_000)) });
+    const total = lines.reduce((sum, l) => sum + l.amountMinor, 0n);
+    tx.db.accountingBill.insert({
+      ...base,
+      vendor: vendor.name,
+      docNumber: docNumber(initials(vendor.name)),
+      dueDate: Timestamp.fromDate(addDays(now, ctx.random() < 0.5 ? 15 : 30)),
+      lines,
+      totalMinor: total,
+      balanceMinor: total,
+      memo: 'Net 15/30',
+    });
+  });
+}
+
 export const ledger: Source = {
   name: 'ledger',
   requiredEnv: [],
@@ -28,6 +111,13 @@ export const ledger: Source = {
     typoRate: 0.2,
     typoFields: ['counterparty', 'description', 'reference'],
     duplicateRate: 0.1,
+  },
+  simulateChance: 0.5,
+
+  // Bills arrive from vendors, invoices go to sponsors, open ones get paid
+  simulate(ctx, state) {
+    simulateLedger(ctx);
+    return state;
   },
 
   poll(ctx, rawState, limit) {

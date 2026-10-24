@@ -79,6 +79,15 @@ function rawJson(raw: unknown): string {
   return json.length > MAX_RAW_CHARS ? `${json.slice(0, MAX_RAW_CHARS)}…` : json;
 }
 
+// Simulation and polling each keep their own keys in the same state blob
+function mergeState(before: string, after: string): string {
+  try {
+    return JSON.stringify({ ...JSON.parse(before || '{}'), ...JSON.parse(after || '{}') });
+  } catch {
+    return after;
+  }
+}
+
 function message(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
@@ -115,6 +124,16 @@ export function inbound(stdb: Schema) {
     const row = sourceRow(ctx, requireSource(name));
     ctx.db.inboundSource.name.update({ ...row, state: '' });
   });
+
+  // Someone dragged a pipeline node; everyone sees it move.
+  const movePipelineNode = stdb.reducer(
+    { nodeId: t.string(), x: t.f64(), y: t.f64() },
+    (ctx, { nodeId, x, y }) => {
+      if (!nodeId.startsWith('pipeline:')) throw new SenderError('Not a pipeline node');
+      if (ctx.db.pipelineLayout.nodeId.find(nodeId)) ctx.db.pipelineLayout.nodeId.update({ nodeId, x, y });
+      else ctx.db.pipelineLayout.insert({ nodeId, x, y });
+    }
+  );
 
   // ─── Whole-pipeline controls (the UI's Run / Pause / Restart) ─────────────
 
@@ -172,6 +191,7 @@ export function inbound(stdb: Schema) {
         env,
         now: () => ctx.timestamp.toDate(),
         withTx: fn => ctx.withTx(tx => fn(tx)),
+        random: ctx.random,
       };
 
       for (const row of rows) {
@@ -186,18 +206,33 @@ export function inbound(stdb: Schema) {
           continue;
         }
 
+        // Create fresh activity in the source system first (a sale, a bill…)
+        let simulated = row.state;
+        let simError: string | undefined;
+        if (source.simulate && ctx.random() < (source.simulateChance ?? 1)) {
+          try {
+            simulated = source.simulate(sourceCtx, row.state);
+          } catch (err) {
+            simError = `Simulation: ${message(err)}`;
+          }
+        }
+
         let drafts: InboundEventDraft[];
         let state: string;
         try {
-          ({ events: drafts, state } = source.poll(sourceCtx, row.state, row.maxPerTick));
+          const polled = source.poll(sourceCtx, simulated, row.maxPerTick);
+          drafts = polled.events;
+          state = mergeState(simulated, polled.state);
         } catch (err) {
-          ctx.withTx(tx =>
+          ctx.withTx(tx => {
+            const current = tx.db.inboundSource.name.find(row.name);
+            if (current) tx.db.inboundSource.name.update({ ...current, state: simulated });
             updateStatus(tx, row.name, {
               configured: true,
               lastPolledAt: tx.timestamp,
               lastError: message(err),
-            })
-          );
+            });
+          });
           continue;
         }
 
@@ -250,7 +285,7 @@ export function inbound(stdb: Schema) {
               configured: true,
               emitted: emitted + BigInt(ids.length),
               lastPolledAt: tx.timestamp,
-              lastError: undefined,
+              lastError: simError,
             });
           });
         } catch (err) {
@@ -267,6 +302,7 @@ export function inbound(stdb: Schema) {
     setInboundSource,
     configureInboundSource,
     resetInboundSource,
+    movePipelineNode,
     runInbound,
     pauseInbound,
     restartInbound,

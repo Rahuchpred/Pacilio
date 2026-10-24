@@ -58,6 +58,7 @@ export const {
   setInboundSource,
   configureInboundSource,
   resetInboundSource,
+  movePipelineNode,
   runInbound,
   pauseInbound,
   restartInbound,

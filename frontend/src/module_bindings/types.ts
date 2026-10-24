@@ -185,6 +185,13 @@ export const Node = __t.object("Node", {
 });
 export type Node = __Infer<typeof Node>;
 
+export const PipelineLayout = __t.object("PipelineLayout", {
+  nodeId: __t.string(),
+  x: __t.f64(),
+  y: __t.f64(),
+});
+export type PipelineLayout = __Infer<typeof PipelineLayout>;
+
 export const User = __t.object("User", {
   identity: __t.identity(),
   name: __t.string(),

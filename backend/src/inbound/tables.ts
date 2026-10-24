@@ -72,7 +72,18 @@ export const inboundTickSchedule = table(
   }
 );
 
+// Where each pipeline node sits on the shared board; absent = default layout.
+export const pipelineLayout = table(
+  { name: 'pipeline_layout', public: true },
+  {
+    nodeId: t.string().primaryKey(),
+    x: t.f64(),
+    y: t.f64(),
+  }
+);
+
 export const inboundTables = {
+  pipelineLayout,
   inboundEvent,
   inboundLabel,
   inboundSource,

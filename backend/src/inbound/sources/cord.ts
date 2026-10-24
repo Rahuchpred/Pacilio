@@ -1,7 +1,9 @@
 import { getJson, parseState, queryString, type Source } from '../types';
 
 // Receipt documents from the CORD dataset (naver-clova-ix/cord-v2), replayed
-// a few at a time. Receipts are Indonesian (IDR) and have no merchant or date.
+// a few at a time. Receipts are Indonesian and have no merchant or date.
+// Their rupiah figures are read as dollars and cents (45,500 → $45.50) so they
+// sit at believable sizes next to the USD sources; the original is kept in raw.
 // The train split is too large for the rows API, so we use validation + test.
 const ROWS_URL = 'https://datasets-server.huggingface.co/rows';
 const SPLITS = ['validation', 'test'];
@@ -20,6 +22,19 @@ interface Row {
   row_idx: number;
   row: { image: { src: string }; ground_truth: string };
 }
+
+// CORD receipts carry no store name. Each one is assigned a merchant from this
+// fictional list (food runs for crew and artists), fixed by its row number.
+const MERCHANTS = [
+  'Mission Corner Cafe',
+  'Embarcadero Bakery',
+  'Fillmore Street Deli',
+  'Hayes Valley Market',
+  'Sunset Noodle House',
+  'Castro Coffee Co',
+  'Dogpatch Dumplings',
+  'North Beach Pizzeria',
+];
 
 const first = (v: Field): string => (Array.isArray(v) ? v[0] : v) ?? '';
 
@@ -78,12 +93,12 @@ export const cord: Source = {
           sourceId: `${split}:${row_idx}`,
           kind: 'receipt' as const,
           occurredAt: ctx.now(),
-          amountMinor: -receiptTotal(gt, menu),
-          currency: 'IDR',
-          counterparty: 'Unknown merchant',
+          amountMinor: -(receiptTotal(gt, menu) / 10n),
+          currency: 'USD',
+          counterparty: MERCHANTS[(state.split * 100 + row_idx) % MERCHANTS.length],
           description: items || 'Receipt',
           documentUrl: row.image.src,
-          raw: gt,
+          raw: { ...gt, originalCurrency: 'IDR', originalTotal: String(receiptTotal(gt, menu)), merchantAssigned: true },
         };
       }),
       state: JSON.stringify(next),

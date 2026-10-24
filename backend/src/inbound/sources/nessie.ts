@@ -1,12 +1,15 @@
 import {
+  SourceError,
   getJson,
   queryString,
   parseState,
+  requestJson,
   toMinor,
   type InboundEventDraft,
   type Source,
   type SourceContext,
 } from '../types';
+import { SHOW, VENDORS, addDays, amountBetween, isoDate, pick } from '../simulation';
 
 // Capital One's hackathon bank (https://api.nessieisreal.com, HTTPS only).
 // Covers every account under the API key: purchases, deposits, withdrawals,
@@ -82,12 +85,116 @@ function memo(t: Txn): string {
   return [t.description, t.medium, t.status].filter(Boolean).join(' · ');
 }
 
+// ─── Simulation ─────────────────────────────────────────────────────────────
+
+interface NessieSim {
+  operatingId?: string;
+  payrollId?: string;
+  // Vendor name → Nessie merchant id, created on first use
+  merchantIds: Record<string, string>;
+}
+
+// Nessie accepts records missing fields its own list endpoints require, which
+// then breaks those lists for good. Every body below sends the full set.
+function nessiePost(ctx: SourceContext, path: string, body: object): string {
+  const qs = queryString({ key: ctx.env('NESSIE_API_KEY') });
+  const res = requestJson<{ objectCreated?: { _id?: string; id?: string } }>(
+    ctx,
+    'POST',
+    `${BASE_URL}${path}?${qs}`,
+    { 'Content-Type': 'application/json' },
+    JSON.stringify(body)
+  );
+  return res.objectCreated?._id ?? res.objectCreated?.id ?? '';
+}
+
+function merchantId(ctx: SourceContext, sim: NessieSim, vendor: (typeof VENDORS)[number]): string {
+  if (!sim.merchantIds[vendor.name]) {
+    sim.merchantIds[vendor.name] = nessiePost(ctx, '/merchants', {
+      name: vendor.name,
+      category: vendor.category,
+      address: { street_number: '1', street_name: 'Market St', city: 'San Francisco', state: 'CA', zip: '94103' },
+      geocode: { lat: 37.77, lng: -122.41 },
+    });
+  }
+  return sim.merchantIds[vendor.name];
+}
+
+const dollars = (cents: number) => cents / 100;
+
 export const nessie: Source = {
   name: 'nessie',
   requiredEnv: ['NESSIE_API_KEY'],
   defaultMaxPerTick: 20,
   // Emitted as Nessie reports it, no injected errors
   defaultProfile: { typoRate: 0, typoFields: [], duplicateRate: 0 },
+  simulateChance: 0.6,
+
+  // The promoter's operating account: paying vendors, banking payouts,
+  // pulling a cash float, running payroll and scheduling bills
+  simulate(ctx, rawState) {
+    const full = parseState<{ sim?: NessieSim }>(rawState, {});
+    const sim: NessieSim = { merchantIds: {}, ...full.sim };
+
+    if (!sim.operatingId) {
+      const accounts = list<Account>(ctx, '/accounts');
+      const operating = accounts.find(a => a.nickname === 'Operating') ?? accounts[0];
+      if (!operating) throw new SourceError('No Nessie account to simulate on; create one first');
+      sim.operatingId = operating._id;
+      sim.payrollId = accounts.find(a => a.nickname === 'Payroll')?._id;
+    }
+
+    const base = `/accounts/${sim.operatingId}`;
+    const today = isoDate(ctx.now());
+    const roll = ctx.random();
+    const vendor = pick(ctx.random, VENDORS);
+
+    if (roll < 0.5) {
+      nessiePost(ctx, `${base}/purchases`, {
+        merchant_id: merchantId(ctx, sim, vendor),
+        medium: 'balance',
+        status: 'completed',
+        purchase_date: today,
+        amount: dollars(amountBetween(ctx.random, vendor.min, vendor.max)),
+        description: `${vendor.item} - ${SHOW}`,
+      });
+    } else if (roll < 0.65) {
+      const fromStripe = ctx.random() < 0.7;
+      nessiePost(ctx, `${base}/deposits`, {
+        medium: 'balance',
+        status: 'completed',
+        transaction_date: today,
+        amount: dollars(amountBetween(ctx.random, fromStripe ? 100_000 : 30_000, fromStripe ? 800_000 : 150_000)),
+        description: fromStripe ? 'STRIPE PAYOUT' : 'BOX OFFICE CASH DEPOSIT',
+      });
+    } else if (roll < 0.75) {
+      nessiePost(ctx, `${base}/withdrawals`, {
+        medium: 'balance',
+        status: 'completed',
+        transaction_date: today,
+        amount: dollars(amountBetween(ctx.random, 20_000, 60_000)),
+        description: 'Cash for box office float',
+      });
+    } else if (roll < 0.87) {
+      nessiePost(ctx, `${base}/transfers`, {
+        status: 'completed',
+        transaction_date: today,
+        amount: dollars(amountBetween(ctx.random, 150_000, 400_000)),
+        description: `Crew payroll - ${SHOW}`,
+      });
+    } else {
+      nessiePost(ctx, `${base}/bills`, {
+        status: 'pending',
+        payee: vendor.name,
+        nickname: `${vendor.item} invoice`,
+        payment_date: isoDate(addDays(ctx.now(), ctx.random.integerInRange(7, 21))),
+        recurring_date: 1,
+        payment_amount: dollars(amountBetween(ctx.random, vendor.min, vendor.max)),
+      });
+    }
+
+    return JSON.stringify({ ...full, sim });
+  },
 
   poll(ctx, rawState, limit) {
     const state = parseState<NessieState>(rawState, { seen: [], merchants: {} });

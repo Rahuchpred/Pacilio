@@ -12,13 +12,14 @@ export const FEED_NODE_ID = 'pipeline:feed';
 export const sourceNodeId = (name: string) => `pipeline:${name}`;
 export const isPipelineId = (id: string) => id.startsWith('pipeline:');
 
-// Separate cards with clear space between them, wired into one feed
+// Default layout: separate cards with clear space, wired into one feed.
+// Positions people drag to are shared through the pipeline_layout table.
 const SOURCE_X = 0;
 const SOURCE_GAP_Y = 200;
 const FEED_X = 620;
 const FEED_Y = 40;
 
-const fixed = { draggable: false, deletable: false, connectable: false, selectable: false };
+const fixed = { deletable: false, connectable: false, selectable: false };
 
 export const PIPELINE_NODES: Node[] = [
   ...SOURCES.map((source, i) => ({

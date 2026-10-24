@@ -1,4 +1,5 @@
-import { getJson, last, parseState, queryString, type Source } from '../types';
+import { getJson, last, parseState, queryString, requestJson, type Source, type SourceContext } from '../types';
+import { SHOW, TICKETS, pickWeighted } from '../simulation';
 
 // Payment processor: charges, refunds, fees and payouts in one ledger.
 // Uses a test-mode secret key (sk_test_...).
@@ -16,11 +17,57 @@ interface BalanceTransaction {
   source: string | null;
 }
 
+function stripePost<T>(ctx: SourceContext, path: string, form: Record<string, string | number>): T {
+  return requestJson<T>(
+    ctx,
+    'POST',
+    `${BASE_URL}${path}`,
+    {
+      Authorization: `Bearer ${ctx.env('STRIPE_SECRET_KEY')}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    queryString(form)
+  );
+}
+
+// Stripe test cards: bypassPending settles at once, createDispute is charged back
+const CARD_OK = 'pm_card_bypassPending';
+const CARD_DISPUTED = 'pm_card_createDispute';
+
 export const stripe: Source = {
   name: 'stripe',
   requiredEnv: ['STRIPE_SECRET_KEY'],
   defaultMaxPerTick: 20,
   defaultProfile: { typoRate: 0, typoFields: [], duplicateRate: 0.03 },
+  simulateChance: 0.8,
+
+  // Ticket buyers checking out: mostly sales, now and then a refund or a dispute
+  simulate(ctx, state) {
+    const roll = ctx.random();
+    if (roll < 0.08) {
+      const recent = getJson<{ data: { id: string; refunded: boolean; amount: number }[] }>(
+        ctx,
+        `${BASE_URL}/charges?limit=10`,
+        { Authorization: `Bearer ${ctx.env('STRIPE_SECRET_KEY')}` }
+      ).data.filter(c => !c.refunded);
+      if (recent.length) {
+        const charge = recent[ctx.random.integerInRange(0, recent.length - 1)];
+        stripePost(ctx, '/refunds', { charge: charge.id, reason: 'requested_by_customer' });
+        return state;
+      }
+    }
+    const ticket = pickWeighted(ctx.random, TICKETS);
+    const quantity = ticket.cents >= 10_000 ? 1 : ctx.random.integerInRange(1, 4);
+    stripePost(ctx, '/payment_intents', {
+      amount: ticket.cents * quantity,
+      currency: 'usd',
+      payment_method: roll > 0.97 ? CARD_DISPUTED : CARD_OK,
+      'payment_method_types[]': 'card',
+      confirm: 'true',
+      description: `${quantity}x ${ticket.name} - ${SHOW}`,
+    });
+    return state;
+  },
 
   poll(ctx, rawState, limit) {
     const state = parseState(rawState, { since: 0 });

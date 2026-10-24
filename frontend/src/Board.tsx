@@ -28,6 +28,7 @@ export function Board() {
   const [nodeRows] = useTable(tables.node);
   const [edgeRows] = useTable(tables.edge);
   const [sourceStatuses] = useTable(tables.inboundSourceStatus);
+  const [layoutRows] = useTable(tables.pipelineLayout);
 
   const moveNode = useReducer(reducers.moveNode);
   const renameNode = useReducer(reducers.renameNode);
@@ -35,12 +36,13 @@ export function Board() {
   const addEdge = useReducer(reducers.addEdge);
   const deleteEdge = useReducer(reducers.deleteEdge);
   const moveCursor = useReducer(reducers.moveCursor);
+  const movePipelineNode = useReducer(reducers.movePipelineNode);
 
   const { screenToFlowPosition } = useReactFlow();
 
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
-  // The inbound pipeline is a fixed local layout; only shared nodes sync
+  // Pipeline nodes keep their default layout until someone drags them
   const [pipelineNodes, setPipelineNodes] = useState<Node[]>(PIPELINE_NODES);
   const allNodes = useMemo(() => [...pipelineNodes, ...nodes], [pipelineNodes, nodes]);
   const allEdges = useMemo(() => {
@@ -69,6 +71,15 @@ export function Board() {
   }, [nodeRows]);
 
   useEffect(() => {
+    setPipelineNodes(prev =>
+      prev.map(n => {
+        const row = layoutRows.find(r => r.nodeId === n.id);
+        return row && !n.dragging ? { ...n, position: { x: row.x, y: row.y } } : n;
+      })
+    );
+  }, [layoutRows]);
+
+  useEffect(() => {
     setEdges(prev => {
       const local = new Map(prev.map(e => [e.id, e]));
       return edgeRows.map(row => {
@@ -91,6 +102,14 @@ export function Board() {
     [moveNode]
   );
 
+  const sendPipelinePosition = useMemo(
+    () =>
+      throttle((nodeId: string, x: number, y: number) => {
+        movePipelineNode({ nodeId, x, y }).catch(logError);
+      }, SYNC_INTERVAL_MS),
+    [movePipelineNode]
+  );
+
   const sendCursor = useMemo(
     () =>
       throttle((x: number, y: number) => {
@@ -102,7 +121,13 @@ export function Board() {
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
       const isPipelineChange = (c: NodeChange) => 'id' in c && isPipelineId(c.id);
-      setPipelineNodes(prev => applyNodeChanges(changes.filter(isPipelineChange), prev));
+      const pipelineChanges = changes.filter(isPipelineChange);
+      setPipelineNodes(prev => applyNodeChanges(pipelineChanges, prev));
+      for (const change of pipelineChanges) {
+        if (change.type === 'position' && change.dragging && change.position) {
+          sendPipelinePosition(change.id, change.position.x, change.position.y);
+        }
+      }
       changes = changes.filter(c => !isPipelineChange(c));
       setNodes(prev => applyNodeChanges(changes, prev));
       for (const change of changes) {
@@ -111,7 +136,7 @@ export function Board() {
         }
       }
     },
-    [sendNodePosition]
+    [sendNodePosition, sendPipelinePosition]
   );
 
   const onEdgesChange = useCallback((changes: EdgeChange[]) => {
@@ -122,13 +147,13 @@ export function Board() {
   // Send exact final positions so the throttle can't drop the drop point.
   const onNodeDragStop: OnNodeDrag = useCallback(
     (_event, _node, dragged) => {
-      for (const n of dragged.filter(n => !isPipelineId(n.id))) {
-        moveNode({ id: BigInt(n.id), x: n.position.x, y: n.position.y }).catch(
-          logError
-        );
+      for (const n of dragged) {
+        const { x, y } = n.position;
+        if (isPipelineId(n.id)) movePipelineNode({ nodeId: n.id, x, y }).catch(logError);
+        else moveNode({ id: BigInt(n.id), x, y }).catch(logError);
       }
     },
-    [moveNode]
+    [moveNode, movePipelineNode]
   );
 
   const onConnect = useCallback(
