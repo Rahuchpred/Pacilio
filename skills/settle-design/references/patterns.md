@@ -8,15 +8,13 @@ Each pattern is live on the docs site (`npm --prefix design-system run dev`) and
 - Footer: date · venue · capacity on the left, one decide Button on the right.
 - Only the row that needs a person uses Status kind="needs".
 
-## Needs your OK
-- The decide button is the only thing on screen in --color-action-decide. No colored edge bar on the card.
-- Head: Status kind="needs" + "Routed to <name>, <role>".
-- Title is a yes/no question that contains the amount.
-- Body explains the conflict between sources in two sentences.
-- Evidence: 2 to 4 Citations, each with source + short detail.
-- Confidence: percent + reason ("no precedent", "two sources disagree").
-- Actions: exactly one decide Button, then secondary, then quiet.
-- Foot: "Nothing posts until you answer."
+## Needs your OK (follows Glaze's "Book a table")
+- Head: who is asking (agent icon + "Settle agent") and, beside it, Status kind="needs" with "Waiting on <name>". Never a label above a title.
+- Message: one sentence that says why it is asking, with numbered Refs to the sources. Put the confidence in words: "I'm 62% sure ... so I'm asking first."
+- Facts: a hairline panel with a title and 2 to 4 key/value rows (amounts right aligned).
+- Foot of the facts panel (bg-sunken): the deadline left ("Held until settlement, 11:40 pm"), two buttons right: quiet then decide.
+- Sources: numbered list under a hairline, source in text-primary, detail in text-secondary.
+- No confidence bar, no colored edge, no third button.
 
 ## Settlement sheet
 - Columns: Line | Source | Set by | Amount (right aligned, Money).
@@ -28,7 +26,7 @@ Each pattern is live on the docs site (`npm --prefix design-system run dev`) and
 ## Dispute
 - Counterparty message: bg-sunken, name + role above.
 - Agent reply: canvas with hairline border, Icon "agent" + "Settle agent".
-- The reply must cite at least one source. Never apologize, never concede without a source.
+- The reply cites with numbered Refs. Never apologize, never concede without a source.
 - Actions under the thread: secondary "Send", quiet "Escalate to <controller>".
 
 ## Answer becomes policy

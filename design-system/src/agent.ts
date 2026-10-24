@@ -12,15 +12,13 @@ export const AGENT_NOTES: Record<string, string> = {
 - Then a list of at most 5 rows. Each row: plain label left, Status right.
 - Footer: date · venue · capacity on the left, one decide Button on the right.
 - Only the row that needs a person uses Status kind="needs".`,
-  escalation: `# Needs your OK
-- The decide button is the only thing on screen in --color-action-decide. No colored edge bar on the card.
-- Head: Status kind="needs" + "Routed to <name>, <role>".
-- Title is a yes/no question that contains the amount.
-- Body explains the conflict between sources in two sentences.
-- Evidence: 2 to 4 Citations, each with source + short detail.
-- Confidence: percent + reason ("no precedent", "two sources disagree").
-- Actions: exactly one decide Button, then secondary, then quiet.
-- Foot: "Nothing posts until you answer."`,
+  escalation: `# Needs your OK (follows Glaze's "Book a table")
+- Head: who is asking (agent icon + "Settle agent") and, beside it, Status kind="needs" with "Waiting on <name>". Never a label above a title.
+- Message: one sentence that says why it is asking, with numbered Refs to the sources. Put the confidence in words: "I'm 62% sure ... so I'm asking first."
+- Facts: a hairline panel with a title and 2 to 4 key/value rows (amounts right aligned).
+- Foot of the facts panel (bg-sunken): the deadline left ("Held until settlement, 11:40 pm"), two buttons right: quiet then decide.
+- Sources: numbered list under a hairline, source in text-primary, detail in text-secondary.
+- No confidence bar, no colored edge, no third button.`,
   sheet: `# Settlement sheet
 - Columns: Line | Source | Set by | Amount (right aligned, Money).
 - Every row has a Source icon + name and an Actor.
@@ -30,7 +28,7 @@ export const AGENT_NOTES: Record<string, string> = {
   dispute: `# Dispute
 - Counterparty message: bg-sunken, name + role above.
 - Agent reply: canvas with hairline border, Icon "agent" + "Settle agent".
-- The reply must cite at least one source. Never apologize, never concede without a source.
+- The reply cites with numbered Refs. Never apologize, never concede without a source.
 - Actions under the thread: secondary "Send", quiet "Escalate to <controller>".`,
   policy: `# Answer becomes policy
 - Show the rule change as a diff: removed lines in status-disputed, added lines in status-cleared, both on their soft backgrounds.
@@ -50,10 +48,9 @@ export const AGENT_NOTES: Record<string, string> = {
 - display/title use weight 300 and negative tracking.
 - Interface text is body (15/22) or small (13/18). Labels are 12/16 weight 500.`,
   money: `# Money
-- Always render through <Money value={n} />.
-- Cents at 0.72em, raised 0.28em. Negative uses U+2212 minus.
-- Sans with tabular figures. Never mono.
-- Right align in tables.`,
+- Always render through <Money value={n} />: plain, tabular figures, U+2212 minus.
+- Cents in tables and facts (cents default), whole dollars in sentences (cents={false}).
+- Never mono, never raised cents.`,
   space: `# Space and radius
 - Use --space-* only. Base unit 4px.
 - Controls radius 6, panels 10, sheets 14, status chips full.`,
@@ -90,9 +87,14 @@ Settle
 kinds: primary (ink), decide (signal, once per screen), secondary (hairline), quiet (text only)
 sizes: sm 32px, md 40px. Radius 6. Label is a verb phrase that says what happens.`,
   status: `# Status
-kinds: cleared, held, disputed, needs, agent. Pill radius, soft background, icon + label.`,
+kinds: cleared, held, disputed, needs, agent. Each theme draws it its own way:
+- Settle: glyph + word, no background (Glaze). needs uses an hourglass in ink.
+- Ramp: square tag (radius 4), no icon, tinted background; needs is a solid ink tag.
+- Stripe: tinted pill with the icon after the word.
+- Mercury: outlined pill in the state color, no icon.`,
   citation: `# Citation
-icon + source (weight 500) + detail (secondary). Fits on one line under a number.`,
+Ref: a small number after the claim, linking to #source-n.
+Source: numbered row under the text, source (text-primary) over detail (text-secondary).`,
   actor: `# Actor
 kinds: agent, rule, person. Icon + name. Used in tables and logs to show who set a value.`,
 };

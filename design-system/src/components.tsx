@@ -67,6 +67,7 @@ const paths = {
     </>
   ),
   download: <path d="M8 2.75v7M5 7l3 3 3-3M3 12.75h10" />,
+  hourglass: <path d="M4.5 2.5h7M4.5 13.5h7M5 2.5c0 3 6 3.5 6 5.5s-6 2.5-6 5.5M11 2.5c0 3-6 3.5-6 5.5s6 2.5 6 5.5" />,
 } as const;
 
 export type IconName = keyof typeof paths;
@@ -90,16 +91,13 @@ export function Icon({ name, size = 16 }: { name: IconName; size?: number }) {
   );
 }
 
-/* Money: dollars at full size, cents smaller and raised. Always tabular. */
-export function Money({ value, sign = false, tone }: { value: number; sign?: boolean; tone?: "neg" | "pos" }) {
-  const abs = Math.abs(value);
-  const [dollars, cents] = abs.toFixed(2).split(".");
-  const grouped = Number(dollars).toLocaleString("en-US");
-  const prefix = value < 0 ? "−" : sign ? "+" : "";
+/* Money: plain amounts with tabular figures and a true minus sign. */
+export function Money({ value, sign = false, cents = true }: { value: number; sign?: boolean; cents?: boolean }) {
+  const prefix = value < 0 ? "\u2212" : sign ? "+" : "";
+  const text = Math.abs(value).toLocaleString("en-US", { minimumFractionDigits: cents ? 2 : 0, maximumFractionDigits: cents ? 2 : 0 });
   return (
-    <span className={`money${tone ? " money-" + tone : ""}`}>
-      {prefix}${grouped}
-      <span className="money-cents">.{cents}</span>
+    <span className="money">
+      {prefix}${text}
     </span>
   );
 }
@@ -131,7 +129,7 @@ const statusIcon: Record<StatusKind, IconName> = {
   cleared: "check",
   held: "clock",
   disputed: "alert",
-  needs: "person",
+  needs: "hourglass",
   agent: "agent",
 };
 export function Status({ kind, children }: { kind: StatusKind; children: ReactNode }) {
@@ -143,14 +141,24 @@ export function Status({ kind, children }: { kind: StatusKind; children: ReactNo
   );
 }
 
-/* Citation: every number points back to the row, rule or person behind it. */
-export function Citation({ icon, source, detail }: { icon: IconName; source: string; detail: string }) {
+/* Ref: a numbered pointer inside a sentence. Source: the row it points to, listed under the text. */
+export function Ref({ n }: { n: number }) {
   return (
-    <span className="citation">
-      <Icon name={icon} size={14} />
-      <span className="citation-source">{source}</span>
-      <span className="citation-detail">{detail}</span>
-    </span>
+    <sup className="ref">
+      <a href={`#source-${n}`}>{n}</a>
+    </sup>
+  );
+}
+
+export function Source({ n, source, detail }: { n: number; source: string; detail: string }) {
+  return (
+    <li className="source" id={`source-${n}`}>
+      <span className="source-n">{n}</span>
+      <span className="source-body">
+        <span className="source-title">{source}</span>
+        <span className="source-detail">{detail}</span>
+      </span>
+    </li>
   );
 }
 
@@ -162,18 +170,5 @@ export function Actor({ kind, name }: { kind: "agent" | "rule" | "person"; name:
       <Icon name={icon} size={14} />
       {name}
     </span>
-  );
-}
-
-export function Confidence({ value, note }: { value: number; note: string }) {
-  return (
-    <div className="confidence" role="img" aria-label={`Confidence ${value} percent, ${note}`}>
-      <div className="confidence-track">
-        <div className="confidence-fill" style={{ width: `${value}%` }} />
-      </div>
-      <span className="confidence-label">
-        {value}% · {note}
-      </span>
-    </div>
   );
 }

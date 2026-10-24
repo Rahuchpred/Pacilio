@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useState } from "react";
 import tokens from "./tokens/tokens.json";
-import { Actor, Button, Citation, Confidence, Icon, Money, Status } from "./components";
+import { Actor, Button, Icon, Money, Ref, Source, Status } from "./components";
 import { AGENT_NOTES, INSTALL_PROMPT } from "./agent";
 
 type Mode = "human" | "agent";
@@ -192,40 +192,62 @@ export default function App() {
         <Section
           id="escalation"
           title="Needs your OK"
-          lede="The only colored surface in the product. It names who decides, shows the evidence and says what happens if nobody answers."
+          lede="Who is asking and why, the facts, a deadline and two choices. The decide button is the only color on screen."
           mode={mode}
         >
           <div className="stage">
             <article className="escalation">
               <div className="escalation-head">
-                <Status kind="needs">Needs your OK</Status>
-                <span className="escalation-route">Routed to M. Carter, controller</span>
+                <span className="escalation-who">
+                  <Icon name="agent" size={14} /> Settle agent
+                </span>
+                <Status kind="needs">Waiting on M. Carter</Status>
               </div>
-              <h3 className="escalation-title">
-                Keep the <Money value={4200} /> production charge against Low Tide Choir?
-              </h3>
-              <p className="escalation-body">
-                The rider caps production at <Money value={3500} />. A March 14 email from their tour manager asked for the extra lighting
-                rig at the artist's cost, which covers the other <Money value={700} />.
+              <p className="escalation-message">
+                The rider caps production at <Money value={3500} cents={false} />
+                <Ref n={1} />, but a March 14 email asked for the extra lighting rig at the artist's cost
+                <Ref n={2} />. I'm 62% sure the charge stands and there's no precedent for an override by email, so I'm asking first.
               </p>
-              <ul className="evidence">
-                <li>
-                  <Citation icon="doc" source="Contract §7.2" detail="Production capped at $3,500" />
-                </li>
-                <li>
-                  <Citation icon="mail" source="Email, Mar 14" detail="“Add the Mac Aura rig, bill to us”" />
-                </li>
-                <li>
-                  <Citation icon="bank" source="Vendor invoice #2291" detail="Lighting rig, $700.00" />
-                </li>
-              </ul>
-              <Confidence value={62} note="no precedent for rider overrides by email" />
-              <div className="escalation-actions">
-                <Button kind="decide">Keep the charge</Button>
-                <Button kind="secondary">Cap it at $3,500</Button>
-                <Button kind="quiet">Ask the tour manager</Button>
+              <div className="facts">
+                <p className="facts-title">Production charge, Low Tide Choir</p>
+                <dl className="facts-list">
+                  <div>
+                    <dt>Charged</dt>
+                    <dd>
+                      <Money value={4200} />
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Rider cap</dt>
+                    <dd>
+                      <Money value={3500} />
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Lighting rig</dt>
+                    <dd>
+                      <Money value={700} />
+                      <Ref n={3} />
+                    </dd>
+                  </div>
+                </dl>
+                <div className="facts-foot">
+                  <span className="facts-hold">Held until settlement, 11:40 pm</span>
+                  <div className="facts-actions">
+                    <Button kind="quiet" size="sm">
+                      Cap it at $3,500
+                    </Button>
+                    <Button kind="decide" size="sm">
+                      Keep the charge
+                    </Button>
+                  </div>
+                </div>
               </div>
-              <p className="escalation-foot">Nothing posts until you answer. Your answer becomes policy for the next show.</p>
+              <ol className="sources">
+                <Source n={1} source="Contract §7.2" detail="Production capped at $3,500" />
+                <Source n={2} source="Email from Dana Reyes, Mar 14" detail="Add the Mac Aura rig, bill it to us" />
+                <Source n={3} source="Vendor invoice #2291" detail="Lighting rig, $700.00" />
+              </ol>
             </article>
           </div>
         </Section>
@@ -294,13 +316,10 @@ export default function App() {
                   <Icon name="agent" size={14} /> Settle agent
                 </span>
                 <p>
-                  The rider cap is $3,500. On March 14 you asked us to add the Mac Aura rig and bill it to the artist. The vendor invoiced
-                  $700 for it, so the line is $4,200.
+                  The rider cap is $3,500
+                  <Ref n={1} />. On March 14 you asked us to add the Mac Aura rig and bill it to the artist
+                  <Ref n={2} />. The vendor invoiced $700 for it, so the line is $4,200.
                 </p>
-                <div className="msg-cites">
-                  <Citation icon="doc" source="Contract §7.2" detail="cap $3,500" />
-                  <Citation icon="mail" source="Email, Mar 14" detail="from dana@lowtide.band" />
-                </div>
               </div>
               <div className="msg-actions">
                 <Button kind="secondary" size="sm">
@@ -386,7 +405,7 @@ export default function App() {
           </div>
         </Section>
 
-        <Section id="money" title="Money" lede="Dollars full size, cents smaller and raised, always tabular so columns line up. Negative uses a true minus." mode={mode}>
+        <Section id="money" title="Money" lede="Plain amounts with tabular figures so columns line up. Cents in tables, whole dollars in sentences. Negative uses a true minus." mode={mode}>
           <div className="money-specimen">
             <span className="money-xl">
               <Money value={36876.4} />
@@ -395,7 +414,7 @@ export default function App() {
               <Money value={-9576} />
             </span>
             <span>
-              <Money value={700} sign />
+              <Money value={3500} cents={false} />
             </span>
           </div>
         </Section>
@@ -474,7 +493,7 @@ export default function App() {
           </div>
         </Section>
 
-        <Section id="status" title="Status" lede="Five states, each with an icon so color is never the only signal." mode={mode}>
+        <Section id="status" title="Status" lede="Each theme draws status its own way. Settle uses a glyph and a word, Ramp a square tag, Stripe a tinted pill with the icon after, Mercury an outlined pill." mode={mode}>
           <div className="row-wrap">
             <Status kind="cleared">Cleared</Status>
             <Status kind="held">Held</Status>
@@ -484,11 +503,17 @@ export default function App() {
           </div>
         </Section>
 
-        <Section id="citation" title="Citation" lede="The source of a number, small enough to sit under it and specific enough to open." mode={mode}>
-          <div className="row-wrap">
-            <Citation icon="doc" source="Contract §7.2" detail="cap $3,500" />
-            <Citation icon="bank" source="Bank, Oct 24" detail="deposit $58,824.00" />
-            <Citation icon="ticket" source="Ticketing" detail="1,912 scans" />
+        <Section id="citation" title="Citation" lede="A number in the sentence points to a source listed under it, the way Glaze cites an answer." mode={mode}>
+          <div className="stage">
+            <p className="escalation-message">
+              The bank deposit was $58,824
+              <Ref n={1} />, which matches 1,912 scans
+              <Ref n={2} /> after card fees.
+            </p>
+            <ol className="sources">
+              <Source n={1} source="Bank, Oct 24" detail="Deposit $58,824.00" />
+              <Source n={2} source="Ticketing report" detail="1,912 scans at doors" />
+            </ol>
           </div>
         </Section>
 
