@@ -14,7 +14,8 @@
   --color-text-tertiary: #646e86;
   --color-text-inverse: #ffffff;
   --color-border-default: #e4e8ef;
-  --color-border-strong: #c6ccd8;
+  --color-border-strong: #858c9d;
+  --color-border-control: #c6ccd8;
   --color-action-primary: #0f2350;
   --color-action-decide: #13295e;
   --color-text-on-decide: #ffffff;
@@ -40,7 +41,8 @@
     --color-text-tertiary: #8b94aa;
     --color-text-inverse: #0a0f1c;
     --color-border-default: #1f2840;
-    --color-border-strong: #2e3956;
+    --color-border-strong: #5e677e;
+    --color-border-control: #2e3956;
     --color-action-primary: #eef1f8;
     --color-action-decide: #2c4a8f;
     --color-text-on-decide: #ffffff;
@@ -66,7 +68,8 @@
   --color-text-tertiary: #8b94aa;
   --color-text-inverse: #0a0f1c;
   --color-border-default: #1f2840;
-  --color-border-strong: #2e3956;
+  --color-border-strong: #5e677e;
+  --color-border-control: #2e3956;
   --color-action-primary: #eef1f8;
   --color-action-decide: #2c4a8f;
   --color-text-on-decide: #ffffff;
@@ -98,7 +101,8 @@
   --color-text-tertiary: #77736a;
   --color-text-inverse: #ffffff;
   --color-border-default: #e6e3da;
-  --color-border-strong: #c9c5b9;
+  --color-border-strong: #8e8b82;
+  --color-border-control: #c9c5b9;
   --color-action-primary: #1a1919;
   --color-action-decide: #e4f222;
   --color-text-on-decide: #0c0a08;
@@ -124,7 +128,8 @@
     --color-text-tertiary: #8b8b91;
     --color-text-inverse: #0b0b0f;
     --color-border-default: #27272a;
-    --color-border-strong: #3a3a3e;
+    --color-border-strong: #656568;
+    --color-border-control: #3a3a3e;
     --color-action-primary: #f4f4f5;
     --color-action-decide: #e4f222;
     --color-text-on-decide: #0c0a08;
@@ -150,7 +155,8 @@
   --color-text-tertiary: #8b8b91;
   --color-text-inverse: #0b0b0f;
   --color-border-default: #27272a;
-  --color-border-strong: #3a3a3e;
+  --color-border-strong: #656568;
+  --color-border-control: #3a3a3e;
   --color-action-primary: #f4f4f5;
   --color-action-decide: #e4f222;
   --color-text-on-decide: #0c0a08;
@@ -241,7 +247,8 @@
   --color-text-tertiary: #5f6f80;
   --color-text-inverse: #ffffff;
   --color-border-default: #e3e8ee;
-  --color-border-strong: #c1c9d2;
+  --color-border-strong: #7f8e9d;
+  --color-border-control: #c1c9d2;
   --color-action-primary: #0a2540;
   --color-action-decide: #533afd;
   --color-text-on-decide: #ffffff;
@@ -267,7 +274,8 @@
     --color-text-tertiary: #8597ab;
     --color-text-inverse: #0b0b0f;
     --color-border-default: #1e3352;
-    --color-border-strong: #2d4566;
+    --color-border-strong: #596d87;
+    --color-border-control: #2d4566;
     --color-action-primary: #f6f9fc;
     --color-action-decide: #635bff;
     --color-text-on-decide: #ffffff;
@@ -293,7 +301,8 @@
   --color-text-tertiary: #8597ab;
   --color-text-inverse: #0b0b0f;
   --color-border-default: #1e3352;
-  --color-border-strong: #2d4566;
+  --color-border-strong: #596d87;
+  --color-border-control: #2d4566;
   --color-action-primary: #f6f9fc;
   --color-action-decide: #635bff;
   --color-text-on-decide: #ffffff;
@@ -325,7 +334,8 @@
   --color-text-tertiary: #71717f;
   --color-text-inverse: #ffffff;
   --color-border-default: #e6e6ee;
-  --color-border-strong: #c9c9d6;
+  --color-border-strong: #8c8c98;
+  --color-border-control: #c9c9d6;
   --color-action-primary: #171721;
   --color-action-decide: #5266eb;
   --color-text-on-decide: #ffffff;
@@ -351,7 +361,8 @@
     --color-text-tertiary: #8b8b9a;
     --color-text-inverse: #0b0b0f;
     --color-border-default: #31313f;
-    --color-border-strong: #44445a;
+    --color-border-strong: #6b6b7d;
+    --color-border-control: #44445a;
     --color-action-primary: #ededf3;
     --color-action-decide: #5266eb;
     --color-text-on-decide: #ffffff;
@@ -377,7 +388,8 @@
   --color-text-tertiary: #8b8b9a;
   --color-text-inverse: #0b0b0f;
   --color-border-default: #31313f;
-  --color-border-strong: #44445a;
+  --color-border-strong: #6b6b7d;
+  --color-border-control: #44445a;
   --color-action-primary: #ededf3;
   --color-action-decide: #5266eb;
   --color-text-on-decide: #ffffff;
@@ -419,6 +431,7 @@
     --color-border-default: #383838;
     --color-border-strong: #666666;
     --color-action-primary: #f5f5f5;
+    --color-border-control: #383838;
   }
 }
 :root[data-accent="orange"][data-theme="dark"] {
@@ -437,4 +450,5 @@
   --color-border-default: #383838;
   --color-border-strong: #666666;
   --color-action-primary: #f5f5f5;
+  --color-border-control: #383838;
 }

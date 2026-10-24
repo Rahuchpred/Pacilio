@@ -17,7 +17,7 @@ function ContrastTable() {
     ["status/held", "status/held-soft", "Held, on its tint", 4.5],
     ["status/disputed", "status/disputed-soft", "Disputed, on its tint", 4.5],
     ["text/inverse", "action/primary", "Label on the primary button", 4.5],
-    ["border/strong", "bg/canvas", "Control edges, needs 3:1", 3],
+    ["border/strong", "bg/canvas", "Switch, checkbox and focused field edges, needs 3:1", 3],
   ];
   return (
     <Table
@@ -87,7 +87,8 @@ const color: PageDef = {
           items={[
             ["text/secondary", "Labels, sources, meta"],
             ["text/tertiary", "Timestamps and footnotes only"],
-            ["border/strong", "Control edges and totals"],
+            ["border/control", "Field, secondary button and table edges"],
+            ["border/strong", "Switch, checkbox and focused field edges, 3:1"],
           ]}
         />
       ),
@@ -375,10 +376,11 @@ const borders: PageDef = {
   id: "borders-and-lines",
   group: "Foundations",
   title: "Borders and lines",
-  lede: "One hairline weight, from the faint row rule to the field edge that darkens when the cursor is in it.",
+  lede: "One hairline weight in three strengths: the faint row rule, the field edge on its grey fill, and the 3:1 edge for switches, checkboxes and the field with the cursor in it.",
   agent: `# Borders and lines
-- 1px only. border/default for rows and cards, border/strong for control edges and totals.
-- A field's edge goes from border/strong to text/secondary on focus, plus the 2px focus ring.
+- 1px only. border/default for rows and cards, border/control for fields, secondary buttons and tables.
+- Fields sit on bg/sunken with a border/control edge (like Glaze's field fill). On focus: bg/canvas, border/strong (3:1) and the 2px focus ring.
+- border/strong (3:1) for switch tracks, checkbox and radio edges.
 - Never a colored bar on one edge.`,
   sections: [
     {
@@ -388,8 +390,8 @@ const borders: PageDef = {
         <div className="line-steps">
           {[
             ["border/default", "row rule, card edge"],
-            ["border/strong", "input edge, total, secondary button"],
-            ["text/secondary", "input edge with the cursor in it"],
+            ["border/control", "field, secondary button, table head"],
+            ["border/strong", "switch, checkbox, field with the cursor, 3:1"],
           ].map(([t, u]) => (
             <div className="line-step" key={t}>
               <span className="line-sample" style={{ borderTopColor: `var(--color-${t.replace("/", "-")})` }} />

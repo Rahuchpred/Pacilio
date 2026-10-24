@@ -14,7 +14,8 @@ Generated into CSS variables by `design-system/scripts/build-tokens.mjs`. Figma 
 | `--color-text-tertiary` | Timestamps and footnotes only |
 | `--color-text-inverse` | Text on `action-primary` |
 | `--color-border-default` | Hairlines |
-| `--color-border-strong` | Totals, secondary button outline |
+| `--color-border-control` | Field, secondary button and table edges (fields sit on bg/sunken, like Glaze) |
+| `--color-border-strong` | Switch, checkbox and focused field edges; 3:1 on canvas and surface |
 | `--color-action-primary` | Ink button |
 | `--color-action-decide` | The one decision on screen |
 | `--color-action-decide-soft` | Background of the "Needs you" status |
