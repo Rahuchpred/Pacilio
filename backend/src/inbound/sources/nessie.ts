@@ -96,6 +96,9 @@ interface NessieSim {
   payrollId?: string;
   // Vendor name → Nessie merchant id, created on first use
   merchantIds: Record<string, string>;
+  // Ledger bill ids this account has already paid, so each is paid once
+  // (except the deliberate double payments)
+  paidBills: string[];
 }
 
 // Nessie accepts records missing fields its own list endpoints require, which
@@ -132,7 +135,7 @@ export const nessie: Source = {
   defaultMaxPerTick: 20,
   // Emitted as Nessie reports it, no injected errors
   defaultProfile: { typoRate: 0, typoFields: [], duplicateRate: 0 },
-  simulateChance: 0.25,
+  simulateChance: 1,
 
   // Mark every record already in the account as seen
   baseline(ctx, state) {
@@ -143,7 +146,7 @@ export const nessie: Source = {
   // pulling a cash float, running payroll and scheduling bills
   simulate(ctx, rawState) {
     const full = parseState<{ sim?: NessieSim }>(rawState, {});
-    const sim: NessieSim = { merchantIds: {}, ...full.sim };
+    const sim: NessieSim = { merchantIds: {}, paidBills: [], ...full.sim };
 
     if (!sim.operatingId) {
       const accounts = list<Account>(ctx, '/accounts');
@@ -155,69 +158,80 @@ export const nessie: Source = {
 
     const base = `/accounts/${sim.operatingId}`;
     const today = isoDate(ctx.now());
-    const roll = ctx.random();
-    const vendor = pick(ctx.random, VENDORS);
+    // A busy operating account: several bank movements per tick
+    const actions = ctx.random.integerInRange(1, 3);
+    for (let action = 0; action < actions; action++) {
+      const roll = ctx.random();
+      const vendor = pick(ctx.random, VENDORS);
 
-    if (roll < 0.5) {
-      // Pay a vendor bill from the Ledger: usually exactly, sometimes not
-      const bills = ctx.withTx(raw => [...(raw as Ctx).db.accountingBill.iter()]);
-      const open = bills.filter(b => b.balanceMinor > 0n);
-      const paid = bills.filter(b => b.balanceMinor === 0n);
-      const kind = ctx.random();
-      let payee = vendor;
-      let cents = amountBetween(ctx.random, vendor.min, vendor.max);
-      let memo = `${vendor.item} - ${SHOW}`;
-      const bill =
-        kind < 0.8 && open.length ? pick(ctx.random, open) : kind < 0.9 && paid.length ? pick(ctx.random, paid) : undefined;
-      if (bill) {
-        payee = VENDORS.find(v => v.name === bill.vendor) ?? vendor;
-        cents = Number(bill.balanceMinor || bill.totalMinor);
-        memo = `${payee.item} - ${bill.docNumber}`;
-        // Now and then the bank pays more than the bill says
-        if (kind > 0.72 && kind < 0.8) cents = Math.round(cents * (1 + ctx.random.integerInRange(2, 8) / 100));
+      if (roll < 0.5) {
+        // Pay a vendor bill from the Ledger: usually exactly, sometimes not
+        const bills = ctx.withTx(raw => [...(raw as Ctx).db.accountingBill.iter()]);
+        const paidByBank = new Set(sim.paidBills);
+        const unpaid = bills.filter(b => !paidByBank.has(b.id.toString()));
+        const alreadyPaid = bills.filter(b => paidByBank.has(b.id.toString()));
+        const kind = ctx.random();
+        let payee = vendor;
+        let cents = amountBetween(ctx.random, vendor.min, vendor.max);
+        let memo = `${vendor.item} - ${SHOW}`;
+        // Mostly a bill not yet paid from this account; now and then one paid twice
+        const bill =
+          kind < 0.8 && unpaid.length
+            ? pick(ctx.random, unpaid)
+            : kind < 0.88 && alreadyPaid.length
+              ? pick(ctx.random, alreadyPaid)
+              : undefined;
+        if (bill) {
+          if (!paidByBank.has(bill.id.toString())) sim.paidBills.push(bill.id.toString());
+          payee = VENDORS.find(v => v.name === bill.vendor) ?? vendor;
+          cents = Number(bill.totalMinor);
+          memo = `${payee.item} - ${bill.docNumber}`;
+          // Now and then the bank pays more than the bill says
+          if (kind > 0.72 && kind < 0.8) cents = Math.round(cents * (1 + ctx.random.integerInRange(2, 8) / 100));
+        }
+        // Otherwise (or no bills yet): a charge with no bill behind it
+        nessiePost(ctx, `${base}/purchases`, {
+          merchant_id: merchantId(ctx, sim, payee),
+          medium: 'balance',
+          status: 'completed',
+          purchase_date: today,
+          amount: dollars(cents),
+          description: memo,
+        });
+      } else if (roll < 0.65) {
+        const fromStripe = ctx.random() < 0.7;
+        nessiePost(ctx, `${base}/deposits`, {
+          medium: 'balance',
+          status: 'completed',
+          transaction_date: today,
+          amount: dollars(amountBetween(ctx.random, fromStripe ? 100_000 : 30_000, fromStripe ? 800_000 : 150_000)),
+          description: fromStripe ? 'STRIPE PAYOUT' : 'BOX OFFICE CASH DEPOSIT',
+        });
+      } else if (roll < 0.75) {
+        nessiePost(ctx, `${base}/withdrawals`, {
+          medium: 'balance',
+          status: 'completed',
+          transaction_date: today,
+          amount: dollars(amountBetween(ctx.random, 20_000, 60_000)),
+          description: 'Cash for box office float',
+        });
+      } else if (roll < 0.87) {
+        nessiePost(ctx, `${base}/transfers`, {
+          status: 'completed',
+          transaction_date: today,
+          amount: dollars(amountBetween(ctx.random, 150_000, 400_000)),
+          description: `Crew payroll - ${SHOW}`,
+        });
+      } else {
+        nessiePost(ctx, `${base}/bills`, {
+          status: 'pending',
+          payee: vendor.name,
+          nickname: `${vendor.item} invoice`,
+          payment_date: isoDate(addDays(ctx.now(), ctx.random.integerInRange(7, 21))),
+          recurring_date: 1,
+          payment_amount: dollars(amountBetween(ctx.random, vendor.min, vendor.max)),
+        });
       }
-      // kind ≥ 0.9 (or no bills yet): a charge with no bill behind it
-      nessiePost(ctx, `${base}/purchases`, {
-        merchant_id: merchantId(ctx, sim, payee),
-        medium: 'balance',
-        status: 'completed',
-        purchase_date: today,
-        amount: dollars(cents),
-        description: memo,
-      });
-    } else if (roll < 0.65) {
-      const fromStripe = ctx.random() < 0.7;
-      nessiePost(ctx, `${base}/deposits`, {
-        medium: 'balance',
-        status: 'completed',
-        transaction_date: today,
-        amount: dollars(amountBetween(ctx.random, fromStripe ? 100_000 : 30_000, fromStripe ? 800_000 : 150_000)),
-        description: fromStripe ? 'STRIPE PAYOUT' : 'BOX OFFICE CASH DEPOSIT',
-      });
-    } else if (roll < 0.75) {
-      nessiePost(ctx, `${base}/withdrawals`, {
-        medium: 'balance',
-        status: 'completed',
-        transaction_date: today,
-        amount: dollars(amountBetween(ctx.random, 20_000, 60_000)),
-        description: 'Cash for box office float',
-      });
-    } else if (roll < 0.87) {
-      nessiePost(ctx, `${base}/transfers`, {
-        status: 'completed',
-        transaction_date: today,
-        amount: dollars(amountBetween(ctx.random, 150_000, 400_000)),
-        description: `Crew payroll - ${SHOW}`,
-      });
-    } else {
-      nessiePost(ctx, `${base}/bills`, {
-        status: 'pending',
-        payee: vendor.name,
-        nickname: `${vendor.item} invoice`,
-        payment_date: isoDate(addDays(ctx.now(), ctx.random.integerInRange(7, 21))),
-        recurring_date: 1,
-        payment_amount: dollars(amountBetween(ctx.random, vendor.min, vendor.max)),
-      });
     }
 
     return JSON.stringify({ ...full, sim });

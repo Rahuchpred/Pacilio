@@ -14,11 +14,11 @@ type AgentState = NonNullable<ReturnType<Ctx['db']['pipelineAgent']['id']['find'
 
 const TICK_INTERVAL_MICROS = 3_000_000n;
 // Each run has a fixed startup cost, so moderate batches keep up with the sources
-const BATCH_SIZE = 15;
+const BATCH_SIZE = 20;
 // Don't spend a run's startup cost on one or two events: wait for a batch,
 // unless the oldest waiting event has waited long enough
 const MIN_BATCH = 8;
-const MAX_WAIT_MICROS = 20_000_000n;
+const MAX_WAIT_MICROS = 10_000_000n;
 const MAX_HTML_CHARS = 2_000_000;
 
 const OUTCOMES = ['ok', 'void', 'review'] as const;

@@ -16,7 +16,7 @@ import type { InboundEventDraft, Source, SourceContext } from './types';
 type Schema = typeof spacetimedb;
 type Ctx = ReducerCtx<InferSchema<Schema>>;
 
-const TICK_INTERVAL_MICROS = 8_000_000n;
+const TICK_INTERVAL_MICROS = 5_000_000n;
 const MAX_RAW_CHARS = 4000;
 
 function ensureTicking(ctx: Ctx) {
@@ -168,7 +168,13 @@ export function inbound(stdb: Schema) {
       ctx.db.inboundSource.name.update({ ...row, enabled });
       updateStatus(ctx, source.name, { enabled });
     }
-    if (enabled) ensureTicking(ctx);
+    if (enabled) {
+      // Reschedule so a changed tick interval takes effect on Run
+      for (const row of [...ctx.db.inboundTickSchedule.iter()]) {
+        ctx.db.inboundTickSchedule.scheduledId.delete(row.scheduledId);
+      }
+      ensureTicking(ctx);
+    }
     // The main agent runs and pauses with its sources
     setPipelineEnabled(ctx, enabled);
   }

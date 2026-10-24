@@ -63,7 +63,7 @@ export const cord: Source = {
   name: 'cord',
   requiredEnv: [],
   defaultMaxPerTick: 1,
-  pollChance: 0.3,
+  pollChance: 0.6,
   // OCR-style misreads, and the same receipt uploaded twice
   defaultProfile: { typoRate: 0.1, typoFields: ['description'], duplicateRate: 0.1 },
 

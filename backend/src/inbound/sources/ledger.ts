@@ -112,7 +112,7 @@ export const ledger: Source = {
     typoFields: ['counterparty', 'description', 'reference'],
     duplicateRate: 0.1,
   },
-  simulateChance: 0.25,
+  simulateChance: 0.5,
 
   // Move every cursor past the rows that already exist
   baseline(ctx, state) {
