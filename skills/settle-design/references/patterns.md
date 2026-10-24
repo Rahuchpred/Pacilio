@@ -9,7 +9,7 @@ Each pattern is live on the docs site (`npm --prefix design-system run dev`) and
 - Only the row that needs a person uses Status kind="needs".
 
 ## Needs your OK
-- The only surface allowed to use --color-action-decide.
+- The decide button is the only thing on screen in --color-action-decide. No colored edge bar on the card.
 - Head: Status kind="needs" + "Routed to <name>, <role>".
 - Title is a yes/no question that contains the amount.
 - Body explains the conflict between sources in two sentences.
@@ -21,8 +21,9 @@ Each pattern is live on the docs site (`npm --prefix design-system run dev`) and
 ## Settlement sheet
 - Columns: Line | Source | Set by | Amount (right aligned, Money).
 - Every row has a Source icon + name and an Actor.
-- A flagged row gets a 2px left border in --color-action-decide. Nothing else changes color.
+- A flagged row gets a pressed wash: background --color-action-decide-soft. Never a colored bar on one edge.
 - Totals use a top border of --color-border-strong and weight 500.
+- Amounts use sans with tabular figures, never mono.
 
 ## Dispute
 - Counterparty message: bg-sunken, name + role above.

@@ -4,6 +4,8 @@ import { Actor, Button, Citation, Confidence, Icon, Money, Status } from "./comp
 import { AGENT_NOTES, INSTALL_PROMPT } from "./agent";
 
 type Mode = "human" | "agent";
+type Brand = "settle" | "ramp" | "stripe" | "mercury";
+const BRANDS = Object.keys(tokens.brands) as Brand[];
 
 const NAV: { group: string; items: { id: string; label: string }[] }[] = [
   { group: "Settle", items: [{ id: "introduction", label: "Introduction" }] },
@@ -73,6 +75,27 @@ export default function App() {
   const [theme, setTheme] = useState<"light" | "dark" | null>(null);
   const [copied, setCopied] = useState(false);
   const [active, setActive] = useState("introduction");
+  const [brand, setBrand] = useState<Brand>(() => {
+    try {
+      const saved = localStorage.getItem("settle-brand") as Brand | null;
+      return saved && BRANDS.includes(saved) ? saved : "settle";
+    } catch {
+      return "settle";
+    }
+  });
+
+  useEffect(() => {
+    if (brand === "settle") delete document.documentElement.dataset.brand;
+    else document.documentElement.dataset.brand = brand;
+    try {
+      localStorage.setItem("settle-brand", brand);
+    } catch {
+      /* private window */
+    }
+  }, [brand]);
+
+  const nextBrand = () => setBrand(BRANDS[(BRANDS.indexOf(brand) + 1) % BRANDS.length]);
+  const b = tokens.brands[brand] as { label: string; font: string; fontSource?: string; source?: string };
 
   useEffect(() => {
     if (theme) document.documentElement.dataset.theme = theme;
@@ -126,6 +149,10 @@ export default function App() {
         <header id="introduction" className="intro">
           <h1 className="intro-title">Settle</h1>
           <p className="intro-lede">Ink and paper for money. Color appears only where a person has to decide.</p>
+          <p className="intro-brand">
+            Theme: {b.label}
+            {b.fontSource ? `. Colors, radius and weights come from ${b.label.toLowerCase()}.com; ${b.fontSource} stands in as ${b.font}.` : ". The default theme, a blend of all three references."}
+          </p>
           <p className="intro-body">
             Settle runs show settlement for concert promoters. Agents do the counting. People make the calls. This system keeps those two
             visibly different: agent work is black and white with a citation on every number, and the one thing waiting on you is the only
@@ -346,7 +373,7 @@ export default function App() {
           </div>
         </Section>
 
-        <Section id="typography" title="Typography" lede="Geist, light at large sizes like Stripe, regular in the interface like Ramp. Geist Mono for every number." mode={mode}>
+        <Section id="typography" title="Typography" lede="Each theme sets its own sans and heading weight. Numbers use the same sans with tabular figures. Mono is only for IDs, keys, paths and code, at 0.8 of the text around it." mode={mode}>
           <div className="type-specimen">
             {Object.entries(tokens.type).map(([k, v]) => (
               <div className="type-row" key={k}>
@@ -373,7 +400,7 @@ export default function App() {
           </div>
         </Section>
 
-        <Section id="space" title="Space and radius" lede="A 4px base. Radius stays small: 6 for controls, 10 for panels, full only for status." mode={mode}>
+        <Section id="space" title="Space and radius" lede="A 4px base. Control and panel radius come from the theme: Settle 6 and 10, Ramp 6 and 8, Stripe 4 and 8, Mercury pill and 12." mode={mode}>
           <div className="scale">
             {Object.entries(tokens.space).map(([k, v]) => (
               <div className="scale-row" key={k}>
@@ -395,7 +422,7 @@ export default function App() {
           </div>
         </Section>
 
-        <Section id="lines" title="Borders and elevation" lede="Hairlines separate. Surfaces step from canvas to surface to sunken. Shadows exist only on overlays." mode={mode}>
+        <Section id="lines" title="Borders and elevation" lede="Hairlines separate. Surfaces step from canvas to surface to sunken. No shadows: an overlay lifts with a ring." mode={mode}>
           <div className="elev">
             <div className="elev-item elev-canvas">canvas</div>
             <div className="elev-item elev-surface">surface</div>
@@ -421,7 +448,7 @@ export default function App() {
             </div>
             <div className="voice-col voice-no">
               <span className="voice-label">Not</span>
-              <p>Great news! Your settlement is almost ready 🎉</p>
+              <p>Great news! Your settlement is almost ready!</p>
               <p>AI-powered insights detected an anomaly.</p>
               <p>Are you sure?</p>
             </div>
@@ -484,6 +511,16 @@ export default function App() {
           ))}
         </div>
         <div className="rail-block">
+          <p className="rail-heading">Theme</p>
+          <div className="brand-switch" role="group" aria-label="Theme">
+            {BRANDS.map((k) => (
+              <button key={k} type="button" aria-pressed={brand === k} onClick={() => setBrand(k)}>
+                {tokens.brands[k].label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="rail-block">
           <p className="rail-heading">Install</p>
           <p className="rail-note">For your coding agent</p>
           <button type="button" className="rail-button" onClick={copyPrompt}>
@@ -514,8 +551,11 @@ export default function App() {
           Agent
         </button>
         <span className="tool-sep" />
-        <button type="button" className="tool" onClick={toggleTheme}>
-          <Icon name="sun" /> Theme
+        <button type="button" className="tool" onClick={nextBrand} aria-label={`Theme ${b.label}, switch to the next theme`}>
+          {b.label}
+        </button>
+        <button type="button" className="tool" onClick={toggleTheme} aria-label="Switch light or dark">
+          <Icon name="sun" />
         </button>
         <span className="tool-sep" />
         <button type="button" className="tool" onClick={copyPrompt}>

@@ -1,5 +1,6 @@
 /* Generated from tokens.json by scripts/build-tokens.mjs. Do not edit by hand. */
-:root {
+/* Settle */
+:root, :root[data-brand="settle"] {
   --space-2xs: 2px;
   --space-xs: 4px;
   --space-sm: 8px;
@@ -51,15 +52,19 @@
   --type-money-line: 22px;
   --type-money-weight: 500;
   --type-money-tracking: 0em;
-  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --mono-scale: 0.8;
   --border-hairline: 1px;
   --border-focus: 2px;
-  --elevation-overlay: 0 8px 24px rgba(11, 11, 15, 0.10);
   --motion-fast: 120ms;
   --motion-base: 200ms;
   --motion-slow: 320ms;
   --motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --type-title-weight: 300;
+  --type-display-weight: 300;
+  --radius-control: 6px;
+  --radius-panel: 10px;
   --color-bg-canvas: #ffffff;
   --color-bg-surface: #f7f7f9;
   --color-bg-sunken: #f0f0f3;
@@ -71,6 +76,7 @@
   --color-border-strong: #c9c9d0;
   --color-action-primary: #0b0b0f;
   --color-action-decide: #4b4cf0;
+  --color-text-on-decide: #ffffff;
   --color-action-decide-soft: #ececff;
   --color-text-decide: #3b3cd6;
   --color-status-cleared: #1d7a4a;
@@ -82,7 +88,7 @@
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :root:not([data-theme="light"]):not([data-brand]), :root[data-brand="settle"]:not([data-theme="light"]) {
     --color-bg-canvas: #0e0e13;
     --color-bg-surface: #16161c;
     --color-bg-sunken: #1c1c23;
@@ -94,6 +100,7 @@
     --color-border-strong: #3a3a44;
     --color-action-primary: #f7f7f9;
     --color-action-decide: #4b4cf0;
+    --color-text-on-decide: #ffffff;
     --color-action-decide-soft: #1d1d6b;
     --color-text-decide: #a3a4ff;
     --color-status-cleared: #4fc489;
@@ -105,7 +112,7 @@
     color-scheme: dark;
   }
 }
-:root[data-theme="dark"] {
+:root[data-theme="dark"]:not([data-brand]), :root[data-brand="settle"][data-theme="dark"] {
   --color-bg-canvas: #0e0e13;
   --color-bg-surface: #16161c;
   --color-bg-sunken: #1c1c23;
@@ -117,8 +124,243 @@
   --color-border-strong: #3a3a44;
   --color-action-primary: #f7f7f9;
   --color-action-decide: #4b4cf0;
+  --color-text-on-decide: #ffffff;
   --color-action-decide-soft: #1d1d6b;
   --color-text-decide: #a3a4ff;
+  --color-status-cleared: #4fc489;
+  --color-status-cleared-soft: #12301f;
+  --color-status-held: #e3a447;
+  --color-status-held-soft: #33230c;
+  --color-status-disputed: #ff7a66;
+  --color-status-disputed-soft: #3a1712;
+  color-scheme: dark;
+}
+
+/* Ramp, Lausanne (licensed) stands in as Inter */
+:root[data-brand="ramp"] {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --type-title-weight: 400;
+  --type-display-weight: 400;
+  --radius-control: 6px;
+  --radius-panel: 8px;
+  --color-bg-canvas: #ffffff;
+  --color-bg-surface: #f7f6f2;
+  --color-bg-sunken: #efede6;
+  --color-text-primary: #0c0a08;
+  --color-text-secondary: #5c5850;
+  --color-text-tertiary: #77736a;
+  --color-text-inverse: #ffffff;
+  --color-border-default: #e6e3da;
+  --color-border-strong: #c9c5b9;
+  --color-action-primary: #1a1919;
+  --color-action-decide: #e4f222;
+  --color-text-on-decide: #0c0a08;
+  --color-action-decide-soft: #f7fbc4;
+  --color-text-decide: #4f5600;
+  --color-status-cleared: #1d7a4a;
+  --color-status-cleared-soft: #e5f3eb;
+  --color-status-held: #9a5600;
+  --color-status-held-soft: #fbf0e1;
+  --color-status-disputed: #bf3221;
+  --color-status-disputed-soft: #fbe8e5;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-brand="ramp"]:not([data-theme="light"]) {
+    --color-bg-canvas: #0c0a08;
+    --color-bg-surface: #16140f;
+    --color-bg-sunken: #1f1c16;
+    --color-text-primary: #f5f3ec;
+    --color-text-secondary: #aba699;
+    --color-text-tertiary: #8d897e;
+    --color-text-inverse: #0b0b0f;
+    --color-border-default: #2c2921;
+    --color-border-strong: #3f3b31;
+    --color-action-primary: #f5f3ec;
+    --color-action-decide: #e4f222;
+    --color-text-on-decide: #0c0a08;
+    --color-action-decide-soft: #2f3207;
+    --color-text-decide: #e4f222;
+    --color-status-cleared: #4fc489;
+    --color-status-cleared-soft: #12301f;
+    --color-status-held: #e3a447;
+    --color-status-held-soft: #33230c;
+    --color-status-disputed: #ff7a66;
+    --color-status-disputed-soft: #3a1712;
+    color-scheme: dark;
+  }
+}
+:root[data-brand="ramp"][data-theme="dark"] {
+  --color-bg-canvas: #0c0a08;
+  --color-bg-surface: #16140f;
+  --color-bg-sunken: #1f1c16;
+  --color-text-primary: #f5f3ec;
+  --color-text-secondary: #aba699;
+  --color-text-tertiary: #8d897e;
+  --color-text-inverse: #0b0b0f;
+  --color-border-default: #2c2921;
+  --color-border-strong: #3f3b31;
+  --color-action-primary: #f5f3ec;
+  --color-action-decide: #e4f222;
+  --color-text-on-decide: #0c0a08;
+  --color-action-decide-soft: #2f3207;
+  --color-text-decide: #e4f222;
+  --color-status-cleared: #4fc489;
+  --color-status-cleared-soft: #12301f;
+  --color-status-held: #e3a447;
+  --color-status-held-soft: #33230c;
+  --color-status-disputed: #ff7a66;
+  --color-status-disputed-soft: #3a1712;
+  color-scheme: dark;
+}
+
+/* Stripe, Sohne (licensed) stands in as Geist */
+:root[data-brand="stripe"] {
+  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --type-title-weight: 300;
+  --type-display-weight: 300;
+  --radius-control: 4px;
+  --radius-panel: 8px;
+  --color-bg-canvas: #ffffff;
+  --color-bg-surface: #f6f9fc;
+  --color-bg-sunken: #eef2f7;
+  --color-text-primary: #0a2540;
+  --color-text-secondary: #425466;
+  --color-text-tertiary: #5f6f80;
+  --color-text-inverse: #ffffff;
+  --color-border-default: #e3e8ee;
+  --color-border-strong: #c1c9d2;
+  --color-action-primary: #0a2540;
+  --color-action-decide: #533afd;
+  --color-text-on-decide: #ffffff;
+  --color-action-decide-soft: #eeebff;
+  --color-text-decide: #4329e0;
+  --color-status-cleared: #1d7a4a;
+  --color-status-cleared-soft: #e5f3eb;
+  --color-status-held: #9a5600;
+  --color-status-held-soft: #fbf0e1;
+  --color-status-disputed: #bf3221;
+  --color-status-disputed-soft: #fbe8e5;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-brand="stripe"]:not([data-theme="light"]) {
+    --color-bg-canvas: #0a1628;
+    --color-bg-surface: #0f1f36;
+    --color-bg-sunken: #132744;
+    --color-text-primary: #f6f9fc;
+    --color-text-secondary: #a3b1c2;
+    --color-text-tertiary: #8597ab;
+    --color-text-inverse: #0b0b0f;
+    --color-border-default: #1e3352;
+    --color-border-strong: #2d4566;
+    --color-action-primary: #f6f9fc;
+    --color-action-decide: #635bff;
+    --color-text-on-decide: #ffffff;
+    --color-action-decide-soft: #221c5e;
+    --color-text-decide: #b9b5ff;
+    --color-status-cleared: #4fc489;
+    --color-status-cleared-soft: #12301f;
+    --color-status-held: #e3a447;
+    --color-status-held-soft: #33230c;
+    --color-status-disputed: #ff7a66;
+    --color-status-disputed-soft: #3a1712;
+    color-scheme: dark;
+  }
+}
+:root[data-brand="stripe"][data-theme="dark"] {
+  --color-bg-canvas: #0a1628;
+  --color-bg-surface: #0f1f36;
+  --color-bg-sunken: #132744;
+  --color-text-primary: #f6f9fc;
+  --color-text-secondary: #a3b1c2;
+  --color-text-tertiary: #8597ab;
+  --color-text-inverse: #0b0b0f;
+  --color-border-default: #1e3352;
+  --color-border-strong: #2d4566;
+  --color-action-primary: #f6f9fc;
+  --color-action-decide: #635bff;
+  --color-text-on-decide: #ffffff;
+  --color-action-decide-soft: #221c5e;
+  --color-text-decide: #b9b5ff;
+  --color-status-cleared: #4fc489;
+  --color-status-cleared-soft: #12301f;
+  --color-status-held: #e3a447;
+  --color-status-held-soft: #33230c;
+  --color-status-disputed: #ff7a66;
+  --color-status-disputed-soft: #3a1712;
+  color-scheme: dark;
+}
+
+/* Mercury, Arcadia (licensed) stands in as Instrument Sans */
+:root[data-brand="mercury"] {
+  --font-sans: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --type-title-weight: 480;
+  --type-display-weight: 480;
+  --radius-control: 999px;
+  --radius-panel: 12px;
+  --color-bg-canvas: #ffffff;
+  --color-bg-surface: #f7f7fa;
+  --color-bg-sunken: #efeff4;
+  --color-text-primary: #171721;
+  --color-text-secondary: #5d5d6b;
+  --color-text-tertiary: #71717f;
+  --color-text-inverse: #ffffff;
+  --color-border-default: #e6e6ee;
+  --color-border-strong: #c9c9d6;
+  --color-action-primary: #171721;
+  --color-action-decide: #5266eb;
+  --color-text-on-decide: #ffffff;
+  --color-action-decide-soft: #eceefd;
+  --color-text-decide: #3a4fd6;
+  --color-status-cleared: #1d7a4a;
+  --color-status-cleared-soft: #e5f3eb;
+  --color-status-held: #9a5600;
+  --color-status-held-soft: #fbf0e1;
+  --color-status-disputed: #bf3221;
+  --color-status-disputed-soft: #fbe8e5;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-brand="mercury"]:not([data-theme="light"]) {
+    --color-bg-canvas: #171721;
+    --color-bg-surface: #1e1e2a;
+    --color-bg-sunken: #252533;
+    --color-text-primary: #ededf3;
+    --color-text-secondary: #a9a9b8;
+    --color-text-tertiary: #8b8b9a;
+    --color-text-inverse: #0b0b0f;
+    --color-border-default: #31313f;
+    --color-border-strong: #44445a;
+    --color-action-primary: #ededf3;
+    --color-action-decide: #5266eb;
+    --color-text-on-decide: #ffffff;
+    --color-action-decide-soft: #262c5c;
+    --color-text-decide: #aab5ff;
+    --color-status-cleared: #4fc489;
+    --color-status-cleared-soft: #12301f;
+    --color-status-held: #e3a447;
+    --color-status-held-soft: #33230c;
+    --color-status-disputed: #ff7a66;
+    --color-status-disputed-soft: #3a1712;
+    color-scheme: dark;
+  }
+}
+:root[data-brand="mercury"][data-theme="dark"] {
+  --color-bg-canvas: #171721;
+  --color-bg-surface: #1e1e2a;
+  --color-bg-sunken: #252533;
+  --color-text-primary: #ededf3;
+  --color-text-secondary: #a9a9b8;
+  --color-text-tertiary: #8b8b9a;
+  --color-text-inverse: #0b0b0f;
+  --color-border-default: #31313f;
+  --color-border-strong: #44445a;
+  --color-action-primary: #ededf3;
+  --color-action-decide: #5266eb;
+  --color-text-on-decide: #ffffff;
+  --color-action-decide-soft: #262c5c;
+  --color-text-decide: #aab5ff;
   --color-status-cleared: #4fc489;
   --color-status-cleared-soft: #12301f;
   --color-status-held: #e3a447;
