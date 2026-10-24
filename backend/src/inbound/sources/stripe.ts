@@ -1,0 +1,65 @@
+import { getJson, last, parseState, queryString, type Source } from '../types';
+
+// Payment processor: charges, refunds, fees and payouts in one ledger.
+// Uses a test-mode secret key (sk_test_...).
+const BASE_URL = 'https://api.stripe.com/v1';
+
+interface BalanceTransaction {
+  id: string;
+  amount: number;
+  fee: number;
+  net: number;
+  currency: string;
+  created: number;
+  description: string | null;
+  type: string;
+  source: string | null;
+}
+
+export const stripe: Source = {
+  name: 'stripe',
+  requiredEnv: ['STRIPE_SECRET_KEY'],
+  defaultMaxPerTick: 20,
+  defaultProfile: { typoRate: 0, typoFields: [], duplicateRate: 0.03 },
+
+  poll(ctx, rawState, limit) {
+    const state = parseState(rawState, { since: 0 });
+    const headers = { Authorization: `Bearer ${ctx.env('STRIPE_SECRET_KEY')}` };
+
+    // Stripe lists newest first; page back to `since`, then emit oldest first
+    const all: BalanceTransaction[] = [];
+    let startingAfter: string | undefined;
+    for (let page = 0; page < 5; page++) {
+      const params = queryString({
+        limit: 100,
+        'created[gte]': state.since,
+        starting_after: startingAfter,
+      });
+      const res = getJson<{ data: BalanceTransaction[]; has_more: boolean }>(
+        ctx,
+        `${BASE_URL}/balance_transactions?${params}`,
+        headers
+      );
+      all.push(...res.data);
+      if (!res.has_more || !res.data.length) break;
+      startingAfter = res.data[res.data.length - 1].id;
+    }
+
+    const batch = all.sort((a, b) => a.created - b.created).slice(0, limit);
+
+    return {
+      events: batch.map(bt => ({
+        sourceId: bt.id,
+        kind: 'processor_transaction' as const,
+        occurredAt: new Date(bt.created * 1000),
+        amountMinor: BigInt(bt.amount),
+        currency: bt.currency.toUpperCase(),
+        counterparty: bt.description ?? bt.type,
+        description: `${bt.type} (fee ${bt.fee}, net ${bt.net})`,
+        reference: bt.source ?? undefined,
+        raw: bt,
+      })),
+      state: JSON.stringify({ since: last(batch)?.created ?? state.since }),
+    };
+  },
+};

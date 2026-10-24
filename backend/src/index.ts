@@ -1,6 +1,10 @@
 import { schema, table, t, SenderError } from 'spacetimedb/server';
 import { droidEnv, droidTables } from './droid/tables';
 import { droidAgents } from './droid/agents';
+import { inboundEnv, inboundTables } from './inbound/tables';
+import { inbound } from './inbound/inbound';
+import { accountingTables } from './accounting/tables';
+import { accounting } from './accounting/accounting';
 
 // One row per identity that has ever connected. `color` drives avatar + cursor color.
 const user = table(
@@ -43,10 +47,23 @@ const edge = table(
 );
 
 const spacetimedb = schema(
-  { user, cursor, node, edge, ...droidTables },
-  { env: droidEnv }
+  { user, cursor, node, edge, ...droidTables, ...inboundTables, ...accountingTables },
+  { env: { ...droidEnv, ...inboundEnv } }
 );
 export default spacetimedb;
+
+// ─── Inbound finance sources ────────────────────────────────────────────────
+
+export const {
+  setInboundSource,
+  configureInboundSource,
+  resetInboundSource,
+  inboundTick,
+} = inbound(spacetimedb);
+
+// ─── Mock accounting system (stand-in for QuickBooks) ───────────────────────
+
+export const { createBill, createInvoice, recordPayment } = accounting(spacetimedb);
 
 // ─── Droid agents (Factory cloud) ───────────────────────────────────────────
 
