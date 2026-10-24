@@ -24,7 +24,6 @@ export function Board() {
   const [nodeRows] = useTable(tables.node);
   const [edgeRows] = useTable(tables.edge);
 
-  const addNode = useReducer(reducers.addNode);
   const moveNode = useReducer(reducers.moveNode);
   const renameNode = useReducer(reducers.renameNode);
   const deleteNode = useReducer(reducers.deleteNode);
@@ -149,32 +148,13 @@ export function Board() {
     [renameNode]
   );
 
-  const addNodeAt = useCallback(
-    (clientX: number, clientY: number) => {
-      const { x, y } = screenToFlowPosition({ x: clientX, y: clientY });
-      // Center the default 150x40 node on the point
-      addNode({ x: x - 75, y: y - 20 }).catch(logError);
-    },
-    [addNode, screenToFlowPosition]
-  );
-
-  const onDoubleClick = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).classList.contains('react-flow__pane')) {
-      addNodeAt(e.clientX, e.clientY);
-    }
-  };
-
   const onPointerMove = (e: React.PointerEvent) => {
     const { x, y } = screenToFlowPosition({ x: e.clientX, y: e.clientY });
     sendCursor(x, y);
   };
 
   return (
-    <div
-      className="board"
-      onPointerMove={onPointerMove}
-      onDoubleClick={onDoubleClick}
-    >
+    <div className="board" onPointerMove={onPointerMove}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -185,25 +165,12 @@ export function Board() {
         onNodesDelete={onNodesDelete}
         onEdgesDelete={onEdgesDelete}
         onNodeDoubleClick={onNodeDoubleClick}
-        zoomOnDoubleClick={false}
         fitView
       >
         <Background />
         <Controls />
         <Cursors />
       </ReactFlow>
-
-      <div className="toolbar">
-        <button
-          onClick={() => addNodeAt(window.innerWidth / 2, window.innerHeight / 2)}
-        >
-          + Node
-        </button>
-        <span className="hint">
-          Double-click canvas to add · drag handles to connect · double-click
-          node to rename · Backspace to delete
-        </span>
-      </div>
     </div>
   );
 }
