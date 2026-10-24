@@ -1,6 +1,6 @@
 import { ReactFlowProvider } from '@xyflow/react';
 import { useSpacetimeDB } from 'spacetimedb/react';
-import { Board } from './Board';
+import { Pipeline } from './Pipeline';
 import { TopBar } from './TopBar';
 import '@xyflow/react/dist/style.css';
 import './App.css';
@@ -14,7 +14,7 @@ function App() {
 
   return (
     <ReactFlowProvider>
-      <Board />
+      <Pipeline />
       <TopBar />
     </ReactFlowProvider>
   );
