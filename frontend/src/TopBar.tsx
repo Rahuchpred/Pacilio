@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useReducer, useSpacetimeDB, useTable } from 'spacetimedb/react';
 import { reducers, tables } from './module_bindings';
 import type { User } from './module_bindings/types';
@@ -64,7 +64,6 @@ function Notifications() {
   useDismiss(rootRef, open, close);
 
   // Refs keep the table callbacks stable; changing them would resubscribe.
-  const readyRef = useRef(false);
   const identityRef = useRef(identity);
   identityRef.current = identity;
   const nextId = useRef(0);
@@ -76,27 +75,15 @@ function Notifications() {
     setUnread(n => n + 1);
   }, []);
 
-  const onInsert = useCallback(
-    (u: User) => {
-      // Skip the initial snapshot; only announce people who arrive later
-      if (readyRef.current && u.online) push(u, 'joined the board');
-    },
-    [push]
-  );
-
+  // Joins/leaves are intentionally not notifications; the people bar shows presence.
   const onUpdate = useCallback(
     (prev: User, next: User) => {
-      if (!prev.online && next.online) push(next, 'joined the board');
-      else if (prev.online && !next.online) push(next, 'left the board');
-      else if (prev.name !== next.name) push(next, `was renamed from ${prev.name}`);
+      if (prev.name !== next.name) push(next, `was renamed from ${prev.name}`);
     },
     [push]
   );
 
-  const [, ready] = useTable(tables.user, { onInsert, onUpdate });
-  useEffect(() => {
-    readyRef.current = ready;
-  }, [ready]);
+  useTable(tables.user, { onUpdate });
 
   const toggle = () => {
     setOpen(o => !o);
