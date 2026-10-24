@@ -15,8 +15,4 @@ export default __t.row({
   x: __t.f64(),
   y: __t.f64(),
   label: __t.string(),
-  shape: __t.string(),
-  color: __t.string(),
-  width: __t.f64(),
-  height: __t.f64(),
 });

@@ -10,6 +10,102 @@ import {
   type Infer as __Infer,
 } from "spacetimedb";
 
+export const AccountingBill = __t.object("AccountingBill", {
+  id: __t.u64(),
+  docNumber: __t.string(),
+  txnDate: __t.timestamp(),
+  dueDate: __t.timestamp(),
+  get lines() {
+    return __t.array(DocumentLine);
+  },
+  totalMinor: __t.i64(),
+  balanceMinor: __t.i64(),
+  currency: __t.string(),
+  memo: __t.string(),
+  status: __t.string(),
+  createdAt: __t.timestamp(),
+  vendor: __t.string(),
+});
+export type AccountingBill = __Infer<typeof AccountingBill>;
+
+export const AccountingInvoice = __t.object("AccountingInvoice", {
+  id: __t.u64(),
+  docNumber: __t.string(),
+  txnDate: __t.timestamp(),
+  dueDate: __t.timestamp(),
+  get lines() {
+    return __t.array(DocumentLine);
+  },
+  totalMinor: __t.i64(),
+  balanceMinor: __t.i64(),
+  currency: __t.string(),
+  memo: __t.string(),
+  status: __t.string(),
+  createdAt: __t.timestamp(),
+  customer: __t.string(),
+});
+export type AccountingInvoice = __Infer<typeof AccountingInvoice>;
+
+export const AccountingPayment = __t.object("AccountingPayment", {
+  id: __t.u64(),
+  docType: __t.string(),
+  docId: __t.u64(),
+  amountMinor: __t.i64(),
+  paidAt: __t.timestamp(),
+  method: __t.string(),
+  reference: __t.string(),
+});
+export type AccountingPayment = __Infer<typeof AccountingPayment>;
+
+export const AgentOutbox = __t.object("AgentOutbox", {
+  id: __t.u64(),
+  taskId: __t.u64(),
+  text: __t.string(),
+  interrupt: __t.bool(),
+});
+export type AgentOutbox = __Infer<typeof AgentOutbox>;
+
+export const AgentStep = __t.object("AgentStep", {
+  id: __t.u64(),
+  taskId: __t.u64(),
+  seq: __t.u64(),
+  role: __t.string(),
+  kind: __t.string(),
+  text: __t.string(),
+  toolUseId: __t.option(__t.string()),
+  toolName: __t.option(__t.string()),
+  input: __t.option(__t.string()),
+  result: __t.option(__t.string()),
+  status: __t.option(__t.string()),
+  riskLevel: __t.option(__t.string()),
+  parentToolUseId: __t.option(__t.string()),
+  at: __t.timestamp(),
+});
+export type AgentStep = __Infer<typeof AgentStep>;
+
+export const AgentTask = __t.object("AgentTask", {
+  id: __t.u64(),
+  kind: __t.string(),
+  prompt: __t.string(),
+  autonomy: __t.string(),
+  status: __t.string(),
+  sessionId: __t.option(__t.string()),
+  result: __t.option(__t.string()),
+  error: __t.option(__t.string()),
+  todos: __t.option(__t.string()),
+  lastSeq: __t.u64(),
+  createdBy: __t.identity(),
+  createdAt: __t.timestamp(),
+  updatedAt: __t.timestamp(),
+});
+export type AgentTask = __Infer<typeof AgentTask>;
+
+export const AgentTickSchedule = __t.object("AgentTickSchedule", {
+  scheduledId: __t.u64(),
+  scheduledAt: __t.scheduleAt(),
+});
+export type AgentTickSchedule = __Infer<typeof AgentTickSchedule>;
+
 export const Cursor = __t.object("Cursor", {
   identity: __t.identity(),
   x: __t.f64(),
@@ -17,24 +113,75 @@ export const Cursor = __t.object("Cursor", {
 });
 export type Cursor = __Infer<typeof Cursor>;
 
+export const DocumentLine = __t.object("DocumentLine", {
+  description: __t.string(),
+  amountMinor: __t.i64(),
+});
+export type DocumentLine = __Infer<typeof DocumentLine>;
+
 export const Edge = __t.object("Edge", {
   id: __t.u64(),
   source: __t.u64(),
   target: __t.u64(),
-  sourceHandle: __t.string(),
-  targetHandle: __t.string(),
 });
 export type Edge = __Infer<typeof Edge>;
+
+export const InboundEvent = __t.object("InboundEvent", {
+  id: __t.u64(),
+  dedupeKey: __t.string(),
+  source: __t.string(),
+  sourceId: __t.string(),
+  kind: __t.string(),
+  occurredAt: __t.timestamp(),
+  amountMinor: __t.i64(),
+  currency: __t.string(),
+  counterparty: __t.string(),
+  description: __t.string(),
+  reference: __t.option(__t.string()),
+  documentUrl: __t.option(__t.string()),
+  raw: __t.string(),
+  receivedAt: __t.timestamp(),
+});
+export type InboundEvent = __Infer<typeof InboundEvent>;
+
+export const InboundLabel = __t.object("InboundLabel", {
+  eventId: __t.u64(),
+  corruptions: __t.string(),
+  duplicateOf: __t.option(__t.u64()),
+});
+export type InboundLabel = __Infer<typeof InboundLabel>;
+
+export const InboundSource = __t.object("InboundSource", {
+  name: __t.string(),
+  enabled: __t.bool(),
+  state: __t.string(),
+  typoRate: __t.f64(),
+  duplicateRate: __t.f64(),
+  maxPerTick: __t.u32(),
+});
+export type InboundSource = __Infer<typeof InboundSource>;
+
+export const InboundSourceStatus = __t.object("InboundSourceStatus", {
+  name: __t.string(),
+  enabled: __t.bool(),
+  configured: __t.bool(),
+  emitted: __t.u64(),
+  lastPolledAt: __t.option(__t.timestamp()),
+  lastError: __t.option(__t.string()),
+});
+export type InboundSourceStatus = __Infer<typeof InboundSourceStatus>;
+
+export const InboundTickSchedule = __t.object("InboundTickSchedule", {
+  scheduledId: __t.u64(),
+  scheduledAt: __t.scheduleAt(),
+});
+export type InboundTickSchedule = __Infer<typeof InboundTickSchedule>;
 
 export const Node = __t.object("Node", {
   id: __t.u64(),
   x: __t.f64(),
   y: __t.f64(),
   label: __t.string(),
-  shape: __t.string(),
-  color: __t.string(),
-  width: __t.f64(),
-  height: __t.f64(),
 });
 export type Node = __Infer<typeof Node>;
 

@@ -10,7 +10,18 @@ import {
   type Infer as __Infer,
 } from "spacetimedb";
 
+import {
+  DocumentLine,
+} from "./types";
+
 export default {
-  id: __t.u64(),
-  color: __t.string(),
+  vendor: __t.string(),
+  docNumber: __t.string(),
+  txnDate: __t.string(),
+  dueDate: __t.string(),
+  get lines() {
+    return __t.array(DocumentLine);
+  },
+  currency: __t.string(),
+  memo: __t.string(),
 };

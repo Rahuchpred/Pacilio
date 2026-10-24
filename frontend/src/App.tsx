@@ -2,8 +2,11 @@ import { ReactFlowProvider } from '@xyflow/react';
 import { useSpacetimeDB } from 'spacetimedb/react';
 import { Board } from './Board';
 import { TopBar } from './TopBar';
+import { PipelineControls } from './pipeline/PipelineControls';
 import '@xyflow/react/dist/style.css';
+import '../../design-system/src/tokens/tokens.css';
 import './App.css';
+import './pipeline/pipeline.css';
 
 function App() {
   const { isActive: connected } = useSpacetimeDB();
@@ -15,6 +18,7 @@ function App() {
   return (
     <ReactFlowProvider>
       <Board />
+      <PipelineControls />
       <TopBar />
     </ReactFlowProvider>
   );

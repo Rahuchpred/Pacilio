@@ -1,0 +1,263 @@
+/* Inbound pipeline: Settle tokens only (design-system/src/tokens/tokens.css).
+   Ink and paper, hairlines, no shadows; status is a glyph and a word. */
+
+.pipeline-node,
+.pipeline-controls {
+  font-family: var(--font-sans);
+  color: var(--color-text-primary);
+  background: var(--color-bg-canvas);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-panel);
+}
+
+.pipeline-node {
+  padding: var(--space-lg);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+}
+
+.source-node {
+  width: 270px;
+  transition: border-color var(--motion-base) var(--motion-ease);
+}
+
+/* An event is leaving this source */
+.source-node.is-sending {
+  border-color: var(--color-border-strong);
+}
+
+.feed-node {
+  width: 600px;
+}
+
+.node-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.pipeline-node h3 {
+  margin: 0;
+  font-size: var(--type-subheading-size);
+  line-height: var(--type-subheading-line);
+  font-weight: var(--type-subheading-weight);
+}
+
+.node-meta {
+  margin: var(--space-xs) 0 0;
+  font-size: var(--type-small-size);
+  line-height: var(--type-small-line);
+  color: var(--color-text-secondary);
+}
+
+.node-error {
+  margin: var(--space-sm) 0 0;
+  font-size: var(--type-small-size);
+  line-height: var(--type-small-line);
+  color: var(--color-status-held);
+  overflow-wrap: anywhere;
+}
+
+.node-count {
+  margin: var(--space-sm) 0 0;
+  font-size: var(--type-small-size);
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.status {
+  font-size: var(--type-label-size);
+  line-height: var(--type-label-line);
+  font-weight: var(--type-label-weight);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.status.is-cleared {
+  color: var(--color-status-cleared);
+}
+
+.status.is-held {
+  color: var(--color-status-held);
+}
+
+.money {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Most recent event on a source */
+.node-last {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin: var(--space-md) 0 0;
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border-default);
+  font-size: var(--type-small-size);
+  line-height: var(--type-small-line);
+}
+
+.event-party {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Central feed */
+.feed-scroll {
+  max-height: 640px;
+  overflow-y: auto;
+  margin-top: var(--space-md);
+}
+
+.feed-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--type-small-size);
+  line-height: var(--type-small-line);
+  cursor: default;
+}
+
+.feed-table th {
+  position: sticky;
+  top: 0;
+  background: var(--color-bg-canvas);
+  text-align: left;
+  font-weight: var(--type-label-weight);
+  color: var(--color-text-secondary);
+  padding: var(--space-xs) var(--space-md) var(--space-xs) 0;
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.feed-table td {
+  padding: var(--space-xs) var(--space-md) var(--space-xs) 0;
+  border-bottom: 1px solid var(--color-border-default);
+  vertical-align: top;
+}
+
+.feed-table .num {
+  text-align: right;
+  padding-right: 0;
+}
+
+.feed-table .mono {
+  font-family: var(--font-mono);
+  font-size: calc(var(--type-small-size) * var(--mono-scale));
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+
+.feed-table .kind {
+  display: block;
+  color: var(--color-text-tertiary);
+}
+
+.feed-table .party {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Edges into the feed */
+.pipeline-edge .react-flow__edge-path {
+  stroke: var(--color-border-strong);
+  stroke-width: 1.5;
+}
+
+.pipeline-edge.is-running .react-flow__edge-path {
+  stroke: var(--color-text-secondary);
+}
+
+/* An event travelling along a wire */
+.packet {
+  fill: var(--color-text-primary);
+  stroke: var(--color-bg-canvas);
+  stroke-width: 2;
+}
+
+/* A row that just landed in the feed */
+.feed-table tr.is-new td {
+  animation: feed-arrive 1800ms var(--motion-ease);
+}
+
+@keyframes feed-arrive {
+  0%,
+  35% {
+    background: var(--color-bg-sunken);
+  }
+  100% {
+    background: transparent;
+  }
+}
+
+/* Run / Pause / Restart */
+.pipeline-controls {
+  position: fixed;
+  top: var(--space-md);
+  left: var(--space-lg);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  padding: var(--space-sm) var(--space-sm) var(--space-sm) var(--space-lg);
+}
+
+.controls-summary {
+  margin: 0;
+  font-size: var(--type-small-size);
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.controls-buttons {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.btn {
+  height: 32px;
+  padding: 0 var(--space-md);
+  border-radius: var(--radius-control);
+  font-family: var(--font-sans);
+  font-size: var(--type-small-size);
+  font-weight: var(--type-label-weight);
+  cursor: pointer;
+  transition: opacity var(--motion-fast) var(--motion-ease);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.btn-primary {
+  border: 1px solid var(--color-action-primary);
+  background: var(--color-action-primary);
+  color: var(--color-text-inverse);
+}
+
+.btn-secondary {
+  border: 1px solid var(--color-border-control);
+  background: var(--color-bg-canvas);
+  color: var(--color-text-primary);
+}
+
+.btn-quiet {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-text-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn,
+  .source-node {
+    transition: none;
+  }
+
+  .feed-table tr.is-new td {
+    animation: none;
+  }
+}

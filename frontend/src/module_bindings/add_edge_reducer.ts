@@ -13,6 +13,4 @@ import {
 export default {
   source: __t.u64(),
   target: __t.u64(),
-  sourceHandle: __t.string(),
-  targetHandle: __t.string(),
 };

@@ -116,6 +116,38 @@ export function inbound(stdb: Schema) {
     ctx.db.inboundSource.name.update({ ...row, state: '' });
   });
 
+  // ─── Whole-pipeline controls (the UI's Run / Pause / Restart) ─────────────
+
+  function setAll(ctx: Ctx, enabled: boolean) {
+    for (const source of InboundHub.sources) {
+      const row = sourceRow(ctx, source);
+      ctx.db.inboundSource.name.update({ ...row, enabled });
+      updateStatus(ctx, source.name, { enabled });
+    }
+    if (enabled) ensureTicking(ctx);
+  }
+
+  const runInbound = stdb.reducer(ctx => setAll(ctx, true));
+
+  const pauseInbound = stdb.reducer(ctx => setAll(ctx, false));
+
+  // Start over: drop every stored event and label, rewind every source to its
+  // beginning, then run. Sources replay with fresh corruption.
+  const restartInbound = stdb.reducer(ctx => {
+    for (const event of [...ctx.db.inboundEvent.iter()]) ctx.db.inboundEvent.id.delete(event.id);
+    for (const label of [...ctx.db.inboundLabel.iter()]) ctx.db.inboundLabel.eventId.delete(label.eventId);
+    for (const source of InboundHub.sources) {
+      const row = sourceRow(ctx, source);
+      ctx.db.inboundSource.name.update({ ...row, state: '' });
+      updateStatus(ctx, source.name, { emitted: 0n, lastError: undefined, lastPolledAt: undefined });
+    }
+    // Status rows for sources that no longer exist (e.g. removed integrations)
+    for (const status of [...ctx.db.inboundSourceStatus.iter()]) {
+      if (!InboundHub.get(status.name)) ctx.db.inboundSourceStatus.name.delete(status.name);
+    }
+    setAll(ctx, true);
+  });
+
   // Polls every enabled source, applies its corruption profile to new events
   // and stores them. HTTP happens outside transactions; each source's results
   // commit in their own transaction so one failing source can't block others.
@@ -231,5 +263,13 @@ export function inbound(stdb: Schema) {
     }
   );
 
-  return { setInboundSource, configureInboundSource, resetInboundSource, inboundTick };
+  return {
+    setInboundSource,
+    configureInboundSource,
+    resetInboundSource,
+    runInbound,
+    pauseInbound,
+    restartInbound,
+    inboundTick,
+  };
 }

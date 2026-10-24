@@ -36,20 +36,38 @@ import {
 // Import all reducer arg schemas
 import AddEdgeReducer from "./add_edge_reducer";
 import AddNodeReducer from "./add_node_reducer";
+import CancelAgentTaskReducer from "./cancel_agent_task_reducer";
+import ConfigureInboundSourceReducer from "./configure_inbound_source_reducer";
+import CreateBillReducer from "./create_bill_reducer";
+import CreateInvoiceReducer from "./create_invoice_reducer";
 import DeleteEdgeReducer from "./delete_edge_reducer";
 import DeleteNodeReducer from "./delete_node_reducer";
 import MoveCursorReducer from "./move_cursor_reducer";
 import MoveNodeReducer from "./move_node_reducer";
+import PauseInboundReducer from "./pause_inbound_reducer";
+import RecordPaymentReducer from "./record_payment_reducer";
 import RenameNodeReducer from "./rename_node_reducer";
-import ResizeNodeReducer from "./resize_node_reducer";
+import RequestAgentTaskReducer from "./request_agent_task_reducer";
+import ResetInboundSourceReducer from "./reset_inbound_source_reducer";
+import RestartInboundReducer from "./restart_inbound_reducer";
+import RunInboundReducer from "./run_inbound_reducer";
+import SetInboundSourceReducer from "./set_inbound_source_reducer";
 import SetNameReducer from "./set_name_reducer";
-import SetNodeColorReducer from "./set_node_color_reducer";
+import SteerAgentTaskReducer from "./steer_agent_task_reducer";
 
 // Import all procedure arg schemas
+import * as AgentFileUrlProcedure from "./agent_file_url_procedure";
 
 // Import all table schema definitions
+import AccountingBillRow from "./accounting_bill_table";
+import AccountingInvoiceRow from "./accounting_invoice_table";
+import AccountingPaymentRow from "./accounting_payment_table";
+import AgentStepRow from "./agent_step_table";
+import AgentTaskRow from "./agent_task_table";
 import CursorRow from "./cursor_table";
 import EdgeRow from "./edge_table";
+import InboundEventRow from "./inbound_event_table";
+import InboundSourceStatusRow from "./inbound_source_status_table";
 import NodeRow from "./node_table";
 import UserRow from "./user_table";
 
@@ -57,6 +75,64 @@ import UserRow from "./user_table";
 
 /** The schema information for all tables in this module. This is defined the same was as the tables would have been defined in the server. */
 const tablesSchema = __schema({
+  accountingBill: __table({
+    name: 'accounting_bill',
+    indexes: [
+      { accessor: 'id', name: 'accounting_bill_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'accounting_bill_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, AccountingBillRow),
+  accountingInvoice: __table({
+    name: 'accounting_invoice',
+    indexes: [
+      { accessor: 'id', name: 'accounting_invoice_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'accounting_invoice_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, AccountingInvoiceRow),
+  accountingPayment: __table({
+    name: 'accounting_payment',
+    indexes: [
+      { accessor: 'id', name: 'accounting_payment_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'accounting_payment_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, AccountingPaymentRow),
+  agentStep: __table({
+    name: 'agent_step',
+    indexes: [
+      { accessor: 'id', name: 'agent_step_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'taskId', name: 'agent_step_task_id_idx_btree', algorithm: 'btree', columns: [
+        'taskId',
+      ] },
+    ],
+    constraints: [
+      { name: 'agent_step_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, AgentStepRow),
+  agentTask: __table({
+    name: 'agent_task',
+    indexes: [
+      { accessor: 'id', name: 'agent_task_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'agent_task_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, AgentTaskRow),
   cursor: __table({
     name: 'cursor',
     indexes: [
@@ -79,6 +155,35 @@ const tablesSchema = __schema({
       { name: 'edge_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, EdgeRow),
+  inboundEvent: __table({
+    name: 'inbound_event',
+    indexes: [
+      { accessor: 'dedupeKey', name: 'inbound_event_dedupe_key_idx_btree', algorithm: 'btree', columns: [
+        'dedupeKey',
+      ] },
+      { accessor: 'id', name: 'inbound_event_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'source', name: 'inbound_event_source_idx_btree', algorithm: 'btree', columns: [
+        'source',
+      ] },
+    ],
+    constraints: [
+      { name: 'inbound_event_dedupe_key_key', constraint: 'unique', columns: ['dedupeKey'] },
+      { name: 'inbound_event_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, InboundEventRow),
+  inboundSourceStatus: __table({
+    name: 'inbound_source_status',
+    indexes: [
+      { accessor: 'name', name: 'inbound_source_status_name_idx_btree', algorithm: 'btree', columns: [
+        'name',
+      ] },
+    ],
+    constraints: [
+      { name: 'inbound_source_status_name_key', constraint: 'unique', columns: ['name'] },
+    ],
+  }, InboundSourceStatusRow),
   node: __table({
     name: 'node',
     indexes: [
@@ -107,18 +212,29 @@ const tablesSchema = __schema({
 const reducersSchema = __reducers(
   __reducerSchema("add_edge", AddEdgeReducer),
   __reducerSchema("add_node", AddNodeReducer),
+  __reducerSchema("cancel_agent_task", CancelAgentTaskReducer),
+  __reducerSchema("configure_inbound_source", ConfigureInboundSourceReducer),
+  __reducerSchema("create_bill", CreateBillReducer),
+  __reducerSchema("create_invoice", CreateInvoiceReducer),
   __reducerSchema("delete_edge", DeleteEdgeReducer),
   __reducerSchema("delete_node", DeleteNodeReducer),
   __reducerSchema("move_cursor", MoveCursorReducer),
   __reducerSchema("move_node", MoveNodeReducer),
+  __reducerSchema("pause_inbound", PauseInboundReducer),
+  __reducerSchema("record_payment", RecordPaymentReducer),
   __reducerSchema("rename_node", RenameNodeReducer),
-  __reducerSchema("resize_node", ResizeNodeReducer),
+  __reducerSchema("request_agent_task", RequestAgentTaskReducer),
+  __reducerSchema("reset_inbound_source", ResetInboundSourceReducer),
+  __reducerSchema("restart_inbound", RestartInboundReducer),
+  __reducerSchema("run_inbound", RunInboundReducer),
+  __reducerSchema("set_inbound_source", SetInboundSourceReducer),
   __reducerSchema("set_name", SetNameReducer),
-  __reducerSchema("set_node_color", SetNodeColorReducer),
+  __reducerSchema("steer_agent_task", SteerAgentTaskReducer),
 );
 
 /** The schema information for all procedures in this module. This is defined the same way as the procedures would have been defined in the server. */
 const proceduresSchema = __procedures(
+  __procedureSchema("agent_file_url", AgentFileUrlProcedure.params, AgentFileUrlProcedure.returnType),
 );
 
 /** The remote SpacetimeDB module schema, both runtime and type information. */

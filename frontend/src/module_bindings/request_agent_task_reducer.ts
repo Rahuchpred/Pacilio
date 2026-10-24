@@ -11,9 +11,7 @@ import {
 } from "spacetimedb";
 
 export default {
-  id: __t.u64(),
-  x: __t.f64(),
-  y: __t.f64(),
-  width: __t.f64(),
-  height: __t.f64(),
+  kind: __t.string(),
+  prompt: __t.string(),
+  autonomy: __t.string(),
 };

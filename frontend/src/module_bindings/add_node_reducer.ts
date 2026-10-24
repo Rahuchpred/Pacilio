@@ -13,5 +13,4 @@ import {
 export default {
   x: __t.f64(),
   y: __t.f64(),
-  shape: __t.string(),
 };

@@ -8,10 +8,12 @@ const SPLITS = ['validation', 'test'];
 
 type Field = string | string[] | undefined;
 interface MenuItem { nm?: Field; cnt?: Field; price?: Field }
+interface Total { total_price?: Field; cashprice?: Field; changeprice?: Field }
 interface GroundTruth {
   gt_parse: {
     menu?: MenuItem | MenuItem[];
-    total?: { total_price?: Field } | { total_price?: Field }[];
+    sub_total?: { subtotal_price?: Field } | { subtotal_price?: Field }[];
+    total?: Total | Total[];
   };
 }
 interface Row {
@@ -26,6 +28,20 @@ function parseRupiah(raw: string): bigint {
   const withoutDecimals = raw.replace(/[.,]\d{2}$/, '');
   const digits = withoutDecimals.replace(/\D/g, '');
   return BigInt(digits || '0');
+}
+
+const one = <T>(v: T | T[] | undefined): T | undefined => (Array.isArray(v) ? v[0] : v);
+
+// Not every receipt labels its total; fall back the way a person would.
+function receiptTotal(gt: GroundTruth['gt_parse'], menu: MenuItem[]): bigint {
+  const total = one(gt.total);
+  if (first(total?.total_price)) return parseRupiah(first(total?.total_price));
+  const subtotal = first(one(gt.sub_total)?.subtotal_price);
+  if (subtotal) return parseRupiah(subtotal);
+  if (first(total?.cashprice) && first(total?.changeprice)) {
+    return parseRupiah(first(total?.cashprice)) - parseRupiah(first(total?.changeprice));
+  }
+  return menu.reduce((sum, m) => sum + parseRupiah(first(m.price)), 0n);
 }
 
 export const cord: Source = {
@@ -57,13 +73,12 @@ export const cord: Source = {
       events: res.rows.map(({ row_idx, row }) => {
         const gt = (JSON.parse(row.ground_truth) as GroundTruth).gt_parse;
         const menu = Array.isArray(gt.menu) ? gt.menu : gt.menu ? [gt.menu] : [];
-        const total = Array.isArray(gt.total) ? gt.total[0] : gt.total;
         const items = menu.map(m => `${first(m.nm)} x${first(m.cnt) || '1'}`).join(', ');
         return {
           sourceId: `${split}:${row_idx}`,
           kind: 'receipt' as const,
           occurredAt: ctx.now(),
-          amountMinor: -parseRupiah(first(total?.total_price)),
+          amountMinor: -receiptTotal(gt, menu),
           currency: 'IDR',
           counterparty: 'Unknown merchant',
           description: items || 'Receipt',

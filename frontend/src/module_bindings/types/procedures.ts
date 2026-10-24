@@ -6,5 +6,8 @@
 import { type Infer as __Infer } from "spacetimedb";
 
 // Import all procedure arg schemas
+import * as AgentFileUrlProcedure from "../agent_file_url_procedure";
 
+export type AgentFileUrlArgs = __Infer<typeof AgentFileUrlProcedure.params>;
+export type AgentFileUrlResult = __Infer<typeof AgentFileUrlProcedure.returnType>;
 

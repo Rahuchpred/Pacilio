@@ -58,6 +58,9 @@ export const {
   setInboundSource,
   configureInboundSource,
   resetInboundSource,
+  runInbound,
+  pauseInbound,
+  restartInbound,
   inboundTick,
 } = inbound(spacetimedb);
 

@@ -14,6 +14,4 @@ export default __t.row({
   id: __t.u64().primaryKey(),
   source: __t.u64(),
   target: __t.u64(),
-  sourceHandle: __t.string().name("source_handle"),
-  targetHandle: __t.string().name("target_handle"),
 });
