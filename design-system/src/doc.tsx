@@ -1,9 +1,9 @@
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import tokens from "./tokens/tokens.json";
 
-export type Brand = "navy" | "ramp" | "stripe" | "mercury" | "zuzu";
+export type Brand = "navy" | "ramp" | "stripe" | "mercury";
 export const BRANDS = Object.keys(tokens.brands) as Brand[];
-export const ThemeCtx = createContext<{ brand: Brand; dark: boolean; mode: "human" | "agent" }>({ brand: "navy", dark: false, mode: "human" });
+export const ThemeCtx = createContext<{ brand: Brand; dark: boolean; mode: "human" | "agent"; orange: boolean }>({ brand: "navy", dark: false, mode: "human", orange: false });
 export const useTheme = () => useContext(ThemeCtx);
 
 export type SectionDef = { id: string; title: string; body: ReactNode };
@@ -127,7 +127,9 @@ export function contrast(a: string, b: string) {
 }
 
 /* Resolves a color token to hex for a brand and mode, from tokens.json. */
-export function tokenHex(brand: Brand, mode: "light" | "dark", key: string) {
+export function tokenHex(brand: Brand, mode: "light" | "dark", key: string, orange = false) {
+  const acc = orange ? (tokens.accents.orange[mode] as Record<string, string>)[key] : undefined;
+  if (acc) return acc;
   const b = tokens.brands[brand] as Record<string, unknown>;
   const own = (b[mode] as Record<string, string> | undefined)?.[key];
   if (own) return own;

@@ -6,7 +6,7 @@ const brandOf = () => tokens.brands;
 
 /* ---------- Color ---------- */
 function ContrastTable() {
-  const { brand } = useTheme();
+  const { brand, orange } = useTheme();
   const pairs: [string, string, string, number][] = [
     ["text/primary", "bg/canvas", "Body text on the page", 4.5],
     ["text/secondary", "bg/surface", "Labels on a raised panel", 4.5],
@@ -23,8 +23,8 @@ function ContrastTable() {
     <Table
       head={["Pair", "Where", "Light", "Dark"]}
       rows={pairs.map(([fg, bg, where, min]) => {
-        const l = contrast(tokenHex(brand, "light", fg), tokenHex(brand, "light", bg));
-        const d = contrast(tokenHex(brand, "dark", fg), tokenHex(brand, "dark", bg));
+        const l = contrast(tokenHex(brand, "light", fg, orange), tokenHex(brand, "light", bg, orange));
+        const d = contrast(tokenHex(brand, "dark", fg, orange), tokenHex(brand, "dark", bg, orange));
         const cell = (r: number) => <span className={r >= min ? "pass" : "low"}>{r.toFixed(1)}:1</span>;
         return [<code key="p">{`${fg} on ${bg}`}</code>, where, cell(l), cell(d)];
       })}
@@ -33,19 +33,19 @@ function ContrastTable() {
 }
 
 function ValuesTable() {
-  const { brand } = useTheme();
+  const { brand, orange } = useTheme();
   return (
     <Table
       head={["Role", "Light", "Dark"]}
       rows={Object.keys(tokens.color).map((k) => [
         <code key="k">{`--color-${k.replace(/\//g, "-")}`}</code>,
         <span className="hex" key="l">
-          <span className="hex-chip" style={{ background: tokenHex(brand, "light", k) }} />
-          {tokenHex(brand, "light", k)}
+          <span className="hex-chip" style={{ background: tokenHex(brand, "light", k, orange) }} />
+          {tokenHex(brand, "light", k, orange)}
         </span>,
         <span className="hex" key="d">
-          <span className="hex-chip" style={{ background: tokenHex(brand, "dark", k) }} />
-          {tokenHex(brand, "dark", k)}
+          <span className="hex-chip" style={{ background: tokenHex(brand, "dark", k, orange) }} />
+          {tokenHex(brand, "dark", k, orange)}
         </span>,
       ])}
     />
@@ -56,7 +56,7 @@ const color: PageDef = {
   id: "color",
   group: "Foundations",
   title: "Color",
-  lede: "Ink and paper, one theme color for the action you press next, and three state colors that only ever mark a result.",
+  lede: "Ink and paper, one theme color for the action you press next, and three state colors that only ever mark a result. The orange switch swaps the theme color in every theme.",
   agent: `# Color
 - Ink and paper do the work: bg/canvas, bg/surface, bg/sunken, text/*, border/*.
 - action/decide is the theme color. It appears on the one button you press next and on the Needs you status.
@@ -210,7 +210,7 @@ const typography: PageDef = {
             ["Theme heading weight", "display, title"],
             ["400", "heading, body, small"],
             ["500", "subheading, label, button"],
-            ["600", "a short strong phrase, Zuzu buttons"],
+            ["600", "a short strong phrase"],
           ]}
         />
       ),

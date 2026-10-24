@@ -45,14 +45,17 @@ Borders: 1px hairlines. No shadows: overlays lift with a 1px ring.
 
 ## Themes
 
-Set `data-brand` on `<html>`: `navy` (default), `ramp`, `stripe`, `mercury` or `zuzu`. Every theme has light and dark values. Ramp, Stripe, Mercury and Zuzu (orange from whop.com) come from their sites via context.dev (`research/brands/`); Navy follows Glaze from design.how with navy ink.
+Set `data-brand` on `<html>`: `navy` (default), `ramp`, `stripe` or `mercury`. Every theme has light and dark values. Ramp, Stripe and Mercury come from their sites via context.dev (`research/brands/`); Navy follows Glaze from design.how with navy ink.
 
 | Theme | Crafted buttons | Font (stands in for) | Radius control/panel | Status |
 |---|---|---|---|---|
 | Navy | Glass, a cool light rising from the bottom, silver-blue rim | Geist | pill / 14 | Glyph and word |
-| Ramp | Foil with a brushed grain; dark label on yellow | Inter (Lausanne) | 6 / 8 | Square tag, Needs is solid ink |
+| Ramp | Foil, a bright top and a darker lip | Inter (Lausanne) | 6 / 8 | Square tag, Needs is solid ink |
 | Stripe | Lacquer lit from the top left | Geist (Sohne) | 4 / 8 | Tinted pill, icon after the word |
 | Mercury | Frosted pill with a pale rim | Instrument Sans (Arcadia) | pill / 12 | Outlined pill |
-| Zuzu | Glossy orange enamel with an ember and a burnt ring, labels 600 | Schibsted Grotesk (Acid Grotesk) | pill / 16 | Word over a 2px underline |
 
-Crafted kinds: `decide` (theme color), `accept` (green) and `reject` (coral). Each theme writes one recipe in terms of `--tint` in `design-system/src/buttons.css`, so all three share the material. Nothing slides or sweeps; the only motion is a short press.
+Crafted kinds: `decide` (theme color), `accept` (green), `reject` (coral). Each theme writes one recipe around `--tint` in `design-system/src/buttons.css`. No sliding or sweeping motion; the only motion is a short press.
+
+## Orange accent
+
+Set `data-accent="orange"` on `<html>` to swap the theme color for orange in any theme. Only `action/decide`, `action/decide-soft`, `text/decide` and `text/on-decide` change; every component keeps its theme's shape and material. The orange is whop.com's #fa4616 as the lit top, over #d4360a so white labels pass AA.

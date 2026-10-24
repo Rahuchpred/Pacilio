@@ -914,14 +914,6 @@ a {
   gap: var(--space-sm);
 }
 
-/* Zuzu: the word in its state color over a 2px underline, weight 600. */
-[data-brand="zuzu"] .status {
-  font-weight: 600;
-  padding-bottom: 3px;
-  border-bottom: 2px solid currentColor;
-  border-radius: 0;
-}
-[data-brand="zuzu"] .status-needs { color: var(--color-text-decide); }
 
 /* Pages */
 .theme-note {
@@ -1354,10 +1346,31 @@ code {
 }
 .brand-sample[data-brand="mercury"] .status .icon { display: none; }
 .brand-sample[data-brand="mercury"] .status-needs { color: var(--color-text-decide); }
-.brand-sample[data-brand="zuzu"] .status {
-  font-weight: 600;
-  padding-bottom: 3px;
-  border-bottom: 2px solid currentColor;
-  border-radius: 0;
+
+/* Orange switch: swaps the theme color, keeps the theme's components. */
+.accent-toggle {
+  margin-top: var(--space-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  align-self: flex-start;
+  font: inherit;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: var(--border-hairline) solid var(--color-border-default);
+  border-radius: var(--radius-control);
+  padding: var(--space-xs) var(--space-md) var(--space-xs) var(--space-sm);
+  cursor: pointer;
 }
-.brand-sample[data-brand="zuzu"] .status-needs { color: var(--color-text-decide); }
+.accent-toggle.is-on {
+  color: var(--color-text-primary);
+  background: var(--color-action-decide-soft);
+  border-color: color-mix(in srgb, var(--color-action-decide) 40%, transparent);
+}
+.accent-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-xs);
+  background: linear-gradient(180deg, #fa4616, #d4360a);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
+}

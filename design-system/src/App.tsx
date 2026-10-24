@@ -28,6 +28,13 @@ export default function App() {
       return "navy";
     }
   });
+  const [orange, setOrange] = useState(() => {
+    try {
+      return localStorage.getItem("settle-accent") === "orange";
+    } catch {
+      return false;
+    }
+  });
   const [systemDark, setSystemDark] = useState(() => window.matchMedia("(prefers-color-scheme: dark)").matches);
 
   useEffect(() => {
@@ -55,6 +62,16 @@ export default function App() {
   }, [brand]);
 
   useEffect(() => {
+    if (orange) document.documentElement.dataset.accent = "orange";
+    else delete document.documentElement.dataset.accent;
+    try {
+      localStorage.setItem("settle-accent", orange ? "orange" : "theme");
+    } catch {
+      /* private window */
+    }
+  }, [orange]);
+
+  useEffect(() => {
     if (theme) document.documentElement.dataset.theme = theme;
     else delete document.documentElement.dataset.theme;
   }, [theme]);
@@ -75,7 +92,7 @@ export default function App() {
   }, [page, mode]);
 
   const dark = theme ? theme === "dark" : systemDark;
-  const ctx = useMemo(() => ({ brand, dark, mode }), [brand, dark, mode]);
+  const ctx = useMemo(() => ({ brand, dark, mode, orange }), [brand, dark, mode, orange]);
   const b = tokens.brands[brand] as { label: string; font: string; fontSource?: string; source?: string };
 
   const copyPrompt = async () => {
@@ -121,7 +138,9 @@ export default function App() {
             </select>
           </label>
           <p className="theme-note">
-            Theme: {b.label}. {b.fontSource ? `Values from ${b.label === "Zuzu" ? "whop" : b.label.toLowerCase()}.com; ${b.fontSource} stands in as ${b.font}.` : `${b.source}.`}
+            Theme: {b.label}
+            {orange ? " in orange" : ""}. {b.fontSource ? `Values from ${b.label.toLowerCase()}.com; ${b.fontSource} stands in as ${b.font}.` : `${b.source}.`}
+            {orange ? " Orange from whop.com." : ""}
           </p>
           <Page page={page} />
         </main>
@@ -154,6 +173,10 @@ export default function App() {
                 </button>
               ))}
             </div>
+            <button type="button" className={`accent-toggle${orange ? " is-on" : ""}`} aria-pressed={orange} onClick={() => setOrange(!orange)}>
+              <span className="accent-swatch" aria-hidden="true" />
+              {orange ? "Orange on" : "Make it orange"}
+            </button>
           </div>
           <div className="rail-block">
             <p className="rail-heading">Install</p>
@@ -188,6 +211,9 @@ export default function App() {
           <span className="tool-sep" />
           <button type="button" className="tool" onClick={nextBrand} aria-label={`Theme ${b.label}, switch to the next theme`}>
             {b.label}
+          </button>
+          <button type="button" className={`tool${orange ? " is-on" : ""}`} onClick={() => setOrange(!orange)} aria-pressed={orange}>
+            Orange
           </button>
           <button type="button" className="tool" onClick={() => setTheme(dark ? "light" : "dark")} aria-label={dark ? "Switch to light" : "Switch to dark"}>
             <Icon name="sun" />

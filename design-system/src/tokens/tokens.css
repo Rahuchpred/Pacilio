@@ -394,86 +394,27 @@
   color-scheme: dark;
 }
 
-/* Zuzu, Acid Grotesk (licensed) stands in as Schibsted Grotesk */
-:root[data-brand="zuzu"], .brand-sample[data-brand="zuzu"] {
-  --font-sans: "Schibsted Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --type-title-weight: 500;
-  --type-display-weight: 500;
-  --radius-control: 999px;
-  --radius-panel: 16px;
-  --color-bg-canvas: #ffffff;
-  --color-bg-surface: #fbf8f6;
-  --color-bg-sunken: #f5efea;
-  --color-text-primary: #202020;
-  --color-text-secondary: #5f5751;
-  --color-text-tertiary: #766d66;
-  --color-text-inverse: #ffffff;
-  --color-border-default: #efe6e0;
-  --color-border-strong: #d9cbc2;
-  --color-action-primary: #202020;
+/* Accent: Orange, whop.com orange #fa4616, deepened for AA */
+:root[data-accent="orange"], [data-accent="orange"] .brand-sample {
   --color-action-decide: #d4360a;
   --color-text-on-decide: #ffffff;
-  --color-action-accept: #1c7c54;
-  --color-action-reject: #b3261e;
   --color-action-decide-soft: #fff0ea;
   --color-text-decide: #b62600;
-  --color-status-cleared: #1d7a4a;
-  --color-status-cleared-soft: #e5f3eb;
-  --color-status-held: #9a5600;
-  --color-status-held-soft: #fbf0e1;
-  --color-status-disputed: #bf3221;
-  --color-status-disputed-soft: #fbe8e5;
-  color-scheme: light;
+  --color-action-reject: #a31d42;
 }
 @media (prefers-color-scheme: dark) {
-  :root[data-brand="zuzu"]:not([data-theme="light"]) {
-    --color-bg-canvas: #120e0c;
-    --color-bg-surface: #1a1512;
-    --color-bg-sunken: #221b17;
-    --color-text-primary: #f7f1ed;
-    --color-text-secondary: #b3a79f;
-    --color-text-tertiary: #978b83;
-    --color-text-inverse: #120e0c;
-    --color-border-default: #2c231e;
-    --color-border-strong: #40342d;
-    --color-action-primary: #f7f1ed;
+  :root[data-accent="orange"]:not([data-theme="light"]) {
     --color-action-decide: #d4360a;
     --color-text-on-decide: #ffffff;
-    --color-action-accept: #1c7c54;
-    --color-action-reject: #c8321f;
     --color-action-decide-soft: #3a1a0e;
     --color-text-decide: #ff8a5c;
-    --color-status-cleared: #4fc489;
-    --color-status-cleared-soft: #12301f;
-    --color-status-held: #e3a447;
-    --color-status-held-soft: #33230c;
-    --color-status-disputed: #ff7a66;
-    --color-status-disputed-soft: #3a1712;
-    color-scheme: dark;
+    --color-action-reject: #a31d42;
   }
 }
-:root[data-brand="zuzu"][data-theme="dark"] {
-  --color-bg-canvas: #120e0c;
-  --color-bg-surface: #1a1512;
-  --color-bg-sunken: #221b17;
-  --color-text-primary: #f7f1ed;
-  --color-text-secondary: #b3a79f;
-  --color-text-tertiary: #978b83;
-  --color-text-inverse: #120e0c;
-  --color-border-default: #2c231e;
-  --color-border-strong: #40342d;
-  --color-action-primary: #f7f1ed;
+:root[data-accent="orange"][data-theme="dark"] {
   --color-action-decide: #d4360a;
   --color-text-on-decide: #ffffff;
-  --color-action-accept: #1c7c54;
-  --color-action-reject: #c8321f;
   --color-action-decide-soft: #3a1a0e;
   --color-text-decide: #ff8a5c;
-  --color-status-cleared: #4fc489;
-  --color-status-cleared-soft: #12301f;
-  --color-status-held: #e3a447;
-  --color-status-held-soft: #33230c;
-  --color-status-disputed: #ff7a66;
-  --color-status-disputed-soft: #3a1712;
-  color-scheme: dark;
+  --color-action-reject: #a31d42;
 }

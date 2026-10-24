@@ -9,7 +9,7 @@ Code: `design-system/src/components.tsx`. Figma: the Components page.
 Field (label, control, hint or error), Input (40px, leading icon optional), Textarea, Chip (filter toggle), Segmented control and Tabs (switch in place, nothing slides), Switch (on uses the theme color).
 
 ## Status
-`kind`: `cleared`, `held`, `disputed`, `needs`, `agent`. Each theme draws it differently, like design.how's systems do: Navy a glyph and a word with no background, Ramp a square tag with no icon (needs is solid ink), Stripe a tinted pill with the icon after the word, Mercury an outlined pill with no icon, Zuzu a word over a 2px underline. Figma: the `Style` property on Status.
+`kind`: `cleared`, `held`, `disputed`, `needs`, `agent`. Each theme draws it differently, like design.how's systems do: Navy a glyph and a word with no background, Ramp a square tag with no icon (needs is solid ink), Stripe a tinted pill with the icon after the word, Mercury an outlined pill with no icon. Figma: the `Style` property on Status.
 
 ## Ref and Source
 A small number after a claim (`<Ref n={1} />`) points to a numbered `<Source>` row listed under the text, the way Glaze cites an answer.

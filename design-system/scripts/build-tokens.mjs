@@ -67,6 +67,26 @@ ${dark.join("\n")}
 }`);
 }
 
+// Accents swap only the theme color; every theme keeps its own components.
+for (const [a, acc] of Object.entries(t.accents ?? {})) {
+  const lines = (mode) => Object.entries(acc[mode]).map(([k, v]) => `  ${cssName(k)}: ${v};`);
+  const on = `:root[data-accent="${a}"], [data-accent="${a}"] .brand-sample`;
+  const onDark = `:root[data-accent="${a}"][data-theme="dark"]`;
+  const onSystemDark = `:root[data-accent="${a}"]:not([data-theme="light"])`;
+  blocks.push(`/* Accent: ${acc.label}, ${acc.source} */
+${on} {
+${lines("light").join("\n")}
+}
+@media (prefers-color-scheme: dark) {
+  ${onSystemDark} {
+${lines("dark").map((l) => "  " + l).join("\n")}
+  }
+}
+${onDark} {
+${lines("dark").join("\n")}
+}`);
+}
+
 const css = `/* Generated from tokens.json by scripts/build-tokens.mjs. Do not edit by hand. */\n${blocks.join("\n\n")}\n`;
 writeFileSync(new URL("tokens.css", root), css);
 console.log(`tokens.css: ${Object.keys(t.color).length} colors x ${Object.keys(t.brands).length} brands x 2 modes`);
