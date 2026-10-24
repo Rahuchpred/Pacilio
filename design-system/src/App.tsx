@@ -23,16 +23,16 @@ export default function App() {
   const [brand, setBrand] = useState<Brand>(() => {
     try {
       const saved = localStorage.getItem("settle-brand") as Brand | null;
-      return saved && BRANDS.includes(saved) ? saved : "navy";
+      return saved && BRANDS.includes(saved) ? saved : "stripe";
     } catch {
-      return "navy";
+      return "stripe";
     }
   });
   const [orange, setOrange] = useState(() => {
     try {
-      return localStorage.getItem("settle-accent") === "orange";
+      return localStorage.getItem("settle-accent") !== "theme";
     } catch {
-      return false;
+      return true;
     }
   });
   const [systemDark, setSystemDark] = useState(() => window.matchMedia("(prefers-color-scheme: dark)").matches);

@@ -1,6 +1,174 @@
 /* Generated from tokens.json by scripts/build-tokens.mjs. Do not edit by hand. */
 /* Navy, Glaze on design.how, ink turned navy */
-:root, :root[data-brand="navy"], .brand-sample[data-brand="navy"] {
+:root[data-brand="navy"], .brand-sample[data-brand="navy"] {
+  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --type-title-weight: 500;
+  --type-display-weight: 500;
+  --radius-control: 999px;
+  --radius-panel: 14px;
+  --color-bg-canvas: #ffffff;
+  --color-bg-surface: #f7f8fa;
+  --color-bg-sunken: #eff1f5;
+  --color-text-primary: #0c1630;
+  --color-text-secondary: #4d5873;
+  --color-text-tertiary: #646e86;
+  --color-text-inverse: #ffffff;
+  --color-border-default: #e4e8ef;
+  --color-border-strong: #c6ccd8;
+  --color-action-primary: #0f2350;
+  --color-action-decide: #13295e;
+  --color-text-on-decide: #ffffff;
+  --color-action-accept: #0f5a3a;
+  --color-action-reject: #962212;
+  --color-action-decide-soft: #e8edf8;
+  --color-text-decide: #1d3a80;
+  --color-status-cleared: #1d7a4a;
+  --color-status-cleared-soft: #e5f3eb;
+  --color-status-held: #9a5600;
+  --color-status-held-soft: #fbf0e1;
+  --color-status-disputed: #bf3221;
+  --color-status-disputed-soft: #fbe8e5;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-brand="navy"]:not([data-theme="light"]) {
+    --color-bg-canvas: #0a0f1c;
+    --color-bg-surface: #101729;
+    --color-bg-sunken: #151d33;
+    --color-text-primary: #eef1f8;
+    --color-text-secondary: #a6afc4;
+    --color-text-tertiary: #8b94aa;
+    --color-text-inverse: #0a0f1c;
+    --color-border-default: #1f2840;
+    --color-border-strong: #2e3956;
+    --color-action-primary: #eef1f8;
+    --color-action-decide: #2c4a8f;
+    --color-text-on-decide: #ffffff;
+    --color-action-accept: #1c7a4f;
+    --color-action-reject: #b0301c;
+    --color-action-decide-soft: #16234a;
+    --color-text-decide: #a9bdf5;
+    --color-status-cleared: #4fc489;
+    --color-status-cleared-soft: #12301f;
+    --color-status-held: #e3a447;
+    --color-status-held-soft: #33230c;
+    --color-status-disputed: #ff7a66;
+    --color-status-disputed-soft: #3a1712;
+    color-scheme: dark;
+  }
+}
+:root[data-brand="navy"][data-theme="dark"] {
+  --color-bg-canvas: #0a0f1c;
+  --color-bg-surface: #101729;
+  --color-bg-sunken: #151d33;
+  --color-text-primary: #eef1f8;
+  --color-text-secondary: #a6afc4;
+  --color-text-tertiary: #8b94aa;
+  --color-text-inverse: #0a0f1c;
+  --color-border-default: #1f2840;
+  --color-border-strong: #2e3956;
+  --color-action-primary: #eef1f8;
+  --color-action-decide: #2c4a8f;
+  --color-text-on-decide: #ffffff;
+  --color-action-accept: #1c7a4f;
+  --color-action-reject: #b0301c;
+  --color-action-decide-soft: #16234a;
+  --color-text-decide: #a9bdf5;
+  --color-status-cleared: #4fc489;
+  --color-status-cleared-soft: #12301f;
+  --color-status-held: #e3a447;
+  --color-status-held-soft: #33230c;
+  --color-status-disputed: #ff7a66;
+  --color-status-disputed-soft: #3a1712;
+  color-scheme: dark;
+}
+
+/* Ramp, Lausanne (licensed) stands in as Inter */
+:root[data-brand="ramp"], .brand-sample[data-brand="ramp"] {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --type-title-weight: 400;
+  --type-display-weight: 400;
+  --radius-control: 6px;
+  --radius-panel: 8px;
+  --color-bg-canvas: #ffffff;
+  --color-bg-surface: #f7f6f2;
+  --color-bg-sunken: #efede6;
+  --color-text-primary: #0c0a08;
+  --color-text-secondary: #5c5850;
+  --color-text-tertiary: #77736a;
+  --color-text-inverse: #ffffff;
+  --color-border-default: #e6e3da;
+  --color-border-strong: #c9c5b9;
+  --color-action-primary: #1a1919;
+  --color-action-decide: #e4f222;
+  --color-text-on-decide: #0c0a08;
+  --color-action-accept: #1f7a45;
+  --color-action-reject: #b8301f;
+  --color-action-decide-soft: #f7fbc4;
+  --color-text-decide: #4f5600;
+  --color-status-cleared: #1d7a4a;
+  --color-status-cleared-soft: #e5f3eb;
+  --color-status-held: #9a5600;
+  --color-status-held-soft: #fbf0e1;
+  --color-status-disputed: #bf3221;
+  --color-status-disputed-soft: #fbe8e5;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-brand="ramp"]:not([data-theme="light"]) {
+    --color-bg-canvas: #0b0b0c;
+    --color-bg-surface: #141415;
+    --color-bg-sunken: #1b1b1d;
+    --color-text-primary: #f4f4f5;
+    --color-text-secondary: #a6a6ab;
+    --color-text-tertiary: #8b8b91;
+    --color-text-inverse: #0b0b0f;
+    --color-border-default: #27272a;
+    --color-border-strong: #3a3a3e;
+    --color-action-primary: #f4f4f5;
+    --color-action-decide: #e4f222;
+    --color-text-on-decide: #0c0a08;
+    --color-action-accept: #1f7a45;
+    --color-action-reject: #b8301f;
+    --color-action-decide-soft: #2f3207;
+    --color-text-decide: #e4f222;
+    --color-status-cleared: #4fc489;
+    --color-status-cleared-soft: #12301f;
+    --color-status-held: #e3a447;
+    --color-status-held-soft: #33230c;
+    --color-status-disputed: #ff7a66;
+    --color-status-disputed-soft: #3a1712;
+    color-scheme: dark;
+  }
+}
+:root[data-brand="ramp"][data-theme="dark"] {
+  --color-bg-canvas: #0b0b0c;
+  --color-bg-surface: #141415;
+  --color-bg-sunken: #1b1b1d;
+  --color-text-primary: #f4f4f5;
+  --color-text-secondary: #a6a6ab;
+  --color-text-tertiary: #8b8b91;
+  --color-text-inverse: #0b0b0f;
+  --color-border-default: #27272a;
+  --color-border-strong: #3a3a3e;
+  --color-action-primary: #f4f4f5;
+  --color-action-decide: #e4f222;
+  --color-text-on-decide: #0c0a08;
+  --color-action-accept: #1f7a45;
+  --color-action-reject: #b8301f;
+  --color-action-decide-soft: #2f3207;
+  --color-text-decide: #e4f222;
+  --color-status-cleared: #4fc489;
+  --color-status-cleared-soft: #12301f;
+  --color-status-held: #e3a447;
+  --color-status-held-soft: #33230c;
+  --color-status-disputed: #ff7a66;
+  --color-status-disputed-soft: #3a1712;
+  color-scheme: dark;
+}
+
+/* Stripe, Sohne (licensed) stands in as Geist */
+:root, :root[data-brand="stripe"], .brand-sample[data-brand="stripe"] {
   --space-2xs: 2px;
   --space-xs: 4px;
   --space-sm: 8px;
@@ -61,174 +229,6 @@
   --motion-slow: 320ms;
   --motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --type-title-weight: 500;
-  --type-display-weight: 500;
-  --radius-control: 999px;
-  --radius-panel: 14px;
-  --color-bg-canvas: #ffffff;
-  --color-bg-surface: #f7f8fa;
-  --color-bg-sunken: #eff1f5;
-  --color-text-primary: #0c1630;
-  --color-text-secondary: #4d5873;
-  --color-text-tertiary: #646e86;
-  --color-text-inverse: #ffffff;
-  --color-border-default: #e4e8ef;
-  --color-border-strong: #c6ccd8;
-  --color-action-primary: #0f2350;
-  --color-action-decide: #13295e;
-  --color-text-on-decide: #ffffff;
-  --color-action-accept: #0f5a3a;
-  --color-action-reject: #962212;
-  --color-action-decide-soft: #e8edf8;
-  --color-text-decide: #1d3a80;
-  --color-status-cleared: #1d7a4a;
-  --color-status-cleared-soft: #e5f3eb;
-  --color-status-held: #9a5600;
-  --color-status-held-soft: #fbf0e1;
-  --color-status-disputed: #bf3221;
-  --color-status-disputed-soft: #fbe8e5;
-  color-scheme: light;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]):not([data-brand]), :root[data-brand="navy"]:not([data-theme="light"]) {
-    --color-bg-canvas: #0a0f1c;
-    --color-bg-surface: #101729;
-    --color-bg-sunken: #151d33;
-    --color-text-primary: #eef1f8;
-    --color-text-secondary: #a6afc4;
-    --color-text-tertiary: #8b94aa;
-    --color-text-inverse: #0a0f1c;
-    --color-border-default: #1f2840;
-    --color-border-strong: #2e3956;
-    --color-action-primary: #eef1f8;
-    --color-action-decide: #2c4a8f;
-    --color-text-on-decide: #ffffff;
-    --color-action-accept: #1c7a4f;
-    --color-action-reject: #b0301c;
-    --color-action-decide-soft: #16234a;
-    --color-text-decide: #a9bdf5;
-    --color-status-cleared: #4fc489;
-    --color-status-cleared-soft: #12301f;
-    --color-status-held: #e3a447;
-    --color-status-held-soft: #33230c;
-    --color-status-disputed: #ff7a66;
-    --color-status-disputed-soft: #3a1712;
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"]:not([data-brand]), :root[data-brand="navy"][data-theme="dark"] {
-  --color-bg-canvas: #0a0f1c;
-  --color-bg-surface: #101729;
-  --color-bg-sunken: #151d33;
-  --color-text-primary: #eef1f8;
-  --color-text-secondary: #a6afc4;
-  --color-text-tertiary: #8b94aa;
-  --color-text-inverse: #0a0f1c;
-  --color-border-default: #1f2840;
-  --color-border-strong: #2e3956;
-  --color-action-primary: #eef1f8;
-  --color-action-decide: #2c4a8f;
-  --color-text-on-decide: #ffffff;
-  --color-action-accept: #1c7a4f;
-  --color-action-reject: #b0301c;
-  --color-action-decide-soft: #16234a;
-  --color-text-decide: #a9bdf5;
-  --color-status-cleared: #4fc489;
-  --color-status-cleared-soft: #12301f;
-  --color-status-held: #e3a447;
-  --color-status-held-soft: #33230c;
-  --color-status-disputed: #ff7a66;
-  --color-status-disputed-soft: #3a1712;
-  color-scheme: dark;
-}
-
-/* Ramp, Lausanne (licensed) stands in as Inter */
-:root[data-brand="ramp"], .brand-sample[data-brand="ramp"] {
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --type-title-weight: 400;
-  --type-display-weight: 400;
-  --radius-control: 6px;
-  --radius-panel: 8px;
-  --color-bg-canvas: #ffffff;
-  --color-bg-surface: #f7f6f2;
-  --color-bg-sunken: #efede6;
-  --color-text-primary: #0c0a08;
-  --color-text-secondary: #5c5850;
-  --color-text-tertiary: #77736a;
-  --color-text-inverse: #ffffff;
-  --color-border-default: #e6e3da;
-  --color-border-strong: #c9c5b9;
-  --color-action-primary: #1a1919;
-  --color-action-decide: #e4f222;
-  --color-text-on-decide: #0c0a08;
-  --color-action-accept: #1f7a45;
-  --color-action-reject: #b8301f;
-  --color-action-decide-soft: #f7fbc4;
-  --color-text-decide: #4f5600;
-  --color-status-cleared: #1d7a4a;
-  --color-status-cleared-soft: #e5f3eb;
-  --color-status-held: #9a5600;
-  --color-status-held-soft: #fbf0e1;
-  --color-status-disputed: #bf3221;
-  --color-status-disputed-soft: #fbe8e5;
-  color-scheme: light;
-}
-@media (prefers-color-scheme: dark) {
-  :root[data-brand="ramp"]:not([data-theme="light"]) {
-    --color-bg-canvas: #0c0a08;
-    --color-bg-surface: #16140f;
-    --color-bg-sunken: #1f1c16;
-    --color-text-primary: #f5f3ec;
-    --color-text-secondary: #aba699;
-    --color-text-tertiary: #8d897e;
-    --color-text-inverse: #0b0b0f;
-    --color-border-default: #2c2921;
-    --color-border-strong: #3f3b31;
-    --color-action-primary: #f5f3ec;
-    --color-action-decide: #e4f222;
-    --color-text-on-decide: #0c0a08;
-    --color-action-accept: #1f7a45;
-    --color-action-reject: #b8301f;
-    --color-action-decide-soft: #2f3207;
-    --color-text-decide: #e4f222;
-    --color-status-cleared: #4fc489;
-    --color-status-cleared-soft: #12301f;
-    --color-status-held: #e3a447;
-    --color-status-held-soft: #33230c;
-    --color-status-disputed: #ff7a66;
-    --color-status-disputed-soft: #3a1712;
-    color-scheme: dark;
-  }
-}
-:root[data-brand="ramp"][data-theme="dark"] {
-  --color-bg-canvas: #0c0a08;
-  --color-bg-surface: #16140f;
-  --color-bg-sunken: #1f1c16;
-  --color-text-primary: #f5f3ec;
-  --color-text-secondary: #aba699;
-  --color-text-tertiary: #8d897e;
-  --color-text-inverse: #0b0b0f;
-  --color-border-default: #2c2921;
-  --color-border-strong: #3f3b31;
-  --color-action-primary: #f5f3ec;
-  --color-action-decide: #e4f222;
-  --color-text-on-decide: #0c0a08;
-  --color-action-accept: #1f7a45;
-  --color-action-reject: #b8301f;
-  --color-action-decide-soft: #2f3207;
-  --color-text-decide: #e4f222;
-  --color-status-cleared: #4fc489;
-  --color-status-cleared-soft: #12301f;
-  --color-status-held: #e3a447;
-  --color-status-held-soft: #33230c;
-  --color-status-disputed: #ff7a66;
-  --color-status-disputed-soft: #3a1712;
-  color-scheme: dark;
-}
-
-/* Stripe, Sohne (licensed) stands in as Geist */
-:root[data-brand="stripe"], .brand-sample[data-brand="stripe"] {
-  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --type-title-weight: 300;
   --type-display-weight: 300;
   --radius-control: 4px;
@@ -258,7 +258,7 @@
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
-  :root[data-brand="stripe"]:not([data-theme="light"]) {
+  :root:not([data-theme="light"]):not([data-brand]), :root[data-brand="stripe"]:not([data-theme="light"]) {
     --color-bg-canvas: #0a1628;
     --color-bg-surface: #0f1f36;
     --color-bg-sunken: #132744;
@@ -284,7 +284,7 @@
     color-scheme: dark;
   }
 }
-:root[data-brand="stripe"][data-theme="dark"] {
+:root[data-theme="dark"]:not([data-brand]), :root[data-brand="stripe"][data-theme="dark"] {
   --color-bg-canvas: #0a1628;
   --color-bg-surface: #0f1f36;
   --color-bg-sunken: #132744;
