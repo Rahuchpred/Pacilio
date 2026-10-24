@@ -52,7 +52,7 @@ Set `data-brand` on `<html>`: `navy` (default), `ramp`, `stripe` or `mercury`. E
 |---|---|---|---|---|
 | Navy | Glass, a cool light rising from the bottom, silver-blue rim | Geist | pill / 14 | Glyph and word |
 | Ramp | Foil, a bright top and a darker lip | Inter (Lausanne) | 6 / 8 | Square tag, Needs is solid ink |
-| Stripe | Lacquer lit from the top left | Geist (Sohne) | 4 / 8 | Tinted pill, icon after the word |
+| Stripe | Lacquer lit from the top left | Geist (Sohne) | 4 / 8 | Tinted 4px tag, icon first, hairline |
 | Mercury | Frosted pill with a pale rim | Instrument Sans (Arcadia) | pill / 12 | Outlined pill |
 
 Crafted kinds: `decide` (theme color), `accept` (green), `reject` (coral). Each theme writes one recipe around `--tint` in `design-system/src/buttons.css`. No sliding or sweeping motion; the only motion is a short press.

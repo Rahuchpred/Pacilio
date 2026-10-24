@@ -97,7 +97,7 @@ kinds: decide, accept, reject (crafted), primary, secondary, quiet. sizes: sm 32
 kinds: cleared, held, disputed, needs, agent. Each theme draws it its own way:
 - Settle: glyph + word, no background (Glaze). needs uses an hourglass in ink.
 - Ramp: square tag (radius 4), no icon, tinted background; needs is a solid ink tag.
-- Stripe: tinted pill with the icon after the word.
+- Stripe: tinted 4px tag, icon first, hairline in its own color.
 - Mercury: outlined pill in the state color, no icon.`,
   citation: `# Citation
 Ref: a small number after the claim, linking to #source-n.

@@ -1,5 +1,6 @@
 import tokens from "../tokens/tokens.json";
-import { Button, Icon, IconName, Money, Status } from "../components";
+import { Button, Icon, Money, Status } from "../components";
+import { glaze, type GlazeName } from "../glaze-icons";
 import { contrast, PageDef, Preview, SwatchRows, Table, TokenList, tokenHex, useTheme } from "../doc";
 
 const brandOf = () => tokens.brands;
@@ -575,14 +576,15 @@ const motion: PageDef = {
 };
 
 /* ---------- Iconography ---------- */
-const ICONS: IconName[] = ["check", "clock", "hourglass", "alert", "agent", "rule", "person", "doc", "bank", "ticket", "mail", "copy", "download", "search", "filter", "calendar", "lock", "retry", "plus", "close", "arrow", "sun", "spinner"];
+const ICONS = Object.keys(glaze) as GlazeName[];
 const iconography: PageDef = {
   id: "iconography",
   group: "Foundations",
   title: "Iconography",
-  lede: "One line set on a 16px grid at 1.5 stroke, drawn for this product. 14px inside controls.",
+  lede: "The Glaze set from design.how: Phosphor Regular, 14px inside controls, 16px elsewhere.",
   agent: `# Iconography
-- Use <Icon name> from components.tsx. 16px grid, 1.5 stroke, round caps.
+- Use <Icon name> from components.tsx. The set is Glaze's (Phosphor Regular), in glaze-icons.ts.
+- Any Glaze name works (Bot, Waiting, Success). Short names (agent, clock, check) are aliases.
 - 14px in buttons, statuses and citations; 16px elsewhere.
 - Never put an icon in a tinted tile.`,
   sections: [
