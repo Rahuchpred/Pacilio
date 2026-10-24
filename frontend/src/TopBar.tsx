@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useReactFlow } from '@xyflow/react';
 import { useReducer, useSpacetimeDB, useTable } from 'spacetimedb/react';
 import { reducers, tables } from './module_bindings';
 import type { User } from './module_bindings/types';
 import { Avatar } from './Avatar';
 import { useDismiss } from './useDismiss';
+import { FOLLOWUPS_NODE_ID } from './pipeline/sources';
 
 const MAX_PEOPLE = 5;
 // Connections shorter than this (CLI calls, tests, a page reload) don't show
@@ -69,48 +71,58 @@ function PeopleBar({ people }: { people: User[] }) {
 
 // ─── Notifications ──────────────────────────────────────────────────────────
 
-type Notification = {
-  id: number;
-  user: User;
-  text: string;
-  at: Date;
-};
+// Renames are kept in memory as they happen; flags come straight from the
+// review queue, so every open item the agent flagged is listed.
+type Rename = { id: number; user: User; text: string; at: Date };
 
 function Notifications() {
   const { identity } = useSpacetimeDB();
-  const [items, setItems] = useState<Notification[]>([]);
-  const [unread, setUnread] = useState(0);
+  const { fitView } = useReactFlow();
+  const [renames, setRenames] = useState<Rename[]>([]);
+  const [unreadRenames, setUnreadRenames] = useState(0);
+  // Flags created after this moment count as unread
+  const [seenAt, setSeenAt] = useState(() => Date.now());
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const close = useCallback(() => setOpen(false), []);
   useDismiss(rootRef, open, close);
+
+  const [flagRows] = useTable(tables.reviewItem.where(r => r.status.eq('open')));
+  const [details] = useTable(tables.reviewDetail);
+  const titleById = new Map(details.map(d => [d.itemId.toString(), d.title]));
+  const flags = [...flagRows].sort((a, b) => (a.id < b.id ? 1 : -1));
+  const unreadFlags = flags.filter(f => f.createdAt.toDate().getTime() > seenAt).length;
 
   // Refs keep the table callbacks stable; changing them would resubscribe.
   const identityRef = useRef(identity);
   identityRef.current = identity;
   const nextId = useRef(0);
 
-  const push = useCallback((user: User, text: string) => {
-    if (identityRef.current && user.identity.isEqual(identityRef.current)) return;
-    const item = { id: nextId.current++, user, text, at: new Date() };
-    setItems(prev => [item, ...prev].slice(0, 50));
-    setUnread(n => n + 1);
-  }, []);
-
   // Joins/leaves are intentionally not notifications; the people bar shows presence.
-  const onUpdate = useCallback(
-    (prev: User, next: User) => {
-      if (prev.name !== next.name) push(next, `was renamed from ${prev.name}`);
-    },
-    [push]
-  );
+  const onUpdate = useCallback((prev: User, next: User) => {
+    if (prev.name === next.name) return;
+    if (identityRef.current && next.identity.isEqual(identityRef.current)) return;
+    const item = { id: nextId.current++, user: next, text: `was renamed from ${prev.name}`, at: new Date() };
+    setRenames(list => [item, ...list].slice(0, 30));
+    setUnreadRenames(n => n + 1);
+  }, []);
 
   useTable(tables.user, { onUpdate });
 
+  const unread = unreadFlags + unreadRenames;
+
   const toggle = () => {
     setOpen(o => !o);
-    setUnread(0);
+    setSeenAt(Date.now());
+    setUnreadRenames(0);
   };
+
+  const showFollowUps = () => {
+    setOpen(false);
+    fitView({ nodes: [{ id: FOLLOWUPS_NODE_ID }], duration: 400, maxZoom: 1, padding: 0.2 });
+  };
+
+  const time = (d: Date) => d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 
   return (
     <div className="menu-root" ref={rootRef}>
@@ -126,23 +138,29 @@ function Notifications() {
       {open && (
         <div className="dropdown notifications">
           <div className="dropdown-title">Notifications</div>
-          {items.length === 0 ? (
+          {flags.length === 0 && renames.length === 0 ? (
             <div className="empty">You're all caught up</div>
           ) : (
             <ul>
-              {items.map(n => (
-                <li key={n.id}>
+              {flags.map(f => (
+                <li key={`flag-${f.id}`} className="flag-notification" onClick={showFollowUps}>
+                  <span className="flag-mark">!</span>
+                  <div>
+                    <div>
+                      <b>{titleById.get(f.id.toString()) ?? f.question}</b>
+                    </div>
+                    <div className="time">Needs your OK · {time(f.createdAt.toDate())}</div>
+                  </div>
+                </li>
+              ))}
+              {renames.map(n => (
+                <li key={`rename-${n.id}`}>
                   <Avatar user={n.user} size={28} />
                   <div>
                     <div>
                       <b>{n.user.name}</b> {n.text}
                     </div>
-                    <div className="time">
-                      {n.at.toLocaleTimeString([], {
-                        hour: 'numeric',
-                        minute: '2-digit',
-                      })}
-                    </div>
+                    <div className="time">{time(n.at)}</div>
                   </div>
                 </li>
               ))}

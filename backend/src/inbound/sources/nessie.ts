@@ -166,7 +166,12 @@ export const nessie: Source = {
 
       if (roll < 0.5) {
         // Pay a vendor bill from the Ledger: usually exactly, sometimes not
-        const bills = ctx.withTx(raw => [...(raw as Ctx).db.accountingBill.iter()]);
+        // Only bills the agent has been shown (sent into the feed since the last
+        // Restart); paying an older one would look like a payment with no bill
+        const bills = ctx.withTx(raw => {
+          const tx = raw as Ctx;
+          return [...tx.db.accountingBill.iter()].filter(b => tx.db.inboundEvent.dedupeKey.find(`ledger:bill:${b.id}`));
+        });
         const paidByBank = new Set(sim.paidBills);
         const unpaid = bills.filter(b => !paidByBank.has(b.id.toString()));
         const alreadyPaid = bills.filter(b => paidByBank.has(b.id.toString()));
@@ -174,22 +179,25 @@ export const nessie: Source = {
         let payee = vendor;
         let cents = amountBetween(ctx.random, vendor.min, vendor.max);
         let memo = `${vendor.item} - ${SHOW}`;
-        // Mostly a bill not yet paid from this account; now and then one paid twice
+        // Almost always a bill not yet paid from this account. Rarely a planted
+        // problem: an overpayment (3%), a bill paid twice (3%), or no bill (4%)
         const bill =
-          kind < 0.8 && unpaid.length
+          kind < 0.9 && unpaid.length
             ? pick(ctx.random, unpaid)
-            : kind < 0.88 && alreadyPaid.length
+            : kind < 0.93 && alreadyPaid.length
               ? pick(ctx.random, alreadyPaid)
-              : undefined;
+              : kind >= 0.96 || !unpaid.length
+                ? undefined
+                : pick(ctx.random, unpaid);
         if (bill) {
           if (!paidByBank.has(bill.id.toString())) sim.paidBills.push(bill.id.toString());
           payee = VENDORS.find(v => v.name === bill.vendor) ?? vendor;
           cents = Number(bill.totalMinor);
           memo = `${payee.item} - ${bill.docNumber}`;
           // Now and then the bank pays more than the bill says
-          if (kind > 0.72 && kind < 0.8) cents = Math.round(cents * (1 + ctx.random.integerInRange(2, 8) / 100));
+          if (kind > 0.87 && kind < 0.9) cents = Math.round(cents * (1 + ctx.random.integerInRange(2, 8) / 100));
         }
-        // Otherwise (or no bills yet): a charge with no bill behind it
+        // No bill picked (planted, or none sent yet): a charge with no bill behind it
         nessiePost(ctx, `${base}/purchases`, {
           merchant_id: merchantId(ctx, sim, payee),
           medium: 'balance',

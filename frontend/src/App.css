@@ -312,3 +312,20 @@ button {
   font-size: 12px;
   color: var(--color-action-reject);
 }
+
+/* A flag from the agent in the notifications list */
+.flag-notification {
+  cursor: pointer;
+}
+
+.flag-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--color-status-held-soft);
+  color: var(--color-status-held);
+  font-weight: 700;
+}
