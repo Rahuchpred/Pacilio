@@ -1,0 +1,19 @@
+{
+  "name": "cal-hacks-backend",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "build": "spacetime build --module-path .",
+    "publish": "spacetime publish cal-hacks-ansingh --module-path . --server maincloud",
+    "publish:reset": "spacetime publish cal-hacks-ansingh --module-path . --server maincloud --delete-data",
+    "generate": "spacetime generate --lang typescript --out-dir ../frontend/src/module_bindings --module-path .",
+    "logs": "spacetime logs cal-hacks-ansingh --server maincloud"
+  },
+  "dependencies": {
+    "spacetimedb": "^2.13.0"
+  },
+  "devDependencies": {
+    "typescript": "~5.6.2"
+  }
+}
