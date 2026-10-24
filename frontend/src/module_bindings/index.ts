@@ -41,7 +41,9 @@ import DeleteNodeReducer from "./delete_node_reducer";
 import MoveCursorReducer from "./move_cursor_reducer";
 import MoveNodeReducer from "./move_node_reducer";
 import RenameNodeReducer from "./rename_node_reducer";
+import ResizeNodeReducer from "./resize_node_reducer";
 import SetNameReducer from "./set_name_reducer";
+import SetNodeColorReducer from "./set_node_color_reducer";
 
 // Import all procedure arg schemas
 
@@ -110,7 +112,9 @@ const reducersSchema = __reducers(
   __reducerSchema("move_cursor", MoveCursorReducer),
   __reducerSchema("move_node", MoveNodeReducer),
   __reducerSchema("rename_node", RenameNodeReducer),
+  __reducerSchema("resize_node", ResizeNodeReducer),
   __reducerSchema("set_name", SetNameReducer),
+  __reducerSchema("set_node_color", SetNodeColorReducer),
 );
 
 /** The schema information for all procedures in this module. This is defined the same way as the procedures would have been defined in the server. */

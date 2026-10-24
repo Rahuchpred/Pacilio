@@ -13,7 +13,9 @@ import DeleteNodeReducer from "../delete_node_reducer";
 import MoveCursorReducer from "../move_cursor_reducer";
 import MoveNodeReducer from "../move_node_reducer";
 import RenameNodeReducer from "../rename_node_reducer";
+import ResizeNodeReducer from "../resize_node_reducer";
 import SetNameReducer from "../set_name_reducer";
+import SetNodeColorReducer from "../set_node_color_reducer";
 
 export type AddEdgeParams = __Infer<typeof AddEdgeReducer>;
 export type AddNodeParams = __Infer<typeof AddNodeReducer>;
@@ -22,5 +24,7 @@ export type DeleteNodeParams = __Infer<typeof DeleteNodeReducer>;
 export type MoveCursorParams = __Infer<typeof MoveCursorReducer>;
 export type MoveNodeParams = __Infer<typeof MoveNodeReducer>;
 export type RenameNodeParams = __Infer<typeof RenameNodeReducer>;
+export type ResizeNodeParams = __Infer<typeof ResizeNodeReducer>;
 export type SetNameParams = __Infer<typeof SetNameReducer>;
+export type SetNodeColorParams = __Infer<typeof SetNodeColorReducer>;
 

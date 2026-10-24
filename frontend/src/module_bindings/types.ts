@@ -21,6 +21,8 @@ export const Edge = __t.object("Edge", {
   id: __t.u64(),
   source: __t.u64(),
   target: __t.u64(),
+  sourceHandle: __t.string(),
+  targetHandle: __t.string(),
 });
 export type Edge = __Infer<typeof Edge>;
 
@@ -29,6 +31,10 @@ export const Node = __t.object("Node", {
   x: __t.f64(),
   y: __t.f64(),
   label: __t.string(),
+  shape: __t.string(),
+  color: __t.string(),
+  width: __t.f64(),
+  height: __t.f64(),
 });
 export type Node = __Infer<typeof Node>;
 

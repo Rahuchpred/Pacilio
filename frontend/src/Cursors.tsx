@@ -15,7 +15,7 @@ export function Cursors() {
       {cursors.map(cursor => {
         if (identity && cursor.identity.isEqual(identity)) return null;
         const user = users.find(u => u.identity.isEqual(cursor.identity));
-        if (!user) return null;
+        if (!user?.online) return null;
 
         return (
           <div
@@ -24,15 +24,14 @@ export function Cursors() {
             style={{
               // Counter-scale so cursors stay the same size at any zoom
               transform: `translate(${cursor.x}px, ${cursor.y}px) scale(${1 / zoom})`,
-              color: user.color,
             }}
           >
-            <svg width="18" height="18" viewBox="0 0 18 18">
+            <svg className="cursor-arrow" width="24" height="26" viewBox="0 0 24 26">
               <path
-                d="M2 2 L16 8 L9.5 9.5 L8 16 Z"
-                fill="currentColor"
+                d="M3 2.5 L20.5 11.2 Q21.6 11.8 20.4 12.3 L12.8 14.6 L9.4 22 Q8.9 23.1 8.4 22 Z"
+                fill={user.color}
                 stroke="white"
-                strokeWidth="1.5"
+                strokeWidth="2"
                 strokeLinejoin="round"
               />
             </svg>
