@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ReactFlow,
   Background,
@@ -21,9 +21,11 @@ import { logError, throttle } from './throttle';
 import { pipelineNodeTypes } from './pipeline/nodes';
 import { pipelineEdgeTypes } from './pipeline/PacketEdge';
 import { usePipelineActivity } from './pipeline/activity';
+import { useChipEvents } from './pipeline/chipStates';
 import {
   AGENT_NODE_ID,
   PIPELINE_NODES,
+  chipThreads,
   eventChipNodes,
   isEventId,
   isPipelineId,
@@ -37,6 +39,8 @@ export function Board() {
   const [edgeRows] = useTable(tables.edge);
   const [sourceStatuses] = useTable(tables.inboundSourceStatus);
   const [layoutRows] = useTable(tables.pipelineLayout);
+  const [sizeRows] = useTable(tables.pipelineNodeSize);
+  const [agentRows] = useTable(tables.pipelineAgent);
 
   const moveNode = useReducer(reducers.moveNode);
   const renameNode = useReducer(reducers.renameNode);
@@ -45,6 +49,7 @@ export function Board() {
   const deleteEdge = useReducer(reducers.deleteEdge);
   const moveCursor = useReducer(reducers.moveCursor);
   const movePipelineNode = useReducer(reducers.movePipelineNode);
+  const resizePipelineNode = useReducer(reducers.resizePipelineNode);
 
   const { screenToFlowPosition } = useReactFlow();
 
@@ -55,12 +60,25 @@ export function Board() {
   // Received events orbit the agent and follow it when it's dragged
   const { landed } = usePipelineActivity();
   const agent = pipelineNodes.find(n => n.id === AGENT_NODE_ID);
-  const chips = useMemo(() => eventChipNodes(landed, agent), [landed, agent]);
+  // Chips wait, turn yellow while the agent works on them, then green and fade
+  const chipEvents = useChipEvents(landed);
+  // Chips people dragged keep their spot (locally) until they fade out
+  const [movedChips, setMovedChips] = useState(new Map<string, { x: number; y: number }>());
+  const chips = useMemo(() => eventChipNodes(chipEvents, agent, movedChips), [chipEvents, agent, movedChips]);
   const allNodes = useMemo(() => [...pipelineNodes, ...chips, ...nodes], [pipelineNodes, chips, nodes]);
   const allEdges = useMemo(() => {
     const running = new Set(sourceStatuses.filter(s => s.enabled).map(s => s.name));
-    return [...pipelineEdges(running), ...edges];
-  }, [sourceStatuses, edges]);
+    const agentWorking = agentRows[0]?.status === 'running';
+    return [...pipelineEdges(running, agentWorking), ...chipThreads(chips), ...edges];
+  }, [sourceStatuses, agentRows, chips, edges]);
+
+  // Forget drag positions of chips that are gone
+  useEffect(() => {
+    const live = new Set(chips.map(c => c.id));
+    if ([...movedChips.keys()].some(id => !live.has(id))) {
+      setMovedChips(prev => new Map([...prev].filter(([id]) => live.has(id))));
+    }
+  }, [chips, movedChips]);
 
   // Mirror server rows into React Flow state, keeping local UI flags (selection,
   // an in-progress drag) so remote updates don't clobber what this user is doing.
@@ -90,6 +108,17 @@ export function Board() {
       })
     );
   }, [layoutRows]);
+
+  // Shared sizes (the ledger sheet), except while this user is resizing it
+  const resizing = useRef(new Set<string>());
+  useEffect(() => {
+    setPipelineNodes(prev =>
+      prev.map(n => {
+        const row = sizeRows.find(r => r.nodeId === n.id);
+        return row && !resizing.current.has(n.id) ? { ...n, width: row.width, height: row.height } : n;
+      })
+    );
+  }, [sizeRows]);
 
   useEffect(() => {
     setEdges(prev => {
@@ -122,6 +151,14 @@ export function Board() {
     [movePipelineNode]
   );
 
+  const sendPipelineSize = useMemo(
+    () =>
+      throttle((nodeId: string, width: number, height: number) => {
+        resizePipelineNode({ nodeId, width, height }).catch(logError);
+      }, SYNC_INTERVAL_MS * 3),
+    [resizePipelineNode]
+  );
+
   const sendCursor = useMemo(
     () =>
       throttle((x: number, y: number) => {
@@ -132,7 +169,13 @@ export function Board() {
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
-      // Chips are derived from events, not stored, so their changes are dropped
+      // Chips are derived from events; only their drag position is kept
+      for (const change of changes) {
+        if ('id' in change && isEventId(change.id) && change.type === 'position' && change.position) {
+          const { x, y } = change.position;
+          setMovedChips(prev => new Map(prev).set(change.id, { x, y }));
+        }
+      }
       changes = changes.filter(c => !('id' in c && isEventId(c.id)));
       const isPipelineChange = (c: NodeChange) => 'id' in c && isPipelineId(c.id);
       const pipelineChanges = changes.filter(isPipelineChange);
@@ -140,6 +183,17 @@ export function Board() {
       for (const change of pipelineChanges) {
         if (change.type === 'position' && change.dragging && change.position) {
           sendPipelinePosition(change.id, change.position.x, change.position.y);
+        }
+        // Resize handles: stream the size while dragging, and send the exact final size
+        if (change.type === 'dimensions' && change.resizing !== undefined && change.dimensions) {
+          const { width, height } = change.dimensions;
+          if (change.resizing) {
+            resizing.current.add(change.id);
+            sendPipelineSize(change.id, width, height);
+          } else {
+            resizing.current.delete(change.id);
+            resizePipelineNode({ nodeId: change.id, width, height }).catch(logError);
+          }
         }
       }
       changes = changes.filter(c => !isPipelineChange(c));
@@ -150,11 +204,11 @@ export function Board() {
         }
       }
     },
-    [sendNodePosition, sendPipelinePosition]
+    [sendNodePosition, sendPipelinePosition, sendPipelineSize, resizePipelineNode]
   );
 
   const onEdgesChange = useCallback((changes: EdgeChange[]) => {
-    const shared = changes.filter(c => !('id' in c && isPipelineId(c.id)));
+    const shared = changes.filter(c => !('id' in c && (isPipelineId(c.id) || c.id.startsWith('thread:'))));
     setEdges(prev => applyEdgeChanges(shared, prev));
   }, []);
 
@@ -162,6 +216,7 @@ export function Board() {
   const onNodeDragStop: OnNodeDrag = useCallback(
     (_event, _node, dragged) => {
       for (const n of dragged) {
+        if (isEventId(n.id)) continue; // chip positions stay local
         const { x, y } = n.position;
         if (isPipelineId(n.id)) movePipelineNode({ nodeId: n.id, x, y }).catch(logError);
         else moveNode({ id: BigInt(n.id), x, y }).catch(logError);

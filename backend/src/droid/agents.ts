@@ -21,6 +21,9 @@ type Task = NonNullable<ReturnType<Ctx['db']['agentTask']['id']['find']>>;
 const TICK_INTERVAL_MICROS = 2_000_000n;
 const AUTONOMY_LEVELS: AutonomyLevel[] = ['off', 'low', 'medium', 'high'];
 
+// Task kinds that should think less and finish faster
+const REASONING_BY_KIND: Record<string, 'low' | 'medium' | 'high'> = { pipeline: 'low' };
+
 // ─── Extension point ────────────────────────────────────────────────────────
 
 // Called in the same transaction that marks a task done or failed. Route on
@@ -55,6 +58,27 @@ function message(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
+// Queue a Droid task from any reducer or transaction; returns its id.
+export function enqueueAgentTask(ctx: Ctx, kind: string, prompt: string, autonomy: AutonomyLevel): bigint {
+  const task = ctx.db.agentTask.insert({
+    id: 0n,
+    kind,
+    prompt,
+    autonomy,
+    status: 'pending',
+    sessionId: undefined,
+    result: undefined,
+    error: undefined,
+    todos: undefined,
+    lastSeq: 0n,
+    createdBy: ctx.sender,
+    createdAt: ctx.timestamp,
+    updatedAt: ctx.timestamp,
+  });
+  ensureTicking(ctx);
+  return task.id;
+}
+
 // ─── Exports ────────────────────────────────────────────────────────────────
 
 export function droidAgents(stdb: Schema) {
@@ -65,22 +89,7 @@ export function droidAgents(stdb: Schema) {
       if (!AUTONOMY_LEVELS.includes(autonomy as AutonomyLevel)) {
         throw new SenderError(`autonomy must be one of ${AUTONOMY_LEVELS.join(', ')}`);
       }
-      ctx.db.agentTask.insert({
-        id: 0n,
-        kind,
-        prompt,
-        autonomy,
-        status: 'pending',
-        sessionId: undefined,
-        result: undefined,
-        error: undefined,
-        todos: undefined,
-        lastSeq: 0n,
-        createdBy: ctx.sender,
-        createdAt: ctx.timestamp,
-        updatedAt: ctx.timestamp,
-      });
-      ensureTicking(ctx);
+      enqueueAgentTask(ctx, kind, prompt, autonomy as AutonomyLevel);
     }
   );
 
@@ -181,6 +190,7 @@ export function droidAgents(stdb: Schema) {
         try {
           const sessionId = factory.createSession(computerId, {
             autonomyLevel: task.autonomy as AutonomyLevel,
+            reasoningEffort: REASONING_BY_KIND[task.kind],
           });
           ctx.withTx(tx => {
             // Cancelled while we were starting it

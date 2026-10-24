@@ -65,6 +65,19 @@ export const AgentOutbox = __t.object("AgentOutbox", {
 });
 export type AgentOutbox = __Infer<typeof AgentOutbox>;
 
+export const AgentRun = __t.object("AgentRun", {
+  id: __t.u64(),
+  taskId: __t.u64(),
+  eventIds: __t.array(__t.u64()),
+  reviewItemIds: __t.array(__t.u64()),
+  status: __t.string(),
+  summary: __t.option(__t.string()),
+  error: __t.option(__t.string()),
+  startedAt: __t.timestamp(),
+  finishedAt: __t.option(__t.timestamp()),
+});
+export type AgentRun = __Infer<typeof AgentRun>;
+
 export const AgentStep = __t.object("AgentStep", {
   id: __t.u64(),
   taskId: __t.u64(),
@@ -126,6 +139,17 @@ export const Edge = __t.object("Edge", {
 });
 export type Edge = __Infer<typeof Edge>;
 
+export const EventReview = __t.object("EventReview", {
+  eventId: __t.u64(),
+  runId: __t.u64(),
+  status: __t.string(),
+  outcome: __t.option(__t.string()),
+  category: __t.option(__t.string()),
+  note: __t.option(__t.string()),
+  updatedAt: __t.timestamp(),
+});
+export type EventReview = __Infer<typeof EventReview>;
+
 export const InboundEvent = __t.object("InboundEvent", {
   id: __t.u64(),
   dedupeKey: __t.string(),
@@ -177,6 +201,14 @@ export const InboundTickSchedule = __t.object("InboundTickSchedule", {
 });
 export type InboundTickSchedule = __Infer<typeof InboundTickSchedule>;
 
+export const LedgerDocument = __t.object("LedgerDocument", {
+  id: __t.u32(),
+  html: __t.string(),
+  runId: __t.u64(),
+  updatedAt: __t.timestamp(),
+});
+export type LedgerDocument = __Infer<typeof LedgerDocument>;
+
 export const Node = __t.object("Node", {
   id: __t.u64(),
   x: __t.f64(),
@@ -185,12 +217,61 @@ export const Node = __t.object("Node", {
 });
 export type Node = __Infer<typeof Node>;
 
+export const PipelineAgent = __t.object("PipelineAgent", {
+  id: __t.u32(),
+  enabled: __t.bool(),
+  status: __t.string(),
+  currentRunId: __t.option(__t.u64()),
+  lastError: __t.option(__t.string()),
+  resetLedger: __t.bool(),
+  updatedAt: __t.timestamp(),
+});
+export type PipelineAgent = __Infer<typeof PipelineAgent>;
+
 export const PipelineLayout = __t.object("PipelineLayout", {
   nodeId: __t.string(),
   x: __t.f64(),
   y: __t.f64(),
 });
 export type PipelineLayout = __Infer<typeof PipelineLayout>;
+
+export const PipelineNodeSize = __t.object("PipelineNodeSize", {
+  nodeId: __t.string(),
+  width: __t.f64(),
+  height: __t.f64(),
+});
+export type PipelineNodeSize = __Infer<typeof PipelineNodeSize>;
+
+export const PipelineTickSchedule = __t.object("PipelineTickSchedule", {
+  scheduledId: __t.u64(),
+  scheduledAt: __t.scheduleAt(),
+});
+export type PipelineTickSchedule = __Infer<typeof PipelineTickSchedule>;
+
+export const ReviewItem = __t.object("ReviewItem", {
+  id: __t.u64(),
+  eventId: __t.u64(),
+  runId: __t.u64(),
+  question: __t.string(),
+  reason: __t.string(),
+  recommendation: __t.string(),
+  confidence: __t.f64(),
+  duplicateOf: __t.option(__t.u64()),
+  status: __t.string(),
+  decision: __t.option(__t.string()),
+  decidedBy: __t.option(__t.identity()),
+  decidedAt: __t.option(__t.timestamp()),
+  resultNote: __t.option(__t.string()),
+  createdAt: __t.timestamp(),
+});
+export type ReviewItem = __Infer<typeof ReviewItem>;
+
+export const ToolInstall = __t.object("ToolInstall", {
+  path: __t.string(),
+  version: __t.string(),
+  installedAt: __t.timestamp(),
+});
+export type ToolInstall = __Infer<typeof ToolInstall>;
 
 export const User = __t.object("User", {
   identity: __t.identity(),

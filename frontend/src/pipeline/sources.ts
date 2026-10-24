@@ -1,5 +1,5 @@
 import type { Edge, Node } from '@xyflow/react';
-import type { InboundEvent } from '../module_bindings/types';
+import type { ChipEvent } from './chipStates';
 
 // The four inbound sources shown on the board, matching the backend's InboundHub.
 export const SOURCES = [
@@ -12,6 +12,7 @@ export const SOURCES = [
 export const SOURCE_TITLES: Record<string, string> = Object.fromEntries(SOURCES.map(s => [s.name, s.title]));
 
 export const AGENT_NODE_ID = 'pipeline:agent';
+export const LEDGER_NODE_ID = 'pipeline:master-ledger';
 export const agentHandleId = (source: string) => `in:${source}`;
 export const sourceNodeId = (name: string) => `pipeline:${name}`;
 export const isPipelineId = (id: string) => id.startsWith('pipeline:');
@@ -24,6 +25,11 @@ const SOURCE_X = 0;
 const SOURCE_GAP_Y = 200;
 const AGENT_X = 900;
 const AGENT_Y = 230;
+// The ledger sits past the outermost ring of chips
+const LEDGER_X = AGENT_X + 1150;
+const LEDGER_Y = AGENT_Y - 200;
+export const LEDGER_WIDTH = 1400;
+export const LEDGER_HEIGHT = 820;
 
 export const AGENT_WIDTH = 340;
 export const AGENT_HEIGHT = 170;
@@ -39,11 +45,31 @@ export const PIPELINE_NODES: Node[] = [
     ...fixed,
   })),
   { id: AGENT_NODE_ID, type: 'agent', position: { x: AGENT_X, y: AGENT_Y }, data: {}, ...fixed },
+  {
+    id: LEDGER_NODE_ID,
+    type: 'ledger',
+    position: { x: LEDGER_X, y: LEDGER_Y },
+    data: {},
+    // Default size; people resize it with the handles (shared via pipeline_node_size)
+    width: LEDGER_WIDTH,
+    height: LEDGER_HEIGHT,
+    ...fixed,
+  },
 ];
 
-// One wire per source into the agent; events travel along it as packets.
-export function pipelineEdges(running: Set<string>): Edge[] {
-  return SOURCES.map(source => ({
+// One wire per source into the agent (events travel along it as packets),
+// and one from the agent to the ledger it writes.
+export function pipelineEdges(running: Set<string>, agentWorking: boolean): Edge[] {
+  const ledgerEdge: Edge = {
+    id: 'pipeline:edge:master-ledger',
+    source: AGENT_NODE_ID,
+    target: LEDGER_NODE_ID,
+    deletable: false,
+    selectable: false,
+    animated: agentWorking,
+    className: agentWorking ? 'pipeline-edge is-running' : 'pipeline-edge',
+  };
+  return [ledgerEdge, ...SOURCES.map(source => ({
     id: `pipeline:edge:${source.name}`,
     type: 'packet',
     source: sourceNodeId(source.name),
@@ -53,15 +79,15 @@ export function pipelineEdges(running: Set<string>): Edge[] {
     deletable: false,
     selectable: false,
     className: running.has(source.name) ? 'pipeline-edge is-running' : 'pipeline-edge',
-  }));
+  }))];
 }
 
 // ─── Event chips around the agent ───────────────────────────────────────────
 
 export const CHIP_WIDTH = 196;
 export const CHIP_HEIGHT = 56;
-// Newest events shown as chips; the agent counts the rest
-export const MAX_CHIPS = 24;
+// Events not yet finished by the agent, shown as chips (newest kept)
+export const MAX_CHIPS = 32;
 
 // Chips sit on a grid of cells in rectangular rings around the agent, so they
 // never overlap. Rings fill outward above, right of and below the agent; the
@@ -92,27 +118,68 @@ function ringSlots(count: number, agentW: number, agentH: number): { x: number; 
   return slots;
 }
 
-export function eventChipNodes(events: InboundEvent[], agent: Node | undefined): Node[] {
+export type ChipSide = 'top' | 'right' | 'bottom' | 'left';
+export const chipHandleId = (side: ChipSide) => `chip-${side}`;
+export const agentChipHandleId = (side: ChipSide) => `agent-${side}`;
+type Point = { x: number; y: number };
+
+// Which side of the agent a chip faces, so its thread takes the short way in.
+function chipSide(chip: Point, agent: Node, width: number, height: number): ChipSide {
+  const centerY = chip.y + CHIP_HEIGHT / 2;
+  const centerX = chip.x + CHIP_WIDTH / 2;
+  if (centerY < agent.position.y) return 'bottom'; // chip above → its bottom edge
+  if (centerY > agent.position.y + height) return 'top'; // chip below
+  return centerX < agent.position.x + width / 2 ? 'right' : 'left';
+}
+
+const OPPOSITE: Record<ChipSide, ChipSide> = { top: 'bottom', bottom: 'top', left: 'right', right: 'left' };
+
+// Chips sit in rings around the agent unless someone dragged one (`moved`).
+export function eventChipNodes(chips: ChipEvent[], agent: Node | undefined, moved: Map<string, Point>): Node[] {
   if (!agent) return [];
   const width = agent.measured?.width ?? AGENT_WIDTH;
   const height = agent.measured?.height ?? AGENT_HEIGHT;
   const cx = agent.position.x + width / 2;
   const cy = agent.position.y + height / 2;
-  const shown = events.slice(-MAX_CHIPS);
+  // The batch in the agent's hands sits on the inner ring; the newest
+  // waiting (and just-finished) events fill the rings outside it
+  const inRun = chips.filter(c => c.state === 'processing');
+  const rest = chips.filter(c => c.state !== 'processing');
+  const shown = [...inRun, ...rest.slice(-Math.max(0, MAX_CHIPS - inRun.length))];
   const slots = ringSlots(shown.length, width, height);
 
-  return shown.map((event, i) => ({
-    id: `event:${event.id}`,
-    type: 'event',
-    position: { x: cx + slots[i].x - CHIP_WIDTH / 2, y: cy + slots[i].y - CHIP_HEIGHT / 2 },
-    data: { event },
-    // Fixed size so React Flow doesn't re-measure chips that are rebuilt each render
-    width: CHIP_WIDTH,
-    height: CHIP_HEIGHT,
-    measured: { width: CHIP_WIDTH, height: CHIP_HEIGHT },
-    draggable: false,
-    selectable: false,
-    deletable: false,
-    connectable: false,
-  }));
+  return shown.map(({ event, state }, i) => {
+    const id = `event:${event.id}`;
+    const position = moved.get(id) ?? { x: cx + slots[i].x - CHIP_WIDTH / 2, y: cy + slots[i].y - CHIP_HEIGHT / 2 };
+    return {
+      id,
+      type: 'event',
+      position,
+      data: { event, state, side: chipSide(position, agent, width, height) },
+      // Fixed size so React Flow doesn't re-measure chips that are rebuilt each render
+      width: CHIP_WIDTH,
+      height: CHIP_HEIGHT,
+      measured: { width: CHIP_WIDTH, height: CHIP_HEIGHT },
+      selectable: false,
+      deletable: false,
+      connectable: false,
+    };
+  });
+}
+
+// A thread from every chip into the agent, on the side it faces.
+export function chipThreads(chipNodes: Node[]): Edge[] {
+  return chipNodes.map(n => {
+    const { side, state } = n.data as { side: ChipSide; state: string };
+    return {
+      id: `thread:${n.id}`,
+      source: n.id,
+      sourceHandle: chipHandleId(side),
+      target: AGENT_NODE_ID,
+      targetHandle: agentChipHandleId(OPPOSITE[side]),
+      deletable: false,
+      selectable: false,
+      className: `thread is-${state}`,
+    };
+  });
 }

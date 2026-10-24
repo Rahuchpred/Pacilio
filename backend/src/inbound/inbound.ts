@@ -10,12 +10,13 @@ import type spacetimedb from '../index';
 import { corrupt } from './corrupt';
 import { InboundHub } from './hub';
 import { inboundTickSchedule } from './tables';
+import { resetPipeline, setPipelineEnabled } from '../pipeline/pipeline';
 import type { InboundEventDraft, Source, SourceContext } from './types';
 
 type Schema = typeof spacetimedb;
 type Ctx = ReducerCtx<InferSchema<Schema>>;
 
-const TICK_INTERVAL_MICROS = 5_000_000n;
+const TICK_INTERVAL_MICROS = 8_000_000n;
 const MAX_RAW_CHARS = 4000;
 
 function ensureTicking(ctx: Ctx) {
@@ -79,6 +80,16 @@ function rawJson(raw: unknown): string {
   return json.length > MAX_RAW_CHARS ? `${json.slice(0, MAX_RAW_CHARS)}…` : json;
 }
 
+const BASELINE_FLAG = '__baseline';
+
+function hasBaselineFlag(state: string): boolean {
+  try {
+    return !!(JSON.parse(state || '{}') as Record<string, unknown>)[BASELINE_FLAG];
+  } catch {
+    return false;
+  }
+}
+
 // Simulation and polling each keep their own keys in the same state blob
 function mergeState(before: string, after: string): string {
   try {
@@ -135,6 +146,20 @@ export function inbound(stdb: Schema) {
     }
   );
 
+  // Someone resized a pipeline node (the ledger sheet); everyone sees the new size.
+  const resizePipelineNode = stdb.reducer(
+    { nodeId: t.string(), width: t.f64(), height: t.f64() },
+    (ctx, { nodeId, width, height }) => {
+      if (!nodeId.startsWith('pipeline:')) throw new SenderError('Not a pipeline node');
+      if (!(width >= 200 && width <= 10_000 && height >= 150 && height <= 10_000)) {
+        throw new SenderError('Size out of range');
+      }
+      const row = { nodeId, width, height };
+      if (ctx.db.pipelineNodeSize.nodeId.find(nodeId)) ctx.db.pipelineNodeSize.nodeId.update(row);
+      else ctx.db.pipelineNodeSize.insert(row);
+    }
+  );
+
   // ─── Whole-pipeline controls (the UI's Run / Pause / Restart) ─────────────
 
   function setAll(ctx: Ctx, enabled: boolean) {
@@ -144,6 +169,8 @@ export function inbound(stdb: Schema) {
       updateStatus(ctx, source.name, { enabled });
     }
     if (enabled) ensureTicking(ctx);
+    // The main agent runs and pauses with its sources
+    setPipelineEnabled(ctx, enabled);
   }
 
   const runInbound = stdb.reducer(ctx => setAll(ctx, true));
@@ -157,9 +184,12 @@ export function inbound(stdb: Schema) {
     for (const label of [...ctx.db.inboundLabel.iter()]) ctx.db.inboundLabel.eventId.delete(label.eventId);
     for (const source of InboundHub.sources) {
       const row = sourceRow(ctx, source);
-      ctx.db.inboundSource.name.update({ ...row, state: '' });
+      // Sources that can baseline skip their history on the next tick
+      const state = source.baseline ? mergeState(row.state, JSON.stringify({ [BASELINE_FLAG]: true })) : '';
+      ctx.db.inboundSource.name.update({ ...row, state });
       updateStatus(ctx, source.name, { emitted: 0n, lastError: undefined, lastPolledAt: undefined });
     }
+    resetPipeline(ctx);
     // Status rows for sources that no longer exist (e.g. removed integrations)
     for (const status of [...ctx.db.inboundSourceStatus.iter()]) {
       if (!InboundHub.get(status.name)) ctx.db.inboundSourceStatus.name.delete(status.name);
@@ -206,6 +236,26 @@ export function inbound(stdb: Schema) {
           continue;
         }
 
+        // After a Restart: record where the source is now and emit nothing yet
+        if (source.baseline && hasBaselineFlag(row.state)) {
+          try {
+            const { [BASELINE_FLAG]: _, ...rest } = JSON.parse(row.state) as Record<string, unknown>;
+            const prior = JSON.stringify(rest);
+            const state = mergeState(prior, source.baseline(sourceCtx, prior));
+            ctx.withTx(tx => {
+              const current = tx.db.inboundSource.name.find(row.name);
+              if (!current || current.state !== row.state) return;
+              tx.db.inboundSource.name.update({ ...current, state });
+              updateStatus(tx, row.name, { configured: true, lastPolledAt: tx.timestamp, lastError: undefined });
+            });
+          } catch (err) {
+            ctx.withTx(tx => updateStatus(tx, row.name, { lastPolledAt: tx.timestamp, lastError: `Baseline: ${message(err)}` }));
+          }
+          continue;
+        }
+
+        if (source.pollChance !== undefined && ctx.random() > source.pollChance) continue;
+
         // Create fresh activity in the source system first (a sale, a bill…)
         let simulated = row.state;
         let simError: string | undefined;
@@ -226,7 +276,8 @@ export function inbound(stdb: Schema) {
         } catch (err) {
           ctx.withTx(tx => {
             const current = tx.db.inboundSource.name.find(row.name);
-            if (current) tx.db.inboundSource.name.update({ ...current, state: simulated });
+            if (!current || current.state !== row.state) return;
+            tx.db.inboundSource.name.update({ ...current, state: simulated });
             updateStatus(tx, row.name, {
               configured: true,
               lastPolledAt: tx.timestamp,
@@ -248,6 +299,9 @@ export function inbound(stdb: Schema) {
           });
 
           ctx.withTx(tx => {
+            // A Restart (or another tick) changed this source mid-poll: drop this result
+            const before = tx.db.inboundSource.name.find(row.name);
+            if (!before || before.state !== row.state) return;
             const ids: bigint[] = [];
             for (const { draft, corruptions, duplicateOfIndex } of corrupted) {
               const event = tx.db.inboundEvent.insert({
@@ -278,8 +332,7 @@ export function inbound(stdb: Schema) {
               }
             }
 
-            const current = tx.db.inboundSource.name.find(row.name);
-            if (current) tx.db.inboundSource.name.update({ ...current, state });
+            tx.db.inboundSource.name.update({ ...before, state });
             const emitted = tx.db.inboundSourceStatus.name.find(row.name)?.emitted ?? 0n;
             updateStatus(tx, row.name, {
               configured: true,
@@ -303,6 +356,7 @@ export function inbound(stdb: Schema) {
     configureInboundSource,
     resetInboundSource,
     movePipelineNode,
+    resizePipelineNode,
     runInbound,
     pauseInbound,
     restartInbound,

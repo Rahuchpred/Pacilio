@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useReducer, useSpacetimeDB, useTable } from 'spacetimedb/react';
 import { reducers, tables } from './module_bindings';
 import type { User } from './module_bindings/types';
@@ -6,6 +6,28 @@ import { Avatar } from './Avatar';
 import { useDismiss } from './useDismiss';
 
 const MAX_PEOPLE = 5;
+// Connections shorter than this (CLI calls, tests, a page reload) don't show
+const SETTLE_MS = 3000;
+
+// Online users, minus anyone who connected less than SETTLE_MS ago, so brief
+// connect/disconnect blips don't make avatars flicker in and out.
+function useSettledUsers(users: readonly User[]): User[] {
+  const since = useRef(new Map<string, number>());
+  const [, setTick] = useState(0);
+  const now = Date.now();
+  const live = new Set(users.map(u => u.identity.toHexString()));
+  for (const id of [...since.current.keys()]) if (!live.has(id)) since.current.delete(id);
+  for (const id of live) if (!since.current.has(id)) since.current.set(id, now);
+  const pending = users.some(u => now - since.current.get(u.identity.toHexString())! < SETTLE_MS);
+
+  useEffect(() => {
+    if (!pending) return;
+    const timer = window.setTimeout(() => setTick(t => t + 1), SETTLE_MS);
+    return () => window.clearTimeout(timer);
+  });
+
+  return users.filter(u => now - since.current.get(u.identity.toHexString())! >= SETTLE_MS);
+}
 
 // Top-right cluster, Canva style: [other people] [notifications] [you]
 export function TopBar() {
@@ -15,7 +37,7 @@ export function TopBar() {
   const me = identity
     ? onlineUsers.find(u => u.identity.isEqual(identity))
     : undefined;
-  const others = onlineUsers.filter(u => u !== me);
+  const others = useSettledUsers(onlineUsers.filter(u => u !== me));
 
   return (
     <div className="topbar">

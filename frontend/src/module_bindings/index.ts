@@ -50,6 +50,7 @@ import RecordPaymentReducer from "./record_payment_reducer";
 import RenameNodeReducer from "./rename_node_reducer";
 import RequestAgentTaskReducer from "./request_agent_task_reducer";
 import ResetInboundSourceReducer from "./reset_inbound_source_reducer";
+import ResizePipelineNodeReducer from "./resize_pipeline_node_reducer";
 import RestartInboundReducer from "./restart_inbound_reducer";
 import RunInboundReducer from "./run_inbound_reducer";
 import SetInboundSourceReducer from "./set_inbound_source_reducer";
@@ -58,19 +59,28 @@ import SteerAgentTaskReducer from "./steer_agent_task_reducer";
 
 // Import all procedure arg schemas
 import * as AgentFileUrlProcedure from "./agent_file_url_procedure";
+import * as LedgerXlsxUrlProcedure from "./ledger_xlsx_url_procedure";
+import * as ResolveReviewItemProcedure from "./resolve_review_item_procedure";
 
 // Import all table schema definitions
 import AccountingBillRow from "./accounting_bill_table";
 import AccountingInvoiceRow from "./accounting_invoice_table";
 import AccountingPaymentRow from "./accounting_payment_table";
+import AgentRunRow from "./agent_run_table";
 import AgentStepRow from "./agent_step_table";
 import AgentTaskRow from "./agent_task_table";
 import CursorRow from "./cursor_table";
 import EdgeRow from "./edge_table";
+import EventReviewRow from "./event_review_table";
 import InboundEventRow from "./inbound_event_table";
 import InboundSourceStatusRow from "./inbound_source_status_table";
+import LedgerDocumentRow from "./ledger_document_table";
 import NodeRow from "./node_table";
+import PipelineAgentRow from "./pipeline_agent_table";
 import PipelineLayoutRow from "./pipeline_layout_table";
+import PipelineNodeSizeRow from "./pipeline_node_size_table";
+import ReviewItemRow from "./review_item_table";
+import ToolInstallRow from "./tool_install_table";
 import UserRow from "./user_table";
 
 /** Type-only namespace exports for generated type groups. */
@@ -110,6 +120,17 @@ const tablesSchema = __schema({
       { name: 'accounting_payment_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, AccountingPaymentRow),
+  agentRun: __table({
+    name: 'agent_run',
+    indexes: [
+      { accessor: 'id', name: 'agent_run_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'agent_run_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, AgentRunRow),
   agentStep: __table({
     name: 'agent_step',
     indexes: [
@@ -157,6 +178,17 @@ const tablesSchema = __schema({
       { name: 'edge_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, EdgeRow),
+  eventReview: __table({
+    name: 'event_review',
+    indexes: [
+      { accessor: 'eventId', name: 'event_review_event_id_idx_btree', algorithm: 'btree', columns: [
+        'eventId',
+      ] },
+    ],
+    constraints: [
+      { name: 'event_review_event_id_key', constraint: 'unique', columns: ['eventId'] },
+    ],
+  }, EventReviewRow),
   inboundEvent: __table({
     name: 'inbound_event',
     indexes: [
@@ -186,6 +218,17 @@ const tablesSchema = __schema({
       { name: 'inbound_source_status_name_key', constraint: 'unique', columns: ['name'] },
     ],
   }, InboundSourceStatusRow),
+  ledgerDocument: __table({
+    name: 'ledger_document',
+    indexes: [
+      { accessor: 'id', name: 'ledger_document_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'ledger_document_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, LedgerDocumentRow),
   node: __table({
     name: 'node',
     indexes: [
@@ -197,6 +240,17 @@ const tablesSchema = __schema({
       { name: 'node_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, NodeRow),
+  pipelineAgent: __table({
+    name: 'pipeline_agent',
+    indexes: [
+      { accessor: 'id', name: 'pipeline_agent_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'pipeline_agent_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, PipelineAgentRow),
   pipelineLayout: __table({
     name: 'pipeline_layout',
     indexes: [
@@ -208,6 +262,42 @@ const tablesSchema = __schema({
       { name: 'pipeline_layout_node_id_key', constraint: 'unique', columns: ['nodeId'] },
     ],
   }, PipelineLayoutRow),
+  pipelineNodeSize: __table({
+    name: 'pipeline_node_size',
+    indexes: [
+      { accessor: 'nodeId', name: 'pipeline_node_size_node_id_idx_btree', algorithm: 'btree', columns: [
+        'nodeId',
+      ] },
+    ],
+    constraints: [
+      { name: 'pipeline_node_size_node_id_key', constraint: 'unique', columns: ['nodeId'] },
+    ],
+  }, PipelineNodeSizeRow),
+  reviewItem: __table({
+    name: 'review_item',
+    indexes: [
+      { accessor: 'eventId', name: 'review_item_event_id_idx_btree', algorithm: 'btree', columns: [
+        'eventId',
+      ] },
+      { accessor: 'id', name: 'review_item_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'review_item_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, ReviewItemRow),
+  toolInstall: __table({
+    name: 'tool_install',
+    indexes: [
+      { accessor: 'path', name: 'tool_install_path_idx_btree', algorithm: 'btree', columns: [
+        'path',
+      ] },
+    ],
+    constraints: [
+      { name: 'tool_install_path_key', constraint: 'unique', columns: ['path'] },
+    ],
+  }, ToolInstallRow),
   user: __table({
     name: 'user',
     indexes: [
@@ -239,6 +329,7 @@ const reducersSchema = __reducers(
   __reducerSchema("rename_node", RenameNodeReducer),
   __reducerSchema("request_agent_task", RequestAgentTaskReducer),
   __reducerSchema("reset_inbound_source", ResetInboundSourceReducer),
+  __reducerSchema("resize_pipeline_node", ResizePipelineNodeReducer),
   __reducerSchema("restart_inbound", RestartInboundReducer),
   __reducerSchema("run_inbound", RunInboundReducer),
   __reducerSchema("set_inbound_source", SetInboundSourceReducer),
@@ -249,6 +340,8 @@ const reducersSchema = __reducers(
 /** The schema information for all procedures in this module. This is defined the same way as the procedures would have been defined in the server. */
 const proceduresSchema = __procedures(
   __procedureSchema("agent_file_url", AgentFileUrlProcedure.params, AgentFileUrlProcedure.returnType),
+  __procedureSchema("ledger_xlsx_url", LedgerXlsxUrlProcedure.params, LedgerXlsxUrlProcedure.returnType),
+  __procedureSchema("resolve_review_item", ResolveReviewItemProcedure.params, ResolveReviewItemProcedure.returnType),
 );
 
 /** The remote SpacetimeDB module schema, both runtime and type information. */

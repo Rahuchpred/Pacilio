@@ -17,6 +17,7 @@ export type AutonomyLevel = 'off' | 'low' | 'medium' | 'high';
 
 export interface SessionSettings {
   autonomyLevel?: AutonomyLevel;
+  reasoningEffort?: 'low' | 'medium' | 'high';
   model?: string;
   disabledToolIds?: string[];
 }
@@ -116,6 +117,38 @@ export class FactoryClient {
       `/sessions/${sessionId}/messages?limit=${limit}`
     );
     return res.messages.slice().reverse();
+  }
+
+  // Put a text file on the computer at destPath (relative to the home folder):
+  // ask for an upload slot, POST the file to it, then place it. ASCII content
+  // only, so the declared size matches the bytes sent.
+  uploadTextFile(computerId: string, sessionId: string, destPath: string, content: string): void {
+    const name = encodeURIComponent(destPath.split('/').pop() ?? destPath);
+    const slot = this.request<{ transferId: string; uploadUrl: string; uploadFormFields: Record<string, string> }>(
+      'POST',
+      `/computers/${computerId}/files/${name}/create-upload`,
+      { sizeBytes: content.length, contentType: 'text/plain' }
+    );
+    const boundary = 'settle-upload-7d1f4c';
+    const part = (field: string, value: string) =>
+      `--${boundary}\r\nContent-Disposition: form-data; name="${field}"\r\n\r\n${value}\r\n`;
+    const body =
+      Object.entries(slot.uploadFormFields).map(([k, v]) => part(k, v)).join('') +
+      `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${name}"\r\n` +
+      `Content-Type: text/plain\r\n\r\n${content}\r\n--${boundary}--\r\n`;
+    const res = this.http.fetch(slot.uploadUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+      body,
+    });
+    if (res.status < 200 || res.status >= 300) {
+      throw new FactoryError(res.status, 'file upload', res.text());
+    }
+    this.request('POST', `/computers/${computerId}/files/${name}/complete-upload`, {
+      transferId: slot.transferId,
+      sessionId,
+      destPath,
+    });
   }
 
   // Time-limited URL for a file the agent wrote in its workspace.

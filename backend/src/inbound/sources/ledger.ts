@@ -112,7 +112,12 @@ export const ledger: Source = {
     typoFields: ['counterparty', 'description', 'reference'],
     duplicateRate: 0.1,
   },
-  simulateChance: 0.5,
+  simulateChance: 0.25,
+
+  // Move every cursor past the rows that already exist
+  baseline(ctx, state) {
+    return this.poll(ctx, state, Number.MAX_SAFE_INTEGER).state;
+  },
 
   // Bills arrive from vendors, invoices go to sponsors, open ones get paid
   simulate(ctx, state) {

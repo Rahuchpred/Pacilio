@@ -1,10 +1,26 @@
-import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { useTable } from 'spacetimedb/react';
-import { tables } from '../module_bindings';
+import { Handle, NodeResizer, Position, type NodeProps } from '@xyflow/react';
+import { useState } from 'react';
+import { useProcedure, useTable } from 'spacetimedb/react';
+import { procedures, tables } from '../module_bindings';
 import type { InboundEvent, InboundSourceStatus } from '../module_bindings/types';
 import { usePipelineActivity } from './activity';
 import { Money } from './Money';
-import { MAX_CHIPS, SOURCES, SOURCE_TITLES, agentHandleId } from './sources';
+import type { ChipState } from './chipStates';
+import {
+  SOURCES,
+  SOURCE_TITLES,
+  agentChipHandleId,
+  agentHandleId,
+  chipHandleId,
+  type ChipSide,
+} from './sources';
+
+const SIDES: [ChipSide, Position][] = [
+  ['top', Position.Top],
+  ['right', Position.Right],
+  ['bottom', Position.Bottom],
+  ['left', Position.Left],
+];
 
 const newestFirst = (a: InboundEvent, b: InboundEvent) => (a.id < b.id ? 1 : a.id > b.id ? -1 : 0);
 
@@ -57,12 +73,29 @@ export function SourceNode({ data }: NodeProps) {
   );
 }
 
-// The main agent. Droid (Factory) will run here; for now it shows what it has received.
+function AgentStatus() {
+  const [agents] = useTable(tables.pipelineAgent);
+  const agent = agents[0];
+  if (agent?.lastError) return <span className="status is-held">! Error</span>;
+  if (agent?.status === 'running') return <span className="status is-held">● Working</span>;
+  if (agent?.enabled) return <span className="status is-cleared">▶ Ready</span>;
+  return <span className="status">‖ Paused</span>;
+}
+
+// The main agent: Droid on the Factory cloud computer, working in batches.
 export function AgentNode() {
   const { landed, packets } = usePipelineActivity();
-  const sources = new Set(landed.map(e => e.source)).size;
+  const [agents] = useTable(tables.pipelineAgent);
+  const [runs] = useTable(tables.agentRun);
+  const [reviews] = useTable(tables.eventReview);
+  const [queue] = useTable(tables.reviewItem.where(r => r.status.eq('open')));
+  const agent = agents[0];
   const receiving = Object.values(packets).some(p => p.length > 0);
-  const last = landed[landed.length - 1];
+  const reviewed = new Set(reviews.map(r => r.eventId.toString()));
+  const waiting = landed.filter(e => !reviewed.has(e.id.toString())).length;
+  const processing = reviews.filter(r => r.status !== 'done').length;
+  const done = reviews.filter(r => r.status === 'done').length;
+  const lastRun = [...runs].filter(r => r.status === 'done').sort((a, b) => (a.id < b.id ? 1 : -1))[0];
 
   return (
     <div className={`pipeline-node agent-node${receiving ? ' is-receiving' : ''}`}>
@@ -79,41 +112,110 @@ export function AgentNode() {
       ))}
       <div className="node-head">
         <h3>Main agent</h3>
-        <span className="status">◇ Not connected</span>
+        <AgentStatus />
       </div>
-      <p className="node-meta">Droid will classify, reconcile and flag incoming events.</p>
+      <p className="node-meta">Droid on the Factory computer · classifies, reconciles and flags</p>
       <dl className="node-stats">
         <div>
-          <dt>Received</dt>
-          <dd>{landed.length}</dd>
+          <dt>Waiting</dt>
+          <dd>{waiting}</dd>
         </div>
         <div>
-          <dt>Sources</dt>
-          <dd>{sources}</dd>
+          <dt>In this run</dt>
+          <dd>{processing}</dd>
         </div>
         <div>
-          <dt>On the board</dt>
-          <dd>{Math.min(landed.length, MAX_CHIPS)}</dd>
+          <dt>Done</dt>
+          <dd>{done}</dd>
+        </div>
+        <div>
+          <dt>Needs you</dt>
+          <dd>{queue.length}</dd>
         </div>
       </dl>
       <p className="node-latest">
-        {last
-          ? `Latest: ${last.counterparty} from ${SOURCE_TITLES[last.source] ?? last.source}`
-          : 'Waiting for the first event'}
+        {agent?.lastError
+          ? agent.lastError
+          : agent?.status === 'running'
+            ? `Working on ${processing} ${processing === 1 ? 'event' : 'events'}…`
+            : lastRun?.summary ?? 'Waiting for the first batch'}
       </p>
+      <Handle type="source" position={Position.Right} isConnectable={false} />
+      {/* Where event threads come in, one per side */}
+      {SIDES.map(([side, position]) => (
+        <Handle
+          key={side}
+          id={agentChipHandleId(side)}
+          type="target"
+          position={position}
+          isConnectable={false}
+          className="thread-handle"
+        />
+      ))}
+    </div>
+  );
+}
+
+// The master ledger workbook exactly as Droid rendered it on the Factory computer.
+export function LedgerNode() {
+  const [docs] = useTable(tables.ledgerDocument);
+  const xlsxUrl = useProcedure(procedures.ledgerXlsxUrl);
+  const [downloading, setDownloading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const doc = docs[0];
+  const updated = doc?.updatedAt.toDate().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+  const download = () => {
+    setDownloading(true);
+    setError(null);
+    xlsxUrl()
+      .then(url => window.open(url, '_blank', 'noopener'))
+      .catch((err: Error) => setError(err.message))
+      .finally(() => setDownloading(false));
+  };
+
+  return (
+    <div className="pipeline-node ledger-node">
+      <NodeResizer
+        minWidth={480}
+        minHeight={320}
+        lineClassName="ledger-resize-line"
+        handleClassName="ledger-resize-handle"
+      />
+      <Handle type="target" position={Position.Left} isConnectable={false} />
+      <div className="node-head">
+        <h3>Master ledger.xlsx</h3>
+        <div className="ledger-actions">
+          <span className="status">{doc ? `Updated ${updated}` : 'Not written yet'}</span>
+          <button className="btn btn-secondary" onClick={download} disabled={!doc || downloading}>
+            {downloading ? 'Preparing…' : 'Download .xlsx'}
+          </button>
+        </div>
+      </div>
+      <p className="node-meta">
+        {error ?? 'Built by the agent on the Factory computer · Ledger, Needs review and Summary sheets'}
+      </p>
+      <div className="ledger-frame nodrag nowheel">
+        {doc ? (
+          // Sandboxed: the agent's page can't run scripts or reach this app
+          <iframe title="Master ledger" sandbox="" srcDoc={doc.html} />
+        ) : (
+          <p className="node-meta">The agent writes the ledger after its first run.</p>
+        )}
+      </div>
     </div>
   );
 }
 
 // One received event, parked around the agent.
 export function EventNode({ data }: NodeProps) {
-  const event = (data as { event: InboundEvent }).event;
+  const { event, state } = data as { event: InboundEvent; state: ChipState; side: ChipSide };
   const { flashing } = usePipelineActivity();
-  const isNew = flashing.has(event.id.toString());
+  const isNew = state === 'waiting' && flashing.has(event.id.toString());
 
   return (
     <div
-      className={`event-chip${isNew ? ' is-new' : ''}`}
+      className={`event-chip is-${state}${isNew ? ' is-new' : ''}`}
       title={`${event.kind.replace(/_/g, ' ')} · ${event.description}`}
     >
       <div className="chip-top">
@@ -121,8 +223,19 @@ export function EventNode({ data }: NodeProps) {
         <Money amountMinor={event.amountMinor} currency={event.currency} />
       </div>
       <div className="chip-party">{event.counterparty}</div>
+      {/* The thread to the agent leaves from whichever side faces it */}
+      {SIDES.map(([side, position]) => (
+        <Handle
+          key={side}
+          id={chipHandleId(side)}
+          type="source"
+          position={position}
+          isConnectable={false}
+          className="thread-handle"
+        />
+      ))}
     </div>
   );
 }
 
-export const pipelineNodeTypes = { source: SourceNode, agent: AgentNode, event: EventNode };
+export const pipelineNodeTypes = { source: SourceNode, agent: AgentNode, ledger: LedgerNode, event: EventNode };

@@ -9,7 +9,11 @@ import {
   type Source,
   type SourceContext,
 } from '../types';
+import type { InferSchema, ReducerCtx } from 'spacetimedb/server';
+import type spacetimedb from '../../index';
 import { SHOW, VENDORS, addDays, amountBetween, isoDate, pick } from '../simulation';
+
+type Ctx = ReducerCtx<InferSchema<typeof spacetimedb>>;
 
 // Capital One's hackathon bank (https://api.nessieisreal.com, HTTPS only).
 // Covers every account under the API key: purchases, deposits, withdrawals,
@@ -128,7 +132,12 @@ export const nessie: Source = {
   defaultMaxPerTick: 20,
   // Emitted as Nessie reports it, no injected errors
   defaultProfile: { typoRate: 0, typoFields: [], duplicateRate: 0 },
-  simulateChance: 0.6,
+  simulateChance: 0.25,
+
+  // Mark every record already in the account as seen
+  baseline(ctx, state) {
+    return this.poll(ctx, state, Number.MAX_SAFE_INTEGER).state;
+  },
 
   // The promoter's operating account: paying vendors, banking payouts,
   // pulling a cash float, running payroll and scheduling bills
@@ -150,13 +159,31 @@ export const nessie: Source = {
     const vendor = pick(ctx.random, VENDORS);
 
     if (roll < 0.5) {
+      // Pay a vendor bill from the Ledger: usually exactly, sometimes not
+      const bills = ctx.withTx(raw => [...(raw as Ctx).db.accountingBill.iter()]);
+      const open = bills.filter(b => b.balanceMinor > 0n);
+      const paid = bills.filter(b => b.balanceMinor === 0n);
+      const kind = ctx.random();
+      let payee = vendor;
+      let cents = amountBetween(ctx.random, vendor.min, vendor.max);
+      let memo = `${vendor.item} - ${SHOW}`;
+      const bill =
+        kind < 0.8 && open.length ? pick(ctx.random, open) : kind < 0.9 && paid.length ? pick(ctx.random, paid) : undefined;
+      if (bill) {
+        payee = VENDORS.find(v => v.name === bill.vendor) ?? vendor;
+        cents = Number(bill.balanceMinor || bill.totalMinor);
+        memo = `${payee.item} - ${bill.docNumber}`;
+        // Now and then the bank pays more than the bill says
+        if (kind > 0.72 && kind < 0.8) cents = Math.round(cents * (1 + ctx.random.integerInRange(2, 8) / 100));
+      }
+      // kind ≥ 0.9 (or no bills yet): a charge with no bill behind it
       nessiePost(ctx, `${base}/purchases`, {
-        merchant_id: merchantId(ctx, sim, vendor),
+        merchant_id: merchantId(ctx, sim, payee),
         medium: 'balance',
         status: 'completed',
         purchase_date: today,
-        amount: dollars(amountBetween(ctx.random, vendor.min, vendor.max)),
-        description: `${vendor.item} - ${SHOW}`,
+        amount: dollars(cents),
+        description: memo,
       });
     } else if (roll < 0.65) {
       const fromStripe = ctx.random() < 0.7;

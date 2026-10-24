@@ -5,6 +5,8 @@ import { inboundEnv, inboundTables } from './inbound/tables';
 import { inbound } from './inbound/inbound';
 import { accountingTables } from './accounting/tables';
 import { accounting } from './accounting/accounting';
+import { pipelineTables } from './pipeline/tables';
+import { pipeline } from './pipeline/pipeline';
 
 // One row per identity that has ever connected. `color` drives avatar + cursor color.
 const user = table(
@@ -47,7 +49,7 @@ const edge = table(
 );
 
 const spacetimedb = schema(
-  { user, cursor, node, edge, ...droidTables, ...inboundTables, ...accountingTables },
+  { user, cursor, node, edge, ...droidTables, ...inboundTables, ...accountingTables, ...pipelineTables },
   { env: { ...droidEnv, ...inboundEnv } }
 );
 export default spacetimedb;
@@ -59,6 +61,7 @@ export const {
   configureInboundSource,
   resetInboundSource,
   movePipelineNode,
+  resizePipelineNode,
   runInbound,
   pauseInbound,
   restartInbound,
@@ -68,6 +71,10 @@ export const {
 // ─── Mock accounting system (stand-in for QuickBooks) ───────────────────────
 
 export const { createBill, createInvoice, recordPayment } = accounting(spacetimedb);
+
+// ─── Main agent (Droid on the Factory computer) ─────────────────────────────
+
+export const { pipelineTick, resolveReviewItem, ledgerXlsxUrl } = pipeline(spacetimedb);
 
 // ─── Droid agents (Factory cloud) ───────────────────────────────────────────
 

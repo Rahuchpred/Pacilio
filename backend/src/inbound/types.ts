@@ -75,8 +75,13 @@ export interface Source {
   // (a sale, a bill, a deposit). Returns the source's updated state; keep its
   // own keys under `sim` so they don't collide with poll's.
   simulate?(ctx: SourceContext, state: string): string;
-  // Chance per tick (every 5s) that simulate runs
+  // Chance per tick that simulate runs
   readonly simulateChance?: number;
+  // Chance per tick that the source is polled at all (default: every tick)
+  readonly pollChance?: number;
+  // On Restart: mark everything already in the source system as seen, so only
+  // activity from now on flows. Without it, a source replays from the start.
+  baseline?(ctx: SourceContext, state: string): string;
 }
 
 // ─── Shared helpers for sources ─────────────────────────────────────────────

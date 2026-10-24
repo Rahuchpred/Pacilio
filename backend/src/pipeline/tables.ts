@@ -1,0 +1,120 @@
+import { table, t } from 'spacetimedb/server';
+
+// The main agent: takes waiting inbound events in batches, has Droid (on the
+// Factory cloud computer) classify and reconcile them into the master ledger,
+// and sends anything it isn't sure about to the human action queue.
+
+// Singleton (id 0): is the agent on, and what is it doing.
+export const pipelineAgent = table(
+  { name: 'pipeline_agent', public: true },
+  {
+    id: t.u32().primaryKey(),
+    enabled: t.bool(),
+    // 'idle' | 'running'
+    status: t.string(),
+    currentRunId: t.u64().optional(),
+    lastError: t.string().optional(),
+    // Next run starts the ledger from scratch (after a Restart)
+    resetLedger: t.bool(),
+    updatedAt: t.timestamp(),
+  }
+);
+
+// One batch handed to Droid.
+export const agentRun = table(
+  { name: 'agent_run', public: true },
+  {
+    id: t.u64().primaryKey().autoInc(),
+    taskId: t.u64(),
+    eventIds: t.array(t.u64()),
+    // Human decisions this run was asked to apply
+    reviewItemIds: t.array(t.u64()),
+    // 'running' | 'done' | 'failed'
+    status: t.string(),
+    summary: t.string().optional(),
+    error: t.string().optional(),
+    startedAt: t.timestamp(),
+    finishedAt: t.timestamp().optional(),
+  }
+);
+
+// Where each inbound event is in the agent's hands. No row = still waiting.
+export const eventReview = table(
+  { name: 'event_review', public: true },
+  {
+    eventId: t.u64().primaryKey(),
+    runId: t.u64(),
+    // 'processing' | 'done'
+    status: t.string(),
+    // 'ok' | 'void' | 'review'
+    outcome: t.string().optional(),
+    category: t.string().optional(),
+    note: t.string().optional(),
+    updatedAt: t.timestamp(),
+  }
+);
+
+// The human action queue: items the agent wasn't sure about.
+export const reviewItem = table(
+  { name: 'review_item', public: true },
+  {
+    id: t.u64().primaryKey().autoInc(),
+    eventId: t.u64().index('btree'),
+    runId: t.u64(),
+    // One-sentence question for the person, with the amount in it
+    question: t.string(),
+    // Why the agent flagged it (evidence)
+    reason: t.string(),
+    // 'void' | 'refund' | 'keep' | 'chase'
+    recommendation: t.string(),
+    confidence: t.f64(),
+    duplicateOf: t.u64().optional(),
+    // 'open' → 'decided' (waiting for the agent to apply it) → 'applied'
+    status: t.string(),
+    decision: t.string().optional(),
+    decidedBy: t.identity().optional(),
+    decidedAt: t.timestamp().optional(),
+    // What happened when the decision ran, e.g. the Stripe refund id
+    resultNote: t.string().optional(),
+    createdAt: t.timestamp(),
+  }
+);
+
+// The master ledger as Droid last rendered it (singleton, id 0).
+export const ledgerDocument = table(
+  { name: 'ledger_document', public: true },
+  {
+    id: t.u32().primaryKey(),
+    html: t.string(),
+    runId: t.u64(),
+    updatedAt: t.timestamp(),
+  }
+);
+
+// Tools we install on the Factory computer for the agent to run (e.g. render.py).
+export const toolInstall = table(
+  { name: 'tool_install', public: true },
+  {
+    path: t.string().primaryKey(),
+    version: t.string(),
+    installedAt: t.timestamp(),
+  }
+);
+
+export const pipelineTickSchedule = table(
+  { name: 'pipeline_tick_schedule' },
+  {
+    scheduledId: t.u64().primaryKey().autoInc(),
+    scheduledAt: t.scheduleAt(),
+  }
+);
+
+export const pipelineTables = {
+  pipelineAgent,
+  agentRun,
+  eventReview,
+  reviewItem,
+  ledgerDocument,
+  toolInstall,
+  pipelineTickSchedule,
+};

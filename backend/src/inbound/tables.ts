@@ -82,8 +82,19 @@ export const pipelineLayout = table(
   }
 );
 
+// Size of resizable pipeline nodes (the ledger sheet), shared like positions.
+export const pipelineNodeSize = table(
+  { name: 'pipeline_node_size', public: true },
+  {
+    nodeId: t.string().primaryKey(),
+    width: t.f64(),
+    height: t.f64(),
+  }
+);
+
 export const inboundTables = {
   pipelineLayout,
+  pipelineNodeSize,
   inboundEvent,
   inboundLabel,
   inboundSource,
