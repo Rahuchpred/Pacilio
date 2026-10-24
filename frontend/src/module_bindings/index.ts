@@ -34,31 +34,83 @@ import {
 } from "spacetimedb";
 
 // Import all reducer arg schemas
-import AddReducer from "./add_reducer";
-import SayHelloReducer from "./say_hello_reducer";
+import AddEdgeReducer from "./add_edge_reducer";
+import AddNodeReducer from "./add_node_reducer";
+import DeleteEdgeReducer from "./delete_edge_reducer";
+import DeleteNodeReducer from "./delete_node_reducer";
+import MoveCursorReducer from "./move_cursor_reducer";
+import MoveNodeReducer from "./move_node_reducer";
+import RenameNodeReducer from "./rename_node_reducer";
+import SetNameReducer from "./set_name_reducer";
 
 // Import all procedure arg schemas
 
 // Import all table schema definitions
-import PersonRow from "./person_table";
+import CursorRow from "./cursor_table";
+import EdgeRow from "./edge_table";
+import NodeRow from "./node_table";
+import UserRow from "./user_table";
 
 /** Type-only namespace exports for generated type groups. */
 
 /** The schema information for all tables in this module. This is defined the same was as the tables would have been defined in the server. */
 const tablesSchema = __schema({
-  person: __table({
-    name: 'person',
+  cursor: __table({
+    name: 'cursor',
     indexes: [
+      { accessor: 'identity', name: 'cursor_identity_idx_btree', algorithm: 'btree', columns: [
+        'identity',
+      ] },
     ],
     constraints: [
+      { name: 'cursor_identity_key', constraint: 'unique', columns: ['identity'] },
     ],
-  }, PersonRow),
+  }, CursorRow),
+  edge: __table({
+    name: 'edge',
+    indexes: [
+      { accessor: 'id', name: 'edge_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'edge_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, EdgeRow),
+  node: __table({
+    name: 'node',
+    indexes: [
+      { accessor: 'id', name: 'node_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'node_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, NodeRow),
+  user: __table({
+    name: 'user',
+    indexes: [
+      { accessor: 'identity', name: 'user_identity_idx_btree', algorithm: 'btree', columns: [
+        'identity',
+      ] },
+    ],
+    constraints: [
+      { name: 'user_identity_key', constraint: 'unique', columns: ['identity'] },
+    ],
+  }, UserRow),
 });
 
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */
 const reducersSchema = __reducers(
-  __reducerSchema("add", AddReducer),
-  __reducerSchema("say_hello", SayHelloReducer),
+  __reducerSchema("add_edge", AddEdgeReducer),
+  __reducerSchema("add_node", AddNodeReducer),
+  __reducerSchema("delete_edge", DeleteEdgeReducer),
+  __reducerSchema("delete_node", DeleteNodeReducer),
+  __reducerSchema("move_cursor", MoveCursorReducer),
+  __reducerSchema("move_node", MoveNodeReducer),
+  __reducerSchema("rename_node", RenameNodeReducer),
+  __reducerSchema("set_name", SetNameReducer),
 );
 
 /** The schema information for all procedures in this module. This is defined the same way as the procedures would have been defined in the server. */

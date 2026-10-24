@@ -6,9 +6,21 @@
 import { type Infer as __Infer } from "spacetimedb";
 
 // Import all reducer arg schemas
-import AddReducer from "../add_reducer";
-import SayHelloReducer from "../say_hello_reducer";
+import AddEdgeReducer from "../add_edge_reducer";
+import AddNodeReducer from "../add_node_reducer";
+import DeleteEdgeReducer from "../delete_edge_reducer";
+import DeleteNodeReducer from "../delete_node_reducer";
+import MoveCursorReducer from "../move_cursor_reducer";
+import MoveNodeReducer from "../move_node_reducer";
+import RenameNodeReducer from "../rename_node_reducer";
+import SetNameReducer from "../set_name_reducer";
 
-export type AddParams = __Infer<typeof AddReducer>;
-export type SayHelloParams = __Infer<typeof SayHelloReducer>;
+export type AddEdgeParams = __Infer<typeof AddEdgeReducer>;
+export type AddNodeParams = __Infer<typeof AddNodeReducer>;
+export type DeleteEdgeParams = __Infer<typeof DeleteEdgeReducer>;
+export type DeleteNodeParams = __Infer<typeof DeleteNodeReducer>;
+export type MoveCursorParams = __Infer<typeof MoveCursorReducer>;
+export type MoveNodeParams = __Infer<typeof MoveNodeReducer>;
+export type RenameNodeParams = __Infer<typeof RenameNodeReducer>;
+export type SetNameParams = __Infer<typeof SetNameReducer>;
 

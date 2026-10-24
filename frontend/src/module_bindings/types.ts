@@ -10,8 +10,33 @@ import {
   type Infer as __Infer,
 } from "spacetimedb";
 
-export const Person = __t.object("Person", {
-  name: __t.string(),
+export const Cursor = __t.object("Cursor", {
+  identity: __t.identity(),
+  x: __t.f64(),
+  y: __t.f64(),
 });
-export type Person = __Infer<typeof Person>;
+export type Cursor = __Infer<typeof Cursor>;
+
+export const Edge = __t.object("Edge", {
+  id: __t.u64(),
+  source: __t.u64(),
+  target: __t.u64(),
+});
+export type Edge = __Infer<typeof Edge>;
+
+export const Node = __t.object("Node", {
+  id: __t.u64(),
+  x: __t.f64(),
+  y: __t.f64(),
+  label: __t.string(),
+});
+export type Node = __Infer<typeof Node>;
+
+export const User = __t.object("User", {
+  identity: __t.identity(),
+  name: __t.string(),
+  color: __t.string(),
+  online: __t.bool(),
+});
+export type User = __Infer<typeof User>;
 
