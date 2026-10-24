@@ -147,41 +147,8 @@ button {
   position: relative;
 }
 
-.icon-button {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface);
-  color: #3a3a37;
-  cursor: pointer;
-  box-shadow: var(--shadow);
-}
 
-.icon-button:hover,
-.icon-button.active {
-  background: var(--hover);
-}
 
-.badge {
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  box-sizing: border-box;
-  border: 2px solid var(--surface);
-  border-radius: 999px;
-  background: #ef4444;
-  color: #fff;
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 14px;
-}
 
 .profile-button {
   display: block;
@@ -221,36 +188,10 @@ button {
   color: var(--muted);
 }
 
-.notifications {
-  width: 300px;
-}
 
-.notifications ul {
-  max-height: 360px;
-  margin: 0;
-  padding: 0;
-  overflow-y: auto;
-  list-style: none;
-}
 
-.notifications li {
-  display: flex;
-  gap: 10px;
-  padding: 8px;
-  border-radius: 8px;
-  font-size: 14px;
-}
 
-.notifications li:hover {
-  background: var(--hover);
-}
 
-.empty {
-  padding: 24px 0;
-  text-align: center;
-  font-size: 13px;
-  color: var(--muted);
-}
 
 .profile {
   width: 280px;

@@ -1,34 +1,32 @@
 // Mock data for the process canvas. Shapes only; nothing here is wired to SpacetimeDB yet.
-import type { StatusKind } from '../../../design-system/src/components';
+import type { IconName, StatusKind } from '../../../design-system/src/components';
+
+export type ActorKind = 'agent' | 'rule' | 'person';
 
 export type Email = {
   vendor: string;
   invoice: string;
   amount: number;
   time: string;
-  note?: string;
+  status: StatusKind;
+  statusLabel: string;
 };
 
 export const inbox: Email[] = [
-  { vendor: 'Rivera Sound & Light', invoice: '2231', amount: 18400, time: '9:12 am' },
-  { vendor: 'Halcyon Staffing', invoice: 'HS-0912', amount: 6240, time: '9:40 am' },
-  { vendor: 'Northgate Catering', invoice: '7781', amount: 3115.5, time: '10:05 am' },
-  { vendor: 'Rivera Sound & Light', invoice: '2231', amount: 18400, time: '10:22 am', note: 'Resent' },
+  { vendor: 'Rivera Sound & Light', invoice: '2231', amount: 18400, time: '9:12 am', status: 'cleared', statusLabel: 'Posted' },
+  { vendor: 'Halcyon Staffing', invoice: 'HS-0912', amount: 6240, time: '9:40 am', status: 'needs', statusLabel: 'Needs you' },
+  { vendor: 'Northgate Catering', invoice: '7781', amount: 3115.5, time: '10:05 am', status: 'cleared', statusLabel: 'Posted' },
+  { vendor: 'Rivera Sound & Light', invoice: '2231 copy', amount: 18400, time: '10:22 am', status: 'agent', statusLabel: 'Dropped' },
 ];
 
-export type Route = {
-  vendor: string;
-  invoice: string;
-  to: string;
-  status: StatusKind;
-  result: string;
-};
+export type LogRow = { time: string; text: string; actor: string; actorKind: ActorKind };
 
-export const routes: Route[] = [
-  { vendor: 'Rivera Sound & Light', invoice: '2231', to: 'No issues', status: 'cleared', result: 'Posted' },
-  { vendor: 'Rivera Sound & Light', invoice: '2231 copy', to: 'Duplicate check', status: 'cleared', result: 'Dropped' },
-  { vendor: 'Northgate Catering', invoice: '7781', to: 'Coding check', status: 'cleared', result: 'Coded' },
-  { vendor: 'Halcyon Staffing', invoice: 'HS-0912', to: 'Amount check', status: 'needs', result: 'Sent to you' },
+export const agentLog: LogRow[] = [
+  { time: '9:12', text: 'Matched Rivera 2231 to PO 4402 and posted it.', actor: 'Main agent', actorKind: 'agent' },
+  { time: '9:40', text: 'Sent Halcyon HS-0912 to the amount check.', actor: 'Main agent', actorKind: 'agent' },
+  { time: '9:44', text: 'Asked Maya Chen about a $480.00 overage.', actor: 'Main agent', actorKind: 'agent' },
+  { time: '10:07', text: 'Coded Northgate 7781 to 6120 Catering.', actor: 'Main agent', actorKind: 'agent' },
+  { time: '10:22', text: 'Dropped a second copy of Rivera 2231.', actor: 'Duplicate check', actorKind: 'agent' },
 ];
 
 export type Subagent = {
@@ -36,8 +34,8 @@ export type Subagent = {
   name: string;
   job: string;
   finding: string;
-  fixedBy: 'subagent' | 'main' | 'person';
-  outcome: string;
+  fixedBy: string;
+  fixedByKind: ActorKind;
   status: StatusKind;
   statusLabel: string;
 };
@@ -46,49 +44,66 @@ export const subagents: Subagent[] = [
   {
     id: 'sub-duplicate',
     name: 'Duplicate check',
-    job: 'Compares each invoice with the last 90 days',
+    job: 'Compares each invoice with the last 90 days.',
     finding: 'Rivera 2231 arrived twice. The 10:22 am copy matched the 9:12 am one line for line.',
-    fixedBy: 'subagent',
-    outcome: 'Dropped the copy',
+    fixedBy: 'Duplicate check',
+    fixedByKind: 'agent',
     status: 'cleared',
-    statusLabel: 'Fixed here',
+    statusLabel: 'Fixed',
   },
   {
     id: 'sub-coding',
     name: 'Coding check',
-    job: 'Checks vendor, GL code and tax fields',
+    job: 'Checks vendor, GL code and tax fields.',
     finding: 'Northgate 7781 had no GL code. Their last 6 invoices used 6120 Catering.',
-    fixedBy: 'main',
-    outcome: 'Main agent coded it to 6120',
+    fixedBy: 'Main agent',
+    fixedByKind: 'agent',
     status: 'agent',
     statusLabel: 'Sent back',
   },
   {
     id: 'sub-amount',
     name: 'Amount check',
-    job: 'Matches lines to the PO and the contract',
+    job: 'Matches each line to the PO and the contract.',
     finding: 'Halcyon HS-0912 billed 52 hours. PO 4410 covers 48, so it is $480.00 over.',
-    fixedBy: 'person',
-    outcome: 'Main agent was unsure, flagged it',
+    fixedBy: 'Maya Chen',
+    fixedByKind: 'person',
     status: 'disputed',
     statusLabel: 'Over PO',
   },
 ];
 
-export type LedgerRow = {
-  vendor: string;
-  gl: string;
-  amount: number;
-  actor: string;
-  actorKind: 'agent' | 'rule' | 'person';
-  status: StatusKind;
-  statusLabel: string;
+export const escalation = {
+  asker: 'Main agent',
+  waitingOn: 'Maya Chen',
+  facts: [
+    { k: 'Invoice HS-0912', v: 6240 },
+    { k: 'PO 4410 covers', v: 5760 },
+    { k: 'Over by', v: 480 },
+  ],
+  hold: "Held until Friday's pay run",
+  sources: [
+    { source: 'Invoice HS-0912', detail: 'Halcyon Staffing, 52 hours at $120.00' },
+    { source: 'PO 4410', detail: 'Approved Oct 2, 48 hours' },
+    { source: 'Your past answers', detail: 'Approved 3 of 5 Halcyon overages' },
+  ],
 };
 
-export const ledger: LedgerRow[] = [
-  { vendor: 'Rivera Sound & Light', gl: '6400 Production', amount: 18400, actor: 'Main agent', actorKind: 'agent', status: 'cleared', statusLabel: 'Posted' },
-  { vendor: 'Northgate Catering', gl: '6120 Catering', amount: 3115.5, actor: 'Main agent', actorKind: 'agent', status: 'cleared', statusLabel: 'Posted' },
-  { vendor: 'Halcyon Staffing', gl: '6300 Labor', amount: 6240, actor: 'Waiting on you', actorKind: 'person', status: 'held', statusLabel: 'Held' },
+export type SheetRow = {
+  line: string;
+  sub: string;
+  source: string;
+  sourceIcon: IconName;
+  actor: string;
+  actorKind: ActorKind;
+  amount: number;
+  flagged?: boolean;
+};
+
+export const ledger: SheetRow[] = [
+  { line: 'Rivera Sound & Light', sub: '6400 Production', source: 'PO 4402', sourceIcon: 'doc', actor: 'Main agent', actorKind: 'agent', amount: 18400 },
+  { line: 'Northgate Catering', sub: '6120 Catering', source: '6 past invoices', sourceIcon: 'rule', actor: 'Main agent', actorKind: 'agent', amount: 3115.5 },
+  { line: 'Halcyon Staffing', sub: '6300 Labor', source: 'Held', sourceIcon: 'clock', actor: 'Maya Chen', actorKind: 'person', amount: 6240, flagged: true },
 ];
 
 export type FollowUp = {
@@ -102,27 +117,27 @@ export type FollowUp = {
 
 export const followUps: FollowUp[] = [
   {
-    to: 'billing@halcyonstaffing.com',
+    to: 'Halcyon Staffing',
     subject: 'HS-0912: 4 hours over PO 4410',
-    body: 'Asked for the timesheets behind the extra 4 hours on Oct 18.',
+    body: 'Could you send the timesheets behind the extra 4 hours on Oct 18? We are holding the invoice until then.',
     status: 'held',
-    statusLabel: 'Waiting on reply',
+    statusLabel: 'Waiting',
     time: '10:41 am',
   },
   {
-    to: 'ar@riverasound.com',
+    to: 'Rivera Sound & Light',
     subject: 'Invoice 2231 received once',
-    body: 'Told them the 10:22 am copy was dropped and 2231 pays Friday.',
+    body: 'We got 2231 twice and kept the first. It pays Friday.',
     status: 'cleared',
     statusLabel: 'Sent',
     time: '10:38 am',
   },
   {
-    to: 'accounts@northgatecatering.com',
+    to: 'Northgate Catering',
     subject: 'GL code on future invoices',
-    body: 'Asks them to print 6120 on invoices going forward.',
+    body: 'Please print 6120 on invoices going forward.',
     status: 'agent',
-    statusLabel: 'Drafted',
+    statusLabel: 'Draft',
     time: '10:44 am',
   },
 ];
@@ -131,13 +146,14 @@ export const summary = {
   processed: 27755.5,
   cleared: 21515.5,
   held: 6240,
-  read: 4,
-  clean: 1,
-  fixedBySubagent: 1,
-  fixedByMain: 1,
-  waitingOnYou: 1,
-  medianToPost: '3 min 40 s',
-  // Minutes after 9:00 am that each invoice arrived and when it settled.
+  rows: [
+    { label: 'No issues', value: '1' },
+    { label: 'Fixed by a check', value: '1' },
+    { label: 'Fixed by main agent', value: '1' },
+    { label: 'Waiting on Maya Chen', value: '1' },
+    { label: 'Median time to post', value: '3 min 40 s' },
+  ],
+  // Minutes after 9:00 am that each invoice arrived and settled.
   timeline: [
     { label: 'Rivera 2231', in: 12, out: 15, status: 'cleared' as StatusKind },
     { label: 'Halcyon HS-0912', in: 40, out: null, status: 'held' as StatusKind },

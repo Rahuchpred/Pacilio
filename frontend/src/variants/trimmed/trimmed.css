@@ -1,0 +1,281 @@
+/* Detailed cards, less text: same key facts, one line per thing, orange
+   only where Maya decides. Card base styles come from pipeline/pipeline.css.
+   Short-card rules sit under .lv-short so zoomed-in cards look exactly like version 1. */
+
+.v-trimmed .lv-short .w-inbox { width: 320px; }
+.v-trimmed .lv-short .w-main { width: 420px; }
+.v-trimmed .lv-short .w-sub { width: 260px; }
+.v-trimmed .lv-short .w-flag { width: 420px; }
+.v-trimmed .lv-short .w-ledger { width: 440px; }
+.v-trimmed .lv-short .w-follow { width: 320px; }
+.v-trimmed .lv-short .w-summary { width: 320px; }
+.v-trimmed .lv-short .w-ledger .sheet-row {
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.1fr) minmax(0, 0.9fr);
+  align-items: center;
+}
+
+
+
+.v-trimmed .lv-short .w-main .log-row { grid-template-columns: 44px minmax(0, 1fr); }
+.v-trimmed .lv-short .log-by { color: var(--color-text-secondary); }
+
+
+/* The question: lifted above the rest, the only warm thing on the canvas. */
+.v-trimmed .lv-short .pnode.escalation {
+  gap: var(--space-md);
+  border-color: var(--color-border-strong);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 8px 24px rgb(0 0 0 / 0.06);
+}
+.v-trimmed .lv-short .ask-q {
+  font-size: var(--type-body-lg-size);
+  line-height: var(--type-body-lg-line);
+  font-weight: 500;
+  text-wrap: pretty;
+}
+.v-trimmed .lv-short .ask-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: var(--border-hairline) solid var(--color-border-default);
+  border-radius: var(--radius-panel);
+  overflow: hidden;
+}
+.v-trimmed .lv-short .ask-compare > div {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  padding: var(--space-md) var(--space-lg);
+}
+.v-trimmed .lv-short .ask-compare > div + div {
+  border-left: var(--border-hairline) solid var(--color-border-default);
+  background: var(--color-bg-surface);
+}
+.v-trimmed .lv-short .ask-big {
+  font-size: var(--type-heading-size);
+  line-height: var(--type-heading-line);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.v-trimmed .lv-short .ask-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  padding-top: var(--space-md);
+  border-top: var(--border-hairline) solid var(--color-border-default);
+}
+.v-trimmed .lv-short .ask-sources summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  list-style: none;
+}
+.v-trimmed .lv-short .ask-sources summary::-webkit-details-marker { display: none; }
+.v-trimmed .lv-short .ask-sources summary .icon { transition: transform 200ms var(--motion-ease-out); }
+.v-trimmed .lv-short .ask-sources[open] summary .icon { transform: rotate(90deg); }
+.v-trimmed .lv-short .ask-sources .sources { margin-top: var(--space-sm); }
+
+/* Emails: one line each */
+.v-trimmed .lv-short .mail-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.v-trimmed .lv-short .mail-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-sm) 0;
+}
+.v-trimmed .lv-short .mail-list li + li { border-top: var(--border-hairline) solid var(--color-border-default); }
+
+
+/* Every card title and every log row at one weight: nothing shouts but the question. */
+.v-trimmed .lv-short .pnode-main { padding: var(--space-lg); gap: var(--space-md); }
+.v-trimmed .lv-short .pnode-main .pnode-head h3 {
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  letter-spacing: normal;
+}
+
+/* Today's bar: rectangles in the button colors and finish (accept green for
+   posted, decide orange for held), with the same 4px corners as the buttons. */
+.v-trimmed .lv-short .split-bar { height: 12px; gap: var(--space-2xs); }
+.v-trimmed .lv-short .split-bar > span {
+  border-radius: var(--radius-control);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18);
+}
+.v-trimmed .lv-short .split-cleared {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-action-accept) 90%, #fff), var(--color-action-accept) 60%, color-mix(in srgb, var(--color-action-accept) 94%, #000));
+}
+.v-trimmed .lv-short .split-held {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-action-decide) 90%, #fff), var(--color-action-decide) 60%, color-mix(in srgb, var(--color-action-decide) 94%, #000));
+}
+.v-trimmed .lv-short .split-key:first-child .icon { color: var(--color-action-accept); }
+.v-trimmed .lv-short .split-key:last-child .icon { color: var(--color-action-decide); }
+
+/* Far level: one word and one big number, sized to read at overview zoom. */
+.v-trimmed .far-card {
+  box-sizing: border-box;
+  gap: var(--space-sm);
+  padding: var(--space-lg) var(--space-xl);
+  cursor: zoom-in;
+}
+/* Far cards keep the short cards' footprint so they never touch at overview zoom. */
+.v-trimmed .far-card.w-inbox { width: 350px; }
+.v-trimmed .far-card.w-main { width: 420px; }
+.v-trimmed .far-card.w-sub { width: 310px; }
+.v-trimmed .far-card.w-flag { width: 420px; }
+.v-trimmed .far-card.w-ledger { width: 440px; }
+.v-trimmed .far-card.w-follow { width: 340px; }
+.v-trimmed .far-card.w-summary { width: 340px; }
+.v-trimmed .far-word {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--type-heading-size);
+  line-height: var(--type-heading-line);
+  font-weight: 500;
+}
+.v-trimmed .far-word .icon { width: 28px; height: 28px; }
+.v-trimmed .far-big {
+  font-size: calc(var(--type-display-size) * 1.2);
+  line-height: 1.1;
+  font-weight: 500;
+  letter-spacing: var(--type-display-tracking);
+  font-variant-numeric: tabular-nums;
+}
+.v-trimmed .far-big .money { font-weight: 500; }
+.v-trimmed .far-big .status {
+  height: auto;
+  padding: var(--space-xs) var(--space-md);
+  font-size: var(--type-heading-size);
+  line-height: var(--type-heading-line);
+}
+.v-trimmed .far-big .status .icon { width: 24px; height: 24px; }
+.v-trimmed .far-line {
+  font-size: var(--type-subheading-size);
+  line-height: var(--type-subheading-line);
+  color: var(--color-text-secondary);
+}
+.v-trimmed .far-line .status {
+  height: auto;
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--type-body-size);
+}
+.v-trimmed .far-card.is-ask {
+  border-color: var(--color-action-decide);
+  background: var(--color-action-decide-soft);
+}
+.v-trimmed .far-card.is-ask .far-word,
+.v-trimmed .far-card.is-ask .far-big { color: var(--color-text-decide); }
+
+/* Cards that open in full on click */
+.v-trimmed .lv-openable { cursor: zoom-in; }
+
+/* The detail filter, bottom right, drawn like the dock. */
+.v-trimmed .lv-control {
+  margin: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-sm);
+  font-family: var(--font-sans);
+}
+.v-trimmed .lv-seg {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  padding: var(--space-2xs);
+  background: var(--color-bg-canvas);
+  border: var(--border-hairline) solid var(--color-border-default);
+  border-radius: var(--radius-panel);
+}
+.v-trimmed .lv-label {
+  padding: 0 var(--space-sm) 0 var(--space-xs);
+  font-size: var(--type-small-size);
+  color: var(--color-text-tertiary);
+}
+.v-trimmed .lv-seg button,
+.v-trimmed .lv-close {
+  height: 32px;
+  padding: 0 var(--space-md);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  font: inherit;
+  font-size: var(--type-small-size);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.v-trimmed .lv-seg button {
+  transition: background 150ms ease, color 150ms ease, transform 160ms var(--motion-ease-out);
+}
+.v-trimmed .lv-seg button:active,
+.v-trimmed .lv-close:active { transform: scale(0.97); }
+@media (hover: hover) and (pointer: fine) {
+  .v-trimmed .lv-seg button:hover { color: var(--color-text-primary); background: var(--color-bg-sunken); }
+}
+.v-trimmed .lv-seg button[aria-checked="true"] {
+  color: var(--color-text-primary);
+  background: var(--color-bg-sunken);
+  font-weight: 500;
+}
+.v-trimmed .lv-close {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  height: 42px;
+  background: var(--color-bg-canvas);
+  border: var(--border-hairline) solid var(--color-border-default);
+  border-radius: var(--radius-panel);
+  color: var(--color-text-primary);
+}
+.v-trimmed .lv-close kbd {
+  font-family: var(--font-mono);
+  font-size: var(--type-label-size);
+  color: var(--color-text-tertiary);
+}
+
+/* One line per check: the delegate handle moves to the middle and the
+   return handle is hidden, since the return trip rides the same line. */
+.v-trimmed .react-flow__handle[data-handleid="report"] { visibility: hidden; }
+.v-trimmed .react-flow__node-subagent .react-flow__handle[data-handleid="delegate"],
+.v-trimmed .react-flow__node-main .react-flow__handle[data-handleid="delegate"] { left: 50% !important; }
+
+
+/* ---- Motion ---- */
+
+/* Changing level swaps a card for a different one (far, short or full).
+   A short cross-fade with a touch of blur makes it read as one card
+   changing, not two swapping. Only opacity and filter move. */
+.v-trimmed .react-flow__node > * {
+  transition: opacity 200ms var(--motion-ease-out), filter 200ms var(--motion-ease-out), border-color var(--motion-fast) ease;
+}
+@starting-style {
+  .v-trimmed .react-flow__node > * { opacity: 0; filter: blur(2px); }
+}
+
+/* The Close button rises into place from just below. */
+.v-trimmed .lv-close {
+  transition: opacity 180ms var(--motion-ease-out), transform 180ms var(--motion-ease-out);
+}
+@starting-style {
+  .v-trimmed .lv-close { opacity: 0; transform: translateY(4px); }
+}
+
+/* Cards only lift their border on devices that can hover. */
+@media (hover: none) {
+  .v-trimmed .pnode:hover { border-color: var(--color-border-default); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .v-trimmed .react-flow__node > * { transition: opacity 200ms ease; }
+  @starting-style { .v-trimmed .react-flow__node > * { filter: none; } }
+  .v-trimmed .lv-close { transition: opacity 180ms ease; }
+  @starting-style { .v-trimmed .lv-close { transform: none; } }
+  .v-trimmed .lv-short .ask-sources summary .icon { transition: none; }
+}

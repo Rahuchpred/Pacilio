@@ -15,10 +15,11 @@ export function Avatar({ user, size = 32, tooltip = false }: Props) {
         width: size,
         height: size,
         fontSize: size * 0.42,
-        background: user.color,
       }}
     >
       {user.name.charAt(0).toUpperCase()}
+      {/* Ink avatar; the person's color stays as a small dot that matches their cursor. */}
+      <span className="avatar-dot" style={{ background: user.color }} />
       {tooltip && <span className="tooltip">{user.name}</span>}
     </span>
   );
