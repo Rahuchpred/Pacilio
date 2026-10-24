@@ -140,7 +140,7 @@ export default function App() {
           <p className="theme-note">
             Theme: {b.label}
             {orange ? " in orange" : ""}. {b.fontSource ? `Values from ${b.label.toLowerCase()}.com; ${b.fontSource} stands in as ${b.font}.` : `${b.source}.`}
-            {orange ? " Orange: a brighter take on whop.com's." : ""}
+            {orange ? (dark ? " Orange and Whop's dark greys." : " Orange: a brighter take on whop.com's.") : ""}
           </p>
           <Page page={page} />
         </main>
