@@ -17,6 +17,7 @@ import {
   subagents,
   summary,
 } from '../../pipeline/data';
+import { useCheckLook } from './checkState';
 
 function Card({
   icon,
@@ -112,18 +113,19 @@ export function MainAgentNode() {
 }
 
 // One short line per check; the original canvas keeps the long versions.
-const SHORT: Record<string, { finding: string; status?: 'held' }> = {
+const SHORT: Record<string, { finding: string }> = {
   'sub-duplicate': { finding: 'Rivera 2231 came in twice. Stopped the copy.' },
   'sub-coding': { finding: 'Northgate 7781 had no GL code. Used 6120 from past invoices.' },
-  'sub-amount': { finding: 'Halcyon HS-0912 is 4 hours over PO 4410.', status: 'held' },
+  'sub-amount': { finding: 'Halcyon HS-0912 is 4 hours over PO 4410.' },
 };
 
 export function SubagentNode({ data }: NodeProps) {
   const base = subagents.find(x => x.id === data.subId)!;
   const short = SHORT[base.id];
-  const s = { ...base, finding: short.finding, status: short.status ?? base.status };
+  const look = useCheckLook(base.id);
+  const s = { ...base, finding: short.finding };
   return (
-    <Card icon="agent" title={s.name} meta={<Status kind={s.status}>{s.statusLabel}</Status>} className="w-sub">
+    <Card icon="agent" title={s.name} meta={<Status kind={look.kind}>{look.label}</Status>} className="w-sub">
       <p>{s.finding}</p>
       <H type="target" position={Position.Top} id="delegate" left="44%" />
       <H type="source" position={Position.Top} id="report" left="56%" />

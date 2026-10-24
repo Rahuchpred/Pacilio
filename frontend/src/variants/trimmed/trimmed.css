@@ -166,12 +166,10 @@
   padding: var(--space-xs) var(--space-sm);
   font-size: var(--type-body-size);
 }
-.v-trimmed .far-card.is-ask {
-  border-color: var(--color-action-decide);
-  background: var(--color-action-decide-soft);
-}
-.v-trimmed .far-card.is-ask .far-word,
-.v-trimmed .far-card.is-ask .far-big { color: var(--color-text-decide); }
+/* Crafted far cards: white type on the material, the line slightly softer. */
+.v-trimmed .far-card.craft-surface .far-word,
+.v-trimmed .far-card.craft-surface .far-big { color: inherit; }
+.v-trimmed .far-card.craft-surface .far-line { color: rgb(255 255 255 / 0.85); }
 
 /* Cards that open in full on click */
 .v-trimmed .lv-openable { cursor: zoom-in; }
@@ -279,3 +277,47 @@
   @starting-style { .v-trimmed .lv-close { transform: none; } }
   .v-trimmed .lv-short .ask-sources summary .icon { transition: none; }
 }
+
+/* Check agents: orange with a glassy sheen while working, then green when
+   finished or fixed, red while an issue is still open. Colors ease over
+   200ms; the sheen is constant motion, so it runs linear, sweeps for about
+   1.3s and rests, so it reads as calm work rather than an alarm. */
+.v-trimmed .lv-check .pnode {
+  position: relative;
+  transition: background-color 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+}
+.v-trimmed .lv-check.is-working .pnode:not(.far-card) {
+  background-color: color-mix(in srgb, var(--color-action-decide) 16%, var(--color-bg-canvas));
+  border-color: var(--color-action-decide);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.8);
+}
+.v-trimmed .lv-check.is-done .pnode:not(.far-card) {
+  background-color: var(--color-status-cleared-soft);
+  border-color: color-mix(in srgb, var(--color-status-cleared) 45%, transparent);
+}
+.v-trimmed .lv-check.is-issue .pnode:not(.far-card) {
+  background-color: var(--color-status-disputed-soft);
+  border-color: color-mix(in srgb, var(--color-status-disputed) 45%, transparent);
+}
+/* The sheen: a soft white band sliding across. It animates background-position,
+   not transform, because the card cannot clip (its connection dots sit on the edge). */
+.v-trimmed .lv-check.is-working .pnode::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 0.75) 50%, transparent 65%) no-repeat;
+  background-size: 250% 100%;
+  animation: lv-sheen 1.8s linear infinite;
+}
+@keyframes lv-sheen {
+  0% { background-position: 130% 0; }
+  70%, 100% { background-position: -30% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .v-trimmed .lv-check.is-working .pnode::after { animation: none; background: none; }
+}
+
+/* Filter and Ask Settle side by side; Close card stacks above them. */
+.v-trimmed .lv-row { display: flex; align-items: flex-end; gap: var(--space-sm); }

@@ -1,10 +1,16 @@
-import { useEffect, type ComponentType, type MouseEvent, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, type ComponentType, type MouseEvent, type ReactNode } from 'react';
 import { Handle, Panel, Position, type NodeProps } from '@xyflow/react';
 import { Icon, Money, Status, type IconName, type StatusKind } from '../../../../design-system/src/components';
 import * as Full from '../../pipeline/nodes';
 import { followUps, inbox, ledger } from '../../pipeline/data';
 import { getView as view, setLock, setOpen, useFocus, useShown, useView, type Lock } from './view';
 import * as Short from './nodes';
+import { AskSettle } from '../../ui/AskSettle';
+import { useCheckLook, type CheckLook } from './checkState';
+
+// The live look of the check a card belongs to, for the far level's crafted surface.
+const CheckLookCtx = createContext<CheckLook | null>(null);
+const CRAFT: Record<CheckLook['state'], string> = { idle: '', working: 'craft-surface', done: 'craft-surface is-accept', issue: 'craft-surface is-reject' };
 
 // Zoom from variant 5 on top of the short cards. Far: one word and one big
 // number per card, readable from across the table. Middle: the short cards.
@@ -64,7 +70,7 @@ const FAR: Record<string, (props: NodeProps) => FarView> = {
   }),
   subagent: ({ data }) => {
     const s = SUBS[data.subId as string];
-    return { icon: 'agent', word: s.word, big: <Status kind={s.status}>{s.label}</Status>, width: 'w-sub' };
+    return { icon: 'agent', word: s.word, big: <LiveStatus subId={data.subId as string} />, width: 'w-sub' };
   },
   ledger: () => ({ icon: 'bank', word: 'Ledger', big: <Money value={ledgerTotal} />, line: '1 line held for you', width: 'w-ledger' }),
   followup: () => {
@@ -74,10 +80,19 @@ const FAR: Record<string, (props: NodeProps) => FarView> = {
   summary: () => ({ icon: 'doc', word: 'Today', big: '3 of 4', line: 'invoices done', width: 'w-summary' }),
 };
 
+function LiveStatus({ subId }: { subId: string }) {
+  const look = useCheckLook(subId);
+  return <Status kind={look.kind}>{look.label}</Status>;
+}
+
 function FarCard({ type, props }: { type: string; props: NodeProps }) {
   const v = FAR[type](props);
+  const look = useContext(CheckLookCtx);
+  // From afar the brand reads through its material: the question and any
+  // agent with something to say wear the crafted surface.
+  const craft = v.ask ? 'craft-surface' : look ? CRAFT[look.state] : '';
   return (
-    <div className={`pnode far-card ${v.width}${v.ask ? ' is-ask' : ''}`}>
+    <div className={`pnode far-card ${v.width}${v.ask ? ' is-ask' : ''}${craft ? ' ' + craft : ''}`}>
       <div className="far-word">
         <Icon name={v.icon} />
         <span>{v.word}</span>
@@ -112,10 +127,26 @@ function leveled(type: string, short: ComponentType<NodeProps>, full: ComponentT
   };
 }
 
+// Check agents carry their live state on a wrapper, so every level (far,
+// short, full) turns orange while working, then green or red.
+function leveledCheck(short: ComponentType<NodeProps>, full: ComponentType<NodeProps>) {
+  const Inner = leveled('subagent', short, full);
+  return function LeveledCheck(props: NodeProps) {
+    const look = useCheckLook(props.data.subId as string);
+    return (
+      <div className={`lv-check is-${look.state}`}>
+        <CheckLookCtx.Provider value={look}>
+          <Inner {...props} />
+        </CheckLookCtx.Provider>
+      </div>
+    );
+  };
+}
+
 export const nodeTypes = {
   inbox: leveled('inbox', Short.InboxNode, Full.InboxNode),
   main: leveled('main', Short.MainAgentNode, Full.MainAgentNode),
-  subagent: leveled('subagent', Short.SubagentNode, Full.SubagentNode),
+  subagent: leveledCheck(Short.SubagentNode, Full.SubagentNode),
   flagged: leveled('flagged', Short.FlaggedNode, Full.FlaggedNode),
   ledger: leveled('ledger', Short.LedgerNode, Full.LedgerNode),
   followup: leveled('followup', Short.FollowUpNode, Full.FollowUpNode),
@@ -166,23 +197,26 @@ export function DetailFilter() {
           Close card <kbd>Esc</kbd>
         </button>
       )}
-      <div className="lv-seg" role="radiogroup" aria-label="How much each card shows">
-        <span className="lv-label">Detail</span>
-        {LOCKS.map(l => (
-          <button
-            key={l.id}
-            type="button"
-            role="radio"
-            aria-checked={lock === l.id}
-            title={l.hint}
-            onClick={() => {
-              setLock(l.id);
-              fitAll();
-            }}
-          >
-            {l.label}
-          </button>
-        ))}
+      <div className="lv-row">
+        <div className="lv-seg" role="radiogroup" aria-label="How much each card shows">
+          <span className="lv-label">Detail</span>
+          {LOCKS.map(l => (
+            <button
+              key={l.id}
+              type="button"
+              role="radio"
+              aria-checked={lock === l.id}
+              title={l.hint}
+              onClick={() => {
+                setLock(l.id);
+                fitAll();
+              }}
+            >
+              {l.label}
+            </button>
+          ))}
+        </div>
+        <AskSettle />
       </div>
     </Panel>
   );
