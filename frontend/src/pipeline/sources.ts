@@ -14,6 +14,7 @@ export const SOURCE_TITLES: Record<string, string> = Object.fromEntries(SOURCES.
 export const AGENT_NODE_ID = 'pipeline:agent';
 export const LEDGER_NODE_ID = 'pipeline:master-ledger';
 export const FOLLOWUPS_NODE_ID = 'pipeline:followups';
+export const EMAILS_NODE_ID = 'pipeline:emails';
 export const agentHandleId = (source: string) => `in:${source}`;
 export const sourceNodeId = (name: string) => `pipeline:${name}`;
 export const isPipelineId = (id: string) => id.startsWith('pipeline:');
@@ -30,7 +31,10 @@ const AGENT_Y = 230;
 export const FOLLOWUPS_X = SOURCE_X;
 export const FOLLOWUPS_Y = SOURCE_GAP_Y * 4 + 60;
 export const FOLLOWUPS_WIDTH = 560;
-export const LEDGER_X = FOLLOWUPS_X + FOLLOWUPS_WIDTH + 60;
+// Email follow-ups sit between Follow-ups and the ledger, all top-aligned
+export const EMAILS_X = FOLLOWUPS_X + FOLLOWUPS_WIDTH + 60;
+export const EMAILS_WIDTH = 520;
+export const LEDGER_X = EMAILS_X + EMAILS_WIDTH + 60;
 export const LEDGER_Y = FOLLOWUPS_Y;
 export const LEDGER_WIDTH = 1400;
 export const LEDGER_HEIGHT = 820;
@@ -50,6 +54,7 @@ export const PIPELINE_NODES: Node[] = [
   })),
   { id: AGENT_NODE_ID, type: 'agent', position: { x: AGENT_X, y: AGENT_Y }, data: {}, ...fixed },
   { id: FOLLOWUPS_NODE_ID, type: 'followups', position: { x: FOLLOWUPS_X, y: FOLLOWUPS_Y }, data: {}, ...fixed },
+  { id: EMAILS_NODE_ID, type: 'emails', position: { x: EMAILS_X, y: FOLLOWUPS_Y }, data: {}, ...fixed },
   {
     id: LEDGER_NODE_ID,
     type: 'ledger',
@@ -78,6 +83,14 @@ export function pipelineEdges(running: Set<string>, agentWorking: boolean): Edge
   return [
     outEdge('pipeline:edge:master-ledger', LEDGER_NODE_ID),
     outEdge('pipeline:edge:followups', FOLLOWUPS_NODE_ID),
+    {
+      id: 'pipeline:edge:emails',
+      source: FOLLOWUPS_NODE_ID,
+      target: EMAILS_NODE_ID,
+      deletable: false,
+      selectable: false,
+      className: 'pipeline-edge',
+    },
     ...SOURCES.map(source => ({
     id: `pipeline:edge:${source.name}`,
     type: 'packet',

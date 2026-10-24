@@ -139,6 +139,50 @@ export const Edge = __t.object("Edge", {
 });
 export type Edge = __Infer<typeof Edge>;
 
+export const EmailInbox = __t.object("EmailInbox", {
+  id: __t.u32(),
+  inboxId: __t.string(),
+  address: __t.string(),
+});
+export type EmailInbox = __Infer<typeof EmailInbox>;
+
+export const EmailMessage = __t.object("EmailMessage", {
+  id: __t.u64(),
+  threadId: __t.u64(),
+  direction: __t.string(),
+  kind: __t.string(),
+  fromAddress: __t.string(),
+  body: __t.string(),
+  agentmailMessageId: __t.string(),
+  sentAt: __t.timestamp(),
+});
+export type EmailMessage = __Infer<typeof EmailMessage>;
+
+export const EmailThread = __t.object("EmailThread", {
+  id: __t.u64(),
+  reviewItemId: __t.u64(),
+  eventId: __t.u64(),
+  counterparty: __t.string(),
+  toAddress: __t.string(),
+  subject: __t.string(),
+  agentmailThreadId: __t.option(__t.string()),
+  lastMessageId: __t.option(__t.string()),
+  status: __t.string(),
+  followUps: __t.u32(),
+  nextFollowUpAt: __t.option(__t.timestamp()),
+  unread: __t.bool(),
+  error: __t.option(__t.string()),
+  lastActivityAt: __t.timestamp(),
+  createdAt: __t.timestamp(),
+});
+export type EmailThread = __Infer<typeof EmailThread>;
+
+export const EmailTickSchedule = __t.object("EmailTickSchedule", {
+  scheduledId: __t.u64(),
+  scheduledAt: __t.scheduleAt(),
+});
+export type EmailTickSchedule = __Infer<typeof EmailTickSchedule>;
+
 export const EventReview = __t.object("EventReview", {
   eventId: __t.u64(),
   runId: __t.u64(),

@@ -37,11 +37,13 @@ import {
 import AddEdgeReducer from "./add_edge_reducer";
 import AddNodeReducer from "./add_node_reducer";
 import CancelAgentTaskReducer from "./cancel_agent_task_reducer";
+import CloseEmailThreadReducer from "./close_email_thread_reducer";
 import ConfigureInboundSourceReducer from "./configure_inbound_source_reducer";
 import CreateBillReducer from "./create_bill_reducer";
 import CreateInvoiceReducer from "./create_invoice_reducer";
 import DeleteEdgeReducer from "./delete_edge_reducer";
 import DeleteNodeReducer from "./delete_node_reducer";
+import MarkEmailThreadReadReducer from "./mark_email_thread_read_reducer";
 import MoveCursorReducer from "./move_cursor_reducer";
 import MoveNodeReducer from "./move_node_reducer";
 import MovePipelineNodeReducer from "./move_pipeline_node_reducer";
@@ -62,6 +64,7 @@ import TidyPipelineLayoutReducer from "./tidy_pipeline_layout_reducer";
 import * as AgentFileUrlProcedure from "./agent_file_url_procedure";
 import * as LedgerXlsxUrlProcedure from "./ledger_xlsx_url_procedure";
 import * as ResolveReviewItemProcedure from "./resolve_review_item_procedure";
+import * as SendEmailReplyProcedure from "./send_email_reply_procedure";
 
 // Import all table schema definitions
 import AccountingBillRow from "./accounting_bill_table";
@@ -72,6 +75,8 @@ import AgentStepRow from "./agent_step_table";
 import AgentTaskRow from "./agent_task_table";
 import CursorRow from "./cursor_table";
 import EdgeRow from "./edge_table";
+import EmailMessageRow from "./email_message_table";
+import EmailThreadRow from "./email_thread_table";
 import EventReviewRow from "./event_review_table";
 import InboundEventRow from "./inbound_event_table";
 import InboundSourceStatusRow from "./inbound_source_status_table";
@@ -180,6 +185,35 @@ const tablesSchema = __schema({
       { name: 'edge_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, EdgeRow),
+  emailMessage: __table({
+    name: 'email_message',
+    indexes: [
+      { accessor: 'agentmailMessageId', name: 'email_message_agentmail_message_id_idx_btree', algorithm: 'btree', columns: [
+        'agentmailMessageId',
+      ] },
+      { accessor: 'id', name: 'email_message_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'threadId', name: 'email_message_thread_id_idx_btree', algorithm: 'btree', columns: [
+        'threadId',
+      ] },
+    ],
+    constraints: [
+      { name: 'email_message_agentmail_message_id_key', constraint: 'unique', columns: ['agentmailMessageId'] },
+      { name: 'email_message_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, EmailMessageRow),
+  emailThread: __table({
+    name: 'email_thread',
+    indexes: [
+      { accessor: 'id', name: 'email_thread_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'email_thread_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, EmailThreadRow),
   eventReview: __table({
     name: 'event_review',
     indexes: [
@@ -329,11 +363,13 @@ const reducersSchema = __reducers(
   __reducerSchema("add_edge", AddEdgeReducer),
   __reducerSchema("add_node", AddNodeReducer),
   __reducerSchema("cancel_agent_task", CancelAgentTaskReducer),
+  __reducerSchema("close_email_thread", CloseEmailThreadReducer),
   __reducerSchema("configure_inbound_source", ConfigureInboundSourceReducer),
   __reducerSchema("create_bill", CreateBillReducer),
   __reducerSchema("create_invoice", CreateInvoiceReducer),
   __reducerSchema("delete_edge", DeleteEdgeReducer),
   __reducerSchema("delete_node", DeleteNodeReducer),
+  __reducerSchema("mark_email_thread_read", MarkEmailThreadReadReducer),
   __reducerSchema("move_cursor", MoveCursorReducer),
   __reducerSchema("move_node", MoveNodeReducer),
   __reducerSchema("move_pipeline_node", MovePipelineNodeReducer),
@@ -356,6 +392,7 @@ const proceduresSchema = __procedures(
   __procedureSchema("agent_file_url", AgentFileUrlProcedure.params, AgentFileUrlProcedure.returnType),
   __procedureSchema("ledger_xlsx_url", LedgerXlsxUrlProcedure.params, LedgerXlsxUrlProcedure.returnType),
   __procedureSchema("resolve_review_item", ResolveReviewItemProcedure.params, ResolveReviewItemProcedure.returnType),
+  __procedureSchema("send_email_reply", SendEmailReplyProcedure.params, SendEmailReplyProcedure.returnType),
 );
 
 /** The remote SpacetimeDB module schema, both runtime and type information. */

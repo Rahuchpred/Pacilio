@@ -5,6 +5,7 @@ import { FactoryClient, FactoryError } from '../droid/factory';
 import { LEDGER_HTML, LEDGER_XLSX, buildPrompt, type PromptDecision, type PromptEvent } from './prompt';
 import { RENDER_PATH, RENDER_SCRIPT, RENDER_VERSION } from './renderScript';
 import { pipelineTickSchedule } from './tables';
+import { startFollowUp } from '../email/email';
 
 type Schema = typeof spacetimedb;
 type Ctx = ReducerCtx<InferSchema<Schema>>;
@@ -436,6 +437,16 @@ export function pipeline(stdb: Schema) {
         });
         ensureTicking(tx);
       });
+
+      // Follow up: email the counterparty now; AgentMail keeps nudging until they reply
+      if (action === 'follow_up') {
+        const sent = startFollowUp(ctx, itemId);
+        ctx.withTx(tx => {
+          const current = tx.db.reviewItem.id.find(itemId);
+          if (current) tx.db.reviewItem.id.update({ ...current, resultNote: sent });
+        });
+        return sent;
+      }
       return resultNote || `Marked ${action}`;
     }
   );

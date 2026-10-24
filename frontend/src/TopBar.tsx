@@ -5,7 +5,7 @@ import { reducers, tables } from './module_bindings';
 import type { User } from './module_bindings/types';
 import { Avatar } from './Avatar';
 import { useDismiss } from './useDismiss';
-import { FOLLOWUPS_NODE_ID } from './pipeline/sources';
+import { EMAILS_NODE_ID, FOLLOWUPS_NODE_ID } from './pipeline/sources';
 
 const MAX_PEOPLE = 5;
 // Connections shorter than this (CLI calls, tests, a page reload) don't show
@@ -92,6 +92,11 @@ function Notifications() {
   const titleById = new Map(details.map(d => [d.itemId.toString(), d.title]));
   const flags = [...flagRows].sort((a, b) => (a.id < b.id ? 1 : -1));
   const unreadFlags = flags.filter(f => f.createdAt.toDate().getTime() > seenAt).length;
+  // Email replies nobody has opened yet (cleared when the thread is opened)
+  const [replyRows] = useTable(tables.emailThread.where(r => r.unread.eq(true)));
+  const replies = [...replyRows].sort((a, b) =>
+    a.lastActivityAt.microsSinceUnixEpoch < b.lastActivityAt.microsSinceUnixEpoch ? 1 : -1
+  );
 
   // Refs keep the table callbacks stable; changing them would resubscribe.
   const identityRef = useRef(identity);
@@ -109,7 +114,7 @@ function Notifications() {
 
   useTable(tables.user, { onUpdate });
 
-  const unread = unreadFlags + unreadRenames;
+  const unread = replies.length + unreadFlags + unreadRenames;
 
   const toggle = () => {
     setOpen(o => !o);
@@ -117,10 +122,11 @@ function Notifications() {
     setUnreadRenames(0);
   };
 
-  const showFollowUps = () => {
+  const focus = (id: string) => {
     setOpen(false);
-    fitView({ nodes: [{ id: FOLLOWUPS_NODE_ID }], duration: 400, maxZoom: 1, padding: 0.2 });
+    fitView({ nodes: [{ id }], duration: 400, maxZoom: 1, padding: 0.2 });
   };
+  const showFollowUps = () => focus(FOLLOWUPS_NODE_ID);
 
   const time = (d: Date) => d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 
@@ -138,10 +144,23 @@ function Notifications() {
       {open && (
         <div className="dropdown notifications">
           <div className="dropdown-title">Notifications</div>
-          {flags.length === 0 && renames.length === 0 ? (
+          {flags.length === 0 && renames.length === 0 && replies.length === 0 ? (
             <div className="empty">You're all caught up</div>
           ) : (
             <ul>
+              {replies.map(r => (
+                <li key={`reply-${r.id}`} className="flag-notification" onClick={() => focus(EMAILS_NODE_ID)}>
+                  <span className="reply-mark">
+                    <span className="email-dot" />
+                  </span>
+                  <div>
+                    <div>
+                      <b>{r.counterparty} replied</b> · {r.subject}
+                    </div>
+                    <div className="time">Email · {time(r.lastActivityAt.toDate())}</div>
+                  </div>
+                </li>
+              ))}
               {flags.map(f => (
                 <li key={`flag-${f.id}`} className="flag-notification" onClick={showFollowUps}>
                   <span className="flag-mark">!</span>

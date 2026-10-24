@@ -13,7 +13,7 @@ import { SOURCE_TITLES } from './sources';
 const ACTION_LABEL: Record<string, string> = {
   void: 'Void the entry',
   refund: 'Refund on Stripe',
-  follow_up: 'Follow up',
+  follow_up: 'Email them',
   keep: 'Keep as is',
 };
 
@@ -91,7 +91,9 @@ function FollowUpCard({
           </summary>
           {detail.followUpSubject && <p className="followup-subject">{detail.followUpSubject}</p>}
           <p className="followup-body">{detail.followUpMessage}</p>
-          <p className="followup-note">Sending emails comes next; for now, Follow up marks the row in the ledger.</p>
+          <p className="followup-note">
+            Email them sends this now and follows up in 10 min, 30 min, 2 h and 1 day until they reply.
+          </p>
         </details>
       )}
 
@@ -125,6 +127,8 @@ export function FollowUpsNode() {
   return (
     <div className="pipeline-node followups-node">
       <Handle type="target" position={Position.Top} isConnectable={false} />
+      {/* Items a person chose to follow up on become email threads */}
+      <Handle type="source" position={Position.Right} isConnectable={false} />
       <div className="node-head">
         <h3>Follow-ups</h3>
         <span className={open.length ? 'status is-held' : 'status'}>

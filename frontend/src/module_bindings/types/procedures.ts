@@ -9,6 +9,7 @@ import { type Infer as __Infer } from "spacetimedb";
 import * as AgentFileUrlProcedure from "../agent_file_url_procedure";
 import * as LedgerXlsxUrlProcedure from "../ledger_xlsx_url_procedure";
 import * as ResolveReviewItemProcedure from "../resolve_review_item_procedure";
+import * as SendEmailReplyProcedure from "../send_email_reply_procedure";
 
 export type AgentFileUrlArgs = __Infer<typeof AgentFileUrlProcedure.params>;
 export type AgentFileUrlResult = __Infer<typeof AgentFileUrlProcedure.returnType>;
@@ -16,4 +17,6 @@ export type LedgerXlsxUrlArgs = __Infer<typeof LedgerXlsxUrlProcedure.params>;
 export type LedgerXlsxUrlResult = __Infer<typeof LedgerXlsxUrlProcedure.returnType>;
 export type ResolveReviewItemArgs = __Infer<typeof ResolveReviewItemProcedure.params>;
 export type ResolveReviewItemResult = __Infer<typeof ResolveReviewItemProcedure.returnType>;
+export type SendEmailReplyArgs = __Infer<typeof SendEmailReplyProcedure.params>;
+export type SendEmailReplyResult = __Infer<typeof SendEmailReplyProcedure.returnType>;
 

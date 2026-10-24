@@ -521,6 +521,145 @@
   color: var(--color-action-reject);
 }
 
+/* ─── Email follow-ups ──────────────────────────────────────────────── */
+
+.emails-node {
+  width: 520px;
+}
+
+/* New reply: a blue dot (Settle's only blue, used for "unread" alone) */
+.email-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: var(--space-xs);
+  border-radius: 50%;
+  background: #2f6fed;
+  vertical-align: middle;
+}
+
+.emails-scroll {
+  max-height: 760px;
+  overflow-y: auto;
+  margin-top: var(--space-md);
+  border-top: 1px solid var(--color-border-default);
+  cursor: default;
+}
+
+.email-threads {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.email-thread {
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.email-thread-head {
+  display: flex;
+  gap: var(--space-xs);
+  width: 100%;
+  padding: var(--space-md) 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.email-dot-slot {
+  width: 14px;
+  flex-shrink: 0;
+  padding-top: 6px;
+}
+
+.email-thread-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.email-party {
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  font-weight: var(--type-subheading-weight);
+}
+
+.email-subject {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.email-status {
+  margin-top: var(--space-2xs);
+  color: var(--color-text-secondary);
+}
+
+.email-status.is-replied {
+  color: var(--color-text-primary);
+  font-weight: var(--type-label-weight);
+}
+
+.email-status.is-failed {
+  color: var(--color-action-reject);
+}
+
+.email-conversation {
+  padding: 0 0 var(--space-md) 18px;
+}
+
+.email-messages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.email-message {
+  margin-top: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+}
+
+.email-message.is-out {
+  border: 1px solid var(--color-border-default);
+}
+
+.email-message.is-in {
+  background: var(--color-bg-sunken);
+}
+
+.email-meta {
+  color: var(--color-text-secondary);
+}
+
+.email-body {
+  margin: var(--space-xs) 0 0;
+  white-space: pre-wrap;
+}
+
+.email-compose {
+  margin-top: var(--space-md);
+}
+
+.email-compose textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: var(--space-sm);
+  border: 1px solid var(--color-border-control);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  resize: vertical;
+}
+
+.email-compose-actions {
+  display: flex;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .event-chip.is-done {
     animation: none;

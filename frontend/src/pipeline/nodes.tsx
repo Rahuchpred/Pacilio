@@ -5,6 +5,7 @@ import { procedures, tables } from '../module_bindings';
 import type { InboundEvent, InboundSourceStatus } from '../module_bindings/types';
 import { usePipelineActivity } from './activity';
 import { FollowUpsNode } from './FollowUps';
+import { EmailsNode } from './Emails';
 import { Money } from './Money';
 import type { ChipState } from './chipStates';
 import {
@@ -239,5 +240,6 @@ export const pipelineNodeTypes = {
   agent: AgentNode,
   ledger: LedgerNode,
   followups: FollowUpsNode,
+  emails: EmailsNode,
   event: EventNode,
 };

@@ -7,6 +7,8 @@ import { accountingTables } from './accounting/tables';
 import { accounting } from './accounting/accounting';
 import { pipelineTables } from './pipeline/tables';
 import { pipeline } from './pipeline/pipeline';
+import { emailEnv, emailTables } from './email/tables';
+import { email } from './email/email';
 
 // One row per identity that has ever connected. `color` drives avatar + cursor color.
 const user = table(
@@ -49,8 +51,8 @@ const edge = table(
 );
 
 const spacetimedb = schema(
-  { user, cursor, node, edge, ...droidTables, ...inboundTables, ...accountingTables, ...pipelineTables },
-  { env: { ...droidEnv, ...inboundEnv } }
+  { user, cursor, node, edge, ...droidTables, ...inboundTables, ...accountingTables, ...pipelineTables, ...emailTables },
+  { env: { ...droidEnv, ...inboundEnv, ...emailEnv } }
 );
 export default spacetimedb;
 
@@ -76,6 +78,10 @@ export const { createBill, createInvoice, recordPayment } = accounting(spacetime
 // ─── Main agent (Droid on the Factory computer) ─────────────────────────────
 
 export const { pipelineTick, resolveReviewItem, ledgerXlsxUrl } = pipeline(spacetimedb);
+
+// ─── Email follow-ups (AgentMail) ───────────────────────────────────────────
+
+export const { emailTick, sendEmailReply, markEmailThreadRead, closeEmailThread } = email(spacetimedb);
 
 // ─── Droid agents (Factory cloud) ───────────────────────────────────────────
 
