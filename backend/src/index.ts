@@ -1,4 +1,6 @@
 import { schema, table, t, SenderError } from 'spacetimedb/server';
+import { droidEnv, droidTables } from './droid/tables';
+import { droidAgents } from './droid/agents';
 
 // One row per identity that has ever connected. `color` drives avatar + cursor color.
 const user = table(
@@ -40,8 +42,21 @@ const edge = table(
   }
 );
 
-const spacetimedb = schema({ user, cursor, node, edge });
+const spacetimedb = schema(
+  { user, cursor, node, edge, ...droidTables },
+  { env: droidEnv }
+);
 export default spacetimedb;
+
+// ─── Droid agents (Factory cloud) ───────────────────────────────────────────
+
+export const {
+  requestAgentTask,
+  steerAgentTask,
+  cancelAgentTask,
+  agentFileUrl,
+  agentTick,
+} = droidAgents(spacetimedb);
 
 // ─── Names ──────────────────────────────────────────────────────────────────
 
