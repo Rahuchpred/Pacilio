@@ -100,17 +100,20 @@ export function Board() {
     });
   }, [nodeRows]);
 
+  // Pipeline nodes this user is resizing right now, and where their corner last was
+  const resizing = useRef(new Set<string>());
+  const resizePosition = useRef(new Map<string, { x: number; y: number }>());
+
   useEffect(() => {
     setPipelineNodes(prev =>
       prev.map(n => {
         const row = layoutRows.find(r => r.nodeId === n.id);
-        return row && !n.dragging ? { ...n, position: { x: row.x, y: row.y } } : n;
+        return row && !n.dragging && !resizing.current.has(n.id) ? { ...n, position: { x: row.x, y: row.y } } : n;
       })
     );
   }, [layoutRows]);
 
   // Shared sizes (the ledger sheet), except while this user is resizing it
-  const resizing = useRef(new Set<string>());
   useEffect(() => {
     setPipelineNodes(prev =>
       prev.map(n => {
@@ -180,9 +183,14 @@ export function Board() {
       const isPipelineChange = (c: NodeChange) => 'id' in c && isPipelineId(c.id);
       const pipelineChanges = changes.filter(isPipelineChange);
       setPipelineNodes(prev => applyNodeChanges(pipelineChanges, prev));
+      // Resizing from a top or left edge also moves the node, so share that too
       for (const change of pipelineChanges) {
-        if (change.type === 'position' && change.dragging && change.position) {
+        if (change.type === 'dimensions' && change.resizing) resizing.current.add(change.id);
+      }
+      for (const change of pipelineChanges) {
+        if (change.type === 'position' && change.position && (change.dragging || resizing.current.has(change.id))) {
           sendPipelinePosition(change.id, change.position.x, change.position.y);
+          if (resizing.current.has(change.id)) resizePosition.current.set(change.id, change.position);
         }
         // Resize handles: stream the size while dragging, and send the exact final size
         if (change.type === 'dimensions' && change.resizing !== undefined && change.dimensions) {
@@ -193,6 +201,12 @@ export function Board() {
           } else {
             resizing.current.delete(change.id);
             resizePipelineNode({ nodeId: change.id, width, height }).catch(logError);
+            // Exact final corner, in case the throttle dropped the last move
+            const corner = resizePosition.current.get(change.id);
+            if (corner) {
+              resizePosition.current.delete(change.id);
+              movePipelineNode({ nodeId: change.id, x: corner.x, y: corner.y }).catch(logError);
+            }
           }
         }
       }
@@ -204,7 +218,7 @@ export function Board() {
         }
       }
     },
-    [sendNodePosition, sendPipelinePosition, sendPipelineSize, resizePipelineNode]
+    [sendNodePosition, sendPipelinePosition, sendPipelineSize, resizePipelineNode, movePipelineNode]
   );
 
   const onEdgesChange = useCallback((changes: EdgeChange[]) => {
