@@ -394,27 +394,27 @@
   color-scheme: dark;
 }
 
-/* Accent: Orange, whop.com orange #fa4616, deepened for AA */
+/* Accent: Orange, whop.com orange moved toward yellow (hue 24) and brightened; white labels */
 :root[data-accent="orange"], [data-accent="orange"] .brand-sample {
-  --color-action-decide: #d4360a;
+  --color-action-decide: #ff7019;
   --color-text-on-decide: #ffffff;
-  --color-action-decide-soft: #fff0ea;
-  --color-text-decide: #b62600;
-  --color-action-reject: #a31d42;
+  --color-action-decide-soft: #fff1e6;
+  --color-text-decide: #a84300;
+  --color-action-reject: #b0204a;
 }
 @media (prefers-color-scheme: dark) {
   :root[data-accent="orange"]:not([data-theme="light"]) {
-    --color-action-decide: #d4360a;
+    --color-action-decide: #ff7019;
     --color-text-on-decide: #ffffff;
-    --color-action-decide-soft: #3a1a0e;
-    --color-text-decide: #ff8a5c;
-    --color-action-reject: #a31d42;
+    --color-action-decide-soft: #3a1f0c;
+    --color-text-decide: #ffa166;
+    --color-action-reject: #b0204a;
   }
 }
 :root[data-accent="orange"][data-theme="dark"] {
-  --color-action-decide: #d4360a;
+  --color-action-decide: #ff7019;
   --color-text-on-decide: #ffffff;
-  --color-action-decide-soft: #3a1a0e;
-  --color-text-decide: #ff8a5c;
-  --color-action-reject: #a31d42;
+  --color-action-decide-soft: #3a1f0c;
+  --color-text-decide: #ffa166;
+  --color-action-reject: #b0204a;
 }

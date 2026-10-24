@@ -58,4 +58,4 @@ Crafted kinds: `decide` (theme color), `accept` (green), `reject` (coral). Each 
 
 ## Orange accent
 
-Set `data-accent="orange"` on `<html>` to swap the theme color for orange in any theme. Only `action/decide`, `action/decide-soft`, `text/decide` and `text/on-decide` change; every component keeps its theme's shape and material. The orange is whop.com's #fa4616 as the lit top, over #d4360a so white labels pass AA.
+Set `data-accent="orange"` on `<html>` to swap the theme color for orange in any theme. Only `action/decide`, `action/decide-soft`, `text/decide` and `text/on-decide` change; every component keeps its theme's shape and material. The orange is #ff7019, a brighter, more yellow take on whop.com's #fa4616. Labels on it are white, semibold, with a faint shadow; white sits at about 2.9:1, below AA. Decline turns crimson #b0204a so it never reads as the orange.
