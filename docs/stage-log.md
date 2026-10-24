@@ -32,9 +32,9 @@ Our real path was not a straight line. We started the design system in Figma, bu
 **Time:** about 15 min, Saturday ~11:30. **Rating:** 4/5.
 **What happened:**
 - Synced the Status component to the code: 4px rectangle, icon first, hairline in its own color (it was still the old round pill).
-- Rebuilt the app's Overview and "Needs you, open" views as 1440x900 frames from our components and variables, not screenshots.
-- Wired a clickable prototype: click "Needs you" to open the card, Close card or Esc to go back.
-**Friction:** the MCP has no capture-a-web-page tool in our setup, so frames were rebuilt from components. Hidden layers inside instances could not be found by search; we had to reset overrides.
+- Rebuilt the app's three views as 1440x900 frames from our components and variables, not screenshots: Overview, Cards (real size, scrolls like the canvas, controls pinned) and "Needs you, open".
+- Wired a clickable prototype: the Detail filter switches Overview and Cards, clicking "Needs you" opens the card, Close card or Esc goes back.
+**Friction:** the MCP has no capture-a-web-page tool in our setup, so frames were rebuilt from components. Hidden layers inside instances could not be found by search; we had to reset overrides. Saving a named version is blocked through the MCP, so a person saves the checkpoints. One script bound a radius variable where a color belonged and failed; Figma rolled it back cleanly.
 
 ## 4. Code generation
 
@@ -47,8 +47,9 @@ Our real path was not a straight line. We started the design system in Figma, bu
 |---|---|
 | ![Figma overview](stage-log/figma-overview.png) | ![App overview](stage-log/app-overview.jpg) |
 | ![Figma needs you open](stage-log/figma-needs-you-open.png) | ![App needs you open](stage-log/app-needs-you-open.jpg) |
+| ![Figma cards](stage-log/figma-cards.png) | ![App cards](stage-log/app-cards.jpg) |
 
-Still different: the Figma Citation component draws sources as inline chips; the app lists them on two lines.
+Still different: the Figma Citation component draws sources as inline chips; the app lists them on two lines. The app's Cards level fits the whole canvas on screen at small size; the Figma frame shows it at real size and scrolls, because tiny text makes a poor design file. The short card's deadline text wraps in both.
 
 ## Run this yourself
 
