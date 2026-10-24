@@ -1,6 +1,6 @@
 /* Generated from tokens.json by scripts/build-tokens.mjs. Do not edit by hand. */
-/* Settle */
-:root, :root[data-brand="settle"] {
+/* Navy, Glaze on design.how, ink turned navy */
+:root, :root[data-brand="navy"], .brand-sample[data-brand="navy"] {
   --space-2xs: 2px;
   --space-xs: 4px;
   --space-sm: 8px;
@@ -61,24 +61,26 @@
   --motion-slow: 320ms;
   --motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --type-title-weight: 300;
-  --type-display-weight: 300;
-  --radius-control: 6px;
-  --radius-panel: 10px;
+  --type-title-weight: 500;
+  --type-display-weight: 500;
+  --radius-control: 999px;
+  --radius-panel: 14px;
   --color-bg-canvas: #ffffff;
-  --color-bg-surface: #f7f7f9;
-  --color-bg-sunken: #f0f0f3;
-  --color-text-primary: #0b0b0f;
-  --color-text-secondary: #55555f;
-  --color-text-tertiary: #74747e;
+  --color-bg-surface: #f7f8fa;
+  --color-bg-sunken: #eff1f5;
+  --color-text-primary: #0c1630;
+  --color-text-secondary: #4d5873;
+  --color-text-tertiary: #646e86;
   --color-text-inverse: #ffffff;
-  --color-border-default: #e3e3e8;
-  --color-border-strong: #c9c9d0;
-  --color-action-primary: #0b0b0f;
-  --color-action-decide: #4b4cf0;
+  --color-border-default: #e4e8ef;
+  --color-border-strong: #c6ccd8;
+  --color-action-primary: #0f2350;
+  --color-action-decide: #13295e;
   --color-text-on-decide: #ffffff;
-  --color-action-decide-soft: #ececff;
-  --color-text-decide: #3b3cd6;
+  --color-action-accept: #0f5a3a;
+  --color-action-reject: #962212;
+  --color-action-decide-soft: #e8edf8;
+  --color-text-decide: #1d3a80;
   --color-status-cleared: #1d7a4a;
   --color-status-cleared-soft: #e5f3eb;
   --color-status-held: #9a5600;
@@ -88,21 +90,23 @@
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]):not([data-brand]), :root[data-brand="settle"]:not([data-theme="light"]) {
-    --color-bg-canvas: #0e0e13;
-    --color-bg-surface: #16161c;
-    --color-bg-sunken: #1c1c23;
-    --color-text-primary: #f7f7f9;
-    --color-text-secondary: #9a9aa3;
-    --color-text-tertiary: #85858f;
-    --color-text-inverse: #0b0b0f;
-    --color-border-default: #24242c;
-    --color-border-strong: #3a3a44;
-    --color-action-primary: #f7f7f9;
-    --color-action-decide: #4b4cf0;
+  :root:not([data-theme="light"]):not([data-brand]), :root[data-brand="navy"]:not([data-theme="light"]) {
+    --color-bg-canvas: #0a0f1c;
+    --color-bg-surface: #101729;
+    --color-bg-sunken: #151d33;
+    --color-text-primary: #eef1f8;
+    --color-text-secondary: #a6afc4;
+    --color-text-tertiary: #8b94aa;
+    --color-text-inverse: #0a0f1c;
+    --color-border-default: #1f2840;
+    --color-border-strong: #2e3956;
+    --color-action-primary: #eef1f8;
+    --color-action-decide: #2c4a8f;
     --color-text-on-decide: #ffffff;
-    --color-action-decide-soft: #1d1d6b;
-    --color-text-decide: #a3a4ff;
+    --color-action-accept: #1c7a4f;
+    --color-action-reject: #b0301c;
+    --color-action-decide-soft: #16234a;
+    --color-text-decide: #a9bdf5;
     --color-status-cleared: #4fc489;
     --color-status-cleared-soft: #12301f;
     --color-status-held: #e3a447;
@@ -112,21 +116,23 @@
     color-scheme: dark;
   }
 }
-:root[data-theme="dark"]:not([data-brand]), :root[data-brand="settle"][data-theme="dark"] {
-  --color-bg-canvas: #0e0e13;
-  --color-bg-surface: #16161c;
-  --color-bg-sunken: #1c1c23;
-  --color-text-primary: #f7f7f9;
-  --color-text-secondary: #9a9aa3;
-  --color-text-tertiary: #85858f;
-  --color-text-inverse: #0b0b0f;
-  --color-border-default: #24242c;
-  --color-border-strong: #3a3a44;
-  --color-action-primary: #f7f7f9;
-  --color-action-decide: #4b4cf0;
+:root[data-theme="dark"]:not([data-brand]), :root[data-brand="navy"][data-theme="dark"] {
+  --color-bg-canvas: #0a0f1c;
+  --color-bg-surface: #101729;
+  --color-bg-sunken: #151d33;
+  --color-text-primary: #eef1f8;
+  --color-text-secondary: #a6afc4;
+  --color-text-tertiary: #8b94aa;
+  --color-text-inverse: #0a0f1c;
+  --color-border-default: #1f2840;
+  --color-border-strong: #2e3956;
+  --color-action-primary: #eef1f8;
+  --color-action-decide: #2c4a8f;
   --color-text-on-decide: #ffffff;
-  --color-action-decide-soft: #1d1d6b;
-  --color-text-decide: #a3a4ff;
+  --color-action-accept: #1c7a4f;
+  --color-action-reject: #b0301c;
+  --color-action-decide-soft: #16234a;
+  --color-text-decide: #a9bdf5;
   --color-status-cleared: #4fc489;
   --color-status-cleared-soft: #12301f;
   --color-status-held: #e3a447;
@@ -137,7 +143,7 @@
 }
 
 /* Ramp, Lausanne (licensed) stands in as Inter */
-:root[data-brand="ramp"] {
+:root[data-brand="ramp"], .brand-sample[data-brand="ramp"] {
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --type-title-weight: 400;
   --type-display-weight: 400;
@@ -155,6 +161,8 @@
   --color-action-primary: #1a1919;
   --color-action-decide: #e4f222;
   --color-text-on-decide: #0c0a08;
+  --color-action-accept: #1f7a45;
+  --color-action-reject: #b8301f;
   --color-action-decide-soft: #f7fbc4;
   --color-text-decide: #4f5600;
   --color-status-cleared: #1d7a4a;
@@ -179,6 +187,8 @@
     --color-action-primary: #f5f3ec;
     --color-action-decide: #e4f222;
     --color-text-on-decide: #0c0a08;
+    --color-action-accept: #1f7a45;
+    --color-action-reject: #b8301f;
     --color-action-decide-soft: #2f3207;
     --color-text-decide: #e4f222;
     --color-status-cleared: #4fc489;
@@ -203,6 +213,8 @@
   --color-action-primary: #f5f3ec;
   --color-action-decide: #e4f222;
   --color-text-on-decide: #0c0a08;
+  --color-action-accept: #1f7a45;
+  --color-action-reject: #b8301f;
   --color-action-decide-soft: #2f3207;
   --color-text-decide: #e4f222;
   --color-status-cleared: #4fc489;
@@ -215,7 +227,7 @@
 }
 
 /* Stripe, Sohne (licensed) stands in as Geist */
-:root[data-brand="stripe"] {
+:root[data-brand="stripe"], .brand-sample[data-brand="stripe"] {
   --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --type-title-weight: 300;
   --type-display-weight: 300;
@@ -233,6 +245,8 @@
   --color-action-primary: #0a2540;
   --color-action-decide: #533afd;
   --color-text-on-decide: #ffffff;
+  --color-action-accept: #1a7f4b;
+  --color-action-reject: #c0233b;
   --color-action-decide-soft: #eeebff;
   --color-text-decide: #4329e0;
   --color-status-cleared: #1d7a4a;
@@ -257,6 +271,8 @@
     --color-action-primary: #f6f9fc;
     --color-action-decide: #635bff;
     --color-text-on-decide: #ffffff;
+    --color-action-accept: #1a7f4b;
+    --color-action-reject: #c92d44;
     --color-action-decide-soft: #221c5e;
     --color-text-decide: #b9b5ff;
     --color-status-cleared: #4fc489;
@@ -281,6 +297,8 @@
   --color-action-primary: #f6f9fc;
   --color-action-decide: #635bff;
   --color-text-on-decide: #ffffff;
+  --color-action-accept: #1a7f4b;
+  --color-action-reject: #c92d44;
   --color-action-decide-soft: #221c5e;
   --color-text-decide: #b9b5ff;
   --color-status-cleared: #4fc489;
@@ -293,7 +311,7 @@
 }
 
 /* Mercury, Arcadia (licensed) stands in as Instrument Sans */
-:root[data-brand="mercury"] {
+:root[data-brand="mercury"], .brand-sample[data-brand="mercury"] {
   --font-sans: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --type-title-weight: 480;
   --type-display-weight: 480;
@@ -311,6 +329,8 @@
   --color-action-primary: #171721;
   --color-action-decide: #5266eb;
   --color-text-on-decide: #ffffff;
+  --color-action-accept: #287a50;
+  --color-action-reject: #c4473a;
   --color-action-decide-soft: #eceefd;
   --color-text-decide: #3a4fd6;
   --color-status-cleared: #1d7a4a;
@@ -335,6 +355,8 @@
     --color-action-primary: #ededf3;
     --color-action-decide: #5266eb;
     --color-text-on-decide: #ffffff;
+    --color-action-accept: #287a50;
+    --color-action-reject: #c4473a;
     --color-action-decide-soft: #262c5c;
     --color-text-decide: #aab5ff;
     --color-status-cleared: #4fc489;
@@ -359,8 +381,94 @@
   --color-action-primary: #ededf3;
   --color-action-decide: #5266eb;
   --color-text-on-decide: #ffffff;
+  --color-action-accept: #287a50;
+  --color-action-reject: #c4473a;
   --color-action-decide-soft: #262c5c;
   --color-text-decide: #aab5ff;
+  --color-status-cleared: #4fc489;
+  --color-status-cleared-soft: #12301f;
+  --color-status-held: #e3a447;
+  --color-status-held-soft: #33230c;
+  --color-status-disputed: #ff7a66;
+  --color-status-disputed-soft: #3a1712;
+  color-scheme: dark;
+}
+
+/* Zuzu, Acid Grotesk (licensed) stands in as Schibsted Grotesk */
+:root[data-brand="zuzu"], .brand-sample[data-brand="zuzu"] {
+  --font-sans: "Schibsted Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --type-title-weight: 500;
+  --type-display-weight: 500;
+  --radius-control: 999px;
+  --radius-panel: 16px;
+  --color-bg-canvas: #ffffff;
+  --color-bg-surface: #fbf8f6;
+  --color-bg-sunken: #f5efea;
+  --color-text-primary: #202020;
+  --color-text-secondary: #5f5751;
+  --color-text-tertiary: #766d66;
+  --color-text-inverse: #ffffff;
+  --color-border-default: #efe6e0;
+  --color-border-strong: #d9cbc2;
+  --color-action-primary: #202020;
+  --color-action-decide: #d4360a;
+  --color-text-on-decide: #ffffff;
+  --color-action-accept: #1c7c54;
+  --color-action-reject: #b3261e;
+  --color-action-decide-soft: #fff0ea;
+  --color-text-decide: #b62600;
+  --color-status-cleared: #1d7a4a;
+  --color-status-cleared-soft: #e5f3eb;
+  --color-status-held: #9a5600;
+  --color-status-held-soft: #fbf0e1;
+  --color-status-disputed: #bf3221;
+  --color-status-disputed-soft: #fbe8e5;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-brand="zuzu"]:not([data-theme="light"]) {
+    --color-bg-canvas: #120e0c;
+    --color-bg-surface: #1a1512;
+    --color-bg-sunken: #221b17;
+    --color-text-primary: #f7f1ed;
+    --color-text-secondary: #b3a79f;
+    --color-text-tertiary: #978b83;
+    --color-text-inverse: #120e0c;
+    --color-border-default: #2c231e;
+    --color-border-strong: #40342d;
+    --color-action-primary: #f7f1ed;
+    --color-action-decide: #d4360a;
+    --color-text-on-decide: #ffffff;
+    --color-action-accept: #1c7c54;
+    --color-action-reject: #c8321f;
+    --color-action-decide-soft: #3a1a0e;
+    --color-text-decide: #ff8a5c;
+    --color-status-cleared: #4fc489;
+    --color-status-cleared-soft: #12301f;
+    --color-status-held: #e3a447;
+    --color-status-held-soft: #33230c;
+    --color-status-disputed: #ff7a66;
+    --color-status-disputed-soft: #3a1712;
+    color-scheme: dark;
+  }
+}
+:root[data-brand="zuzu"][data-theme="dark"] {
+  --color-bg-canvas: #120e0c;
+  --color-bg-surface: #1a1512;
+  --color-bg-sunken: #221b17;
+  --color-text-primary: #f7f1ed;
+  --color-text-secondary: #b3a79f;
+  --color-text-tertiary: #978b83;
+  --color-text-inverse: #120e0c;
+  --color-border-default: #2c231e;
+  --color-border-strong: #40342d;
+  --color-action-primary: #f7f1ed;
+  --color-action-decide: #d4360a;
+  --color-text-on-decide: #ffffff;
+  --color-action-accept: #1c7c54;
+  --color-action-reject: #c8321f;
+  --color-action-decide-soft: #3a1a0e;
+  --color-text-decide: #ff8a5c;
   --color-status-cleared: #4fc489;
   --color-status-cleared-soft: #12301f;
   --color-status-held: #e3a447;

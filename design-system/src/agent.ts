@@ -84,8 +84,15 @@ Behaviour
 Settle
 - No second accent color. No number without a source.`,
   button: `# Button
-kinds: primary (ink), decide (signal, once per screen), secondary (hairline), quiet (text only)
-sizes: sm 32px, md 40px. Radius 6. Label is a verb phrase that says what happens.`,
+kinds: decide, accept, reject (crafted), primary, secondary, quiet. sizes: sm 32px, md 40px. Radius is --radius-control.
+- decide is the one crafted surface on a screen. Its recipe comes from the theme (src/buttons.css):
+  Navy: Glaze's glass in navy, a cool light rising from the bottom edge, a silver-blue rim.
+  Ramp: yellow foil, a bright top, a darker lip, a faint brushed grain.
+  Stripe: violet lacquer lit from the top left.
+  Mercury: a frosted periwinkle pill with a dome of light and a lavender rim.
+  Zuzu: Whop orange as glossy enamel, an ember from the bottom, a burnt ring, labels 600.
+- primary is lacquered ink. secondary and quiet stay flat.
+- Never put a crafted recipe on anything that is not the next action.`,
   status: `# Status
 kinds: cleared, held, disputed, needs, agent. Each theme draws it its own way:
 - Settle: glyph + word, no background (Glaze). needs uses an hourglass in ink.

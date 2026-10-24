@@ -43,14 +43,15 @@ scalar.push(`  --motion-ease: ${t.motion.ease};`);
 
 const blocks = [];
 for (const b of Object.keys(t.brands)) {
-  const sel = b === "settle" ? `:root, :root[data-brand="settle"]` : `:root[data-brand="${b}"]`;
-  const darkSel = b === "settle" ? `:root:not([data-theme="light"]):not([data-brand]), :root[data-brand="settle"]:not([data-theme="light"])` : `:root[data-brand="${b}"]:not([data-theme="light"])`;
-  const forcedDark = b === "settle" ? `:root[data-theme="dark"]:not([data-brand]), :root[data-brand="settle"][data-theme="dark"]` : `:root[data-brand="${b}"][data-theme="dark"]`;
-  const light = colorLines("light", b === "settle" ? null : b);
-  const dark = colorLines("dark", b === "settle" ? null : b);
-  blocks.push(`/* ${t.brands[b].label}${t.brands[b].fontSource ? `, ${t.brands[b].fontSource} stands in as ${t.brands[b].font}` : ""} */
+  const isDefault = b === t.defaultBrand;
+  const sel = (isDefault ? `:root, :root[data-brand="${b}"]` : `:root[data-brand="${b}"]`) + `, .brand-sample[data-brand="${b}"]`;
+  const darkSel = isDefault ? `:root:not([data-theme="light"]):not([data-brand]), :root[data-brand="${b}"]:not([data-theme="light"])` : `:root[data-brand="${b}"]:not([data-theme="light"])`;
+  const forcedDark = isDefault ? `:root[data-theme="dark"]:not([data-brand]), :root[data-brand="${b}"][data-theme="dark"]` : `:root[data-brand="${b}"][data-theme="dark"]`;
+  const light = colorLines("light", b);
+  const dark = colorLines("dark", b);
+  blocks.push(`/* ${t.brands[b].label}${t.brands[b].fontSource ? `, ${t.brands[b].fontSource} stands in as ${t.brands[b].font}` : t.brands[b].source ? `, ${t.brands[b].source}` : ""} */
 ${sel} {
-${b === "settle" ? scalar.join("\n") + "\n" : ""}${brandScalars(b).join("\n")}
+${isDefault ? scalar.join("\n") + "\n" : ""}${brandScalars(b).join("\n")}
 ${light.join("\n")}
   color-scheme: light;
 }

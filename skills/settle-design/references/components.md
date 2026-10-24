@@ -3,10 +3,13 @@
 Code: `design-system/src/components.tsx`. Figma: the Components page.
 
 ## Button
-`kind`: `primary` (ink), `decide` (signal, once per screen), `secondary` (hairline), `quiet` (text). `size`: `sm` 32px, `md` 40px. Label is a verb phrase that says exactly what happens ("Keep the charge", not "Submit").
+`kind`: `decide` (the one crafted button per screen), `accept` and `reject` (an approve and decline pair in the same material), `primary` (lacquered ink), `secondary` (hairline), `quiet` (text). `size`: `sm` 32px, `md` 40px. States: held, pending, disabled. Label says exactly what happens. Figma: `Button` for structure, `Decide` (Theme x Intent) for the crafted look.
+
+## Inputs
+Field (label, control, hint or error), Input (40px, leading icon optional), Textarea, Chip (filter toggle), Segmented control and Tabs (switch in place, nothing slides), Switch (on uses the theme color).
 
 ## Status
-`kind`: `cleared`, `held`, `disputed`, `needs`, `agent`. Each theme draws it differently, like design.how's systems do: Settle a glyph and a word with no background, Ramp a square tag with no icon (needs is solid ink), Stripe a tinted pill with the icon after the word, Mercury an outlined pill with no icon. Figma: the `Style` property on Status.
+`kind`: `cleared`, `held`, `disputed`, `needs`, `agent`. Each theme draws it differently, like design.how's systems do: Navy a glyph and a word with no background, Ramp a square tag with no icon (needs is solid ink), Stripe a tinted pill with the icon after the word, Mercury an outlined pill with no icon, Zuzu a word over a 2px underline. Figma: the `Style` property on Status.
 
 ## Ref and Source
 A small number after a claim (`<Ref n={1} />`) points to a numbered `<Source>` row listed under the text, the way Glaze cites an answer.
