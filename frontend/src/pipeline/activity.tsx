@@ -1,10 +1,11 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTable } from 'spacetimedb/react';
 import { tables } from '../module_bindings';
+import type { InboundEvent } from '../module_bindings/types';
 
-// Watches the inbound feed and turns each new event into a packet travelling
-// from its source node to the feed. A row appears in the feed (and flashes)
-// only once its packet has arrived, so the wiring and the table agree.
+// Watches the inbound events and turns each new one into a packet travelling
+// from its source node to the main agent. The event's chip appears around the
+// agent (and flashes) only once its packet has arrived, so the two agree.
 
 export const TRAVEL_MS = 1100;
 const STAGGER_MS = 220;
@@ -17,15 +18,18 @@ export interface Packet {
 }
 
 interface Activity {
+  // Every event that has reached the agent, oldest first
+  landed: InboundEvent[];
   packets: Record<string, Packet[]>;
-  // Event ids still travelling; the feed hides them until they land
+  // Event ids still travelling; hidden until they land
   inFlight: Set<string>;
-  // Event ids that just landed; the feed flashes them
+  // Event ids that just landed; their chips flash
   flashing: Set<string>;
   removePacket(source: string, key: string): void;
 }
 
 const ActivityContext = createContext<Activity>({
+  landed: [],
   packets: {},
   inFlight: new Set(),
   flashing: new Set(),
@@ -103,11 +107,15 @@ export function PipelineActivityProvider({ children }: { children: ReactNode }) 
     // Timers outlive re-renders on purpose; packets must finish their trip
   }, [events, ready]);
 
+  const landed = events
+    .filter(e => !inFlight.has(e.id.toString()))
+    .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+
   const removePacket = (source: string, key: string) =>
     setPackets(prev => ({ ...prev, [source]: (prev[source] ?? []).filter(p => p.key !== key) }));
 
   return (
-    <ActivityContext.Provider value={{ packets, inFlight, flashing, removePacket }}>
+    <ActivityContext.Provider value={{ landed, packets, inFlight, flashing, removePacket }}>
       {children}
     </ActivityContext.Provider>
   );

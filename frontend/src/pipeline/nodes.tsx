@@ -4,15 +4,9 @@ import { tables } from '../module_bindings';
 import type { InboundEvent, InboundSourceStatus } from '../module_bindings/types';
 import { usePipelineActivity } from './activity';
 import { Money } from './Money';
-import { SOURCES } from './sources';
-
-const FEED_ROWS = 30;
+import { MAX_CHIPS, SOURCES, SOURCE_TITLES, agentHandleId } from './sources';
 
 const newestFirst = (a: InboundEvent, b: InboundEvent) => (a.id < b.id ? 1 : a.id > b.id ? -1 : 0);
-
-function time(event: InboundEvent): string {
-  return event.receivedAt.toDate().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' });
-}
 
 // Glyph and word, never a bare dot or color alone.
 function SourceStatus({ status }: { status: InboundSourceStatus | undefined }) {
@@ -32,6 +26,7 @@ export function SourceNode({ data }: NodeProps) {
   const status = statuses.find(s => s.name === name);
   const last = [...events].sort(newestFirst)[0];
   const sending = (packets[name] ?? []).length > 0;
+  const failing = status?.enabled && status.lastError;
 
   return (
     <div className={`pipeline-node source-node${sending ? ' is-sending' : ''}`}>
@@ -40,75 +35,94 @@ export function SourceNode({ data }: NodeProps) {
         <SourceStatus status={status} />
       </div>
       <p className="node-meta">{meta?.provides}</p>
-      {status?.enabled && status.lastError ? (
+      {failing ? (
         <p className="node-error">{status.lastError}</p>
       ) : (
-        <p className="node-last">
-          {last ? (
-            <>
-              <span className="event-party">{last.counterparty}</span>
-              <Money amountMinor={last.amountMinor} currency={last.currency} />
-            </>
-          ) : (
-            <span className="node-meta">No events yet</span>
-          )}
-        </p>
+        <>
+          <dl className="node-stats">
+            <div>
+              <dt>Sent</dt>
+              <dd>{events.length}</dd>
+            </div>
+            <div>
+              <dt>Last amount</dt>
+              <dd>{last ? <Money amountMinor={last.amountMinor} currency={last.currency} /> : '–'}</dd>
+            </div>
+          </dl>
+          <p className="node-latest">{last ? last.counterparty : 'Nothing sent yet'}</p>
+        </>
       )}
-      <p className="node-count">
-        {events.length} {events.length === 1 ? 'event' : 'events'} sent
-      </p>
       <Handle type="source" position={Position.Right} isConnectable={false} />
     </div>
   );
 }
 
-export function FeedNode() {
-  const [events] = useTable(tables.inboundEvent);
-  const { inFlight, flashing } = usePipelineActivity();
-  const landed = events.filter(e => !inFlight.has(e.id.toString()));
-  const latest = [...landed].sort(newestFirst).slice(0, FEED_ROWS);
-  const title = Object.fromEntries(SOURCES.map(s => [s.name, s.title]));
+// The main agent. Droid (Factory) will run here; for now it shows what it has received.
+export function AgentNode() {
+  const { landed, packets } = usePipelineActivity();
+  const sources = new Set(landed.map(e => e.source)).size;
+  const receiving = Object.values(packets).some(p => p.length > 0);
+  const last = landed[landed.length - 1];
 
   return (
-    <div className="pipeline-node feed-node">
-      <Handle type="target" position={Position.Left} isConnectable={false} />
+    <div className={`pipeline-node agent-node${receiving ? ' is-receiving' : ''}`}>
+      {/* One input per source, spaced down the left edge */}
+      {SOURCES.map((source, i) => (
+        <Handle
+          key={source.name}
+          id={agentHandleId(source.name)}
+          type="target"
+          position={Position.Left}
+          isConnectable={false}
+          style={{ top: `${((i + 1) * 100) / (SOURCES.length + 1)}%` }}
+        />
+      ))}
       <div className="node-head">
-        <h3>Inbound feed</h3>
-        <span className="node-count">{landed.length} received</span>
+        <h3>Main agent</h3>
+        <span className="status">◇ Not connected</span>
       </div>
-      {latest.length === 0 ? (
-        <p className="node-meta">Nothing has arrived yet. Press Run to start the sources.</p>
-      ) : (
-        <div className="feed-scroll nowheel nodrag">
-          <table className="feed-table">
-            <thead>
-              <tr>
-                <th>Time</th>
-                <th>Source</th>
-                <th>Counterparty</th>
-                <th className="num">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {latest.map(e => (
-                <tr key={e.id.toString()} className={flashing.has(e.id.toString()) ? 'is-new' : undefined}>
-                  <td className="mono">{time(e)}</td>
-                  <td>
-                    {title[e.source] ?? e.source}
-                    <span className="kind">{e.kind.replace(/_/g, ' ')}</span>
-                  </td>
-                  <td className="party" title={e.description}>{e.counterparty}</td>
-                  <td className="num">
-                    <Money amountMinor={e.amountMinor} currency={e.currency} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <p className="node-meta">Droid will classify, reconcile and flag incoming events.</p>
+      <dl className="node-stats">
+        <div>
+          <dt>Received</dt>
+          <dd>{landed.length}</dd>
         </div>
-      )}
+        <div>
+          <dt>Sources</dt>
+          <dd>{sources}</dd>
+        </div>
+        <div>
+          <dt>On the board</dt>
+          <dd>{Math.min(landed.length, MAX_CHIPS)}</dd>
+        </div>
+      </dl>
+      <p className="node-latest">
+        {last
+          ? `Latest: ${last.counterparty} from ${SOURCE_TITLES[last.source] ?? last.source}`
+          : 'Waiting for the first event'}
+      </p>
     </div>
   );
 }
 
-export const pipelineNodeTypes = { source: SourceNode, feed: FeedNode };
+// One received event, parked around the agent.
+export function EventNode({ data }: NodeProps) {
+  const event = (data as { event: InboundEvent }).event;
+  const { flashing } = usePipelineActivity();
+  const isNew = flashing.has(event.id.toString());
+
+  return (
+    <div
+      className={`event-chip${isNew ? ' is-new' : ''}`}
+      title={`${event.kind.replace(/_/g, ' ')} · ${event.description}`}
+    >
+      <div className="chip-top">
+        <span className="chip-source">{SOURCE_TITLES[event.source] ?? event.source}</span>
+        <Money amountMinor={event.amountMinor} currency={event.currency} />
+      </div>
+      <div className="chip-party">{event.counterparty}</div>
+    </div>
+  );
+}
+
+export const pipelineNodeTypes = { source: SourceNode, agent: AgentNode, event: EventNode };

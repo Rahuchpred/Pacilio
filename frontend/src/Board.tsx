@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ReactFlow,
   Background,
+  BackgroundVariant,
   Controls,
   applyEdgeChanges,
   applyNodeChanges,
@@ -19,8 +20,15 @@ import { Cursors } from './Cursors';
 import { logError, throttle } from './throttle';
 import { pipelineNodeTypes } from './pipeline/nodes';
 import { pipelineEdgeTypes } from './pipeline/PacketEdge';
-import { PipelineActivityProvider } from './pipeline/activity';
-import { PIPELINE_NODES, isPipelineId, pipelineEdges } from './pipeline/sources';
+import { usePipelineActivity } from './pipeline/activity';
+import {
+  AGENT_NODE_ID,
+  PIPELINE_NODES,
+  eventChipNodes,
+  isEventId,
+  isPipelineId,
+  pipelineEdges,
+} from './pipeline/sources';
 
 const SYNC_INTERVAL_MS = 40;
 
@@ -44,7 +52,11 @@ export function Board() {
   const [edges, setEdges] = useState<Edge[]>([]);
   // Pipeline nodes keep their default layout until someone drags them
   const [pipelineNodes, setPipelineNodes] = useState<Node[]>(PIPELINE_NODES);
-  const allNodes = useMemo(() => [...pipelineNodes, ...nodes], [pipelineNodes, nodes]);
+  // Received events orbit the agent and follow it when it's dragged
+  const { landed } = usePipelineActivity();
+  const agent = pipelineNodes.find(n => n.id === AGENT_NODE_ID);
+  const chips = useMemo(() => eventChipNodes(landed, agent), [landed, agent]);
+  const allNodes = useMemo(() => [...pipelineNodes, ...chips, ...nodes], [pipelineNodes, chips, nodes]);
   const allEdges = useMemo(() => {
     const running = new Set(sourceStatuses.filter(s => s.enabled).map(s => s.name));
     return [...pipelineEdges(running), ...edges];
@@ -120,6 +132,8 @@ export function Board() {
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
+      // Chips are derived from events, not stored, so their changes are dropped
+      changes = changes.filter(c => !('id' in c && isEventId(c.id)));
       const isPipelineChange = (c: NodeChange) => 'id' in c && isPipelineId(c.id);
       const pipelineChanges = changes.filter(isPipelineChange);
       setPipelineNodes(prev => applyNodeChanges(pipelineChanges, prev));
@@ -181,7 +195,7 @@ export function Board() {
 
   const onNodeDoubleClick = useCallback(
     (_: React.MouseEvent, node: Node) => {
-      if (isPipelineId(node.id)) return;
+      if (isPipelineId(node.id) || isEventId(node.id)) return;
       const label = window.prompt('Rename node', String(node.data.label ?? ''));
       if (label !== null) {
         renameNode({ id: BigInt(node.id), label }).catch(logError);
@@ -197,28 +211,26 @@ export function Board() {
 
   return (
     <div className="board" onPointerMove={onPointerMove}>
-      <PipelineActivityProvider>
-        <ReactFlow
-          nodes={allNodes}
-          edges={allEdges}
-          nodeTypes={pipelineNodeTypes}
-          edgeTypes={pipelineEdgeTypes}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onNodeDragStop={onNodeDragStop}
-          onConnect={onConnect}
-          onNodesDelete={onNodesDelete}
-          onEdgesDelete={onEdgesDelete}
-          onNodeDoubleClick={onNodeDoubleClick}
-          fitView
-          // Keep the board clear of the control bar and top bar
-          fitViewOptions={{ padding: { top: '80px', bottom: '24px', left: '24px', right: '24px' } }}
-        >
-          <Background />
-          <Controls />
-          <Cursors />
-        </ReactFlow>
-      </PipelineActivityProvider>
+      <ReactFlow
+        nodes={allNodes}
+        edges={allEdges}
+        nodeTypes={pipelineNodeTypes}
+        edgeTypes={pipelineEdgeTypes}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onNodeDragStop={onNodeDragStop}
+        onConnect={onConnect}
+        onNodesDelete={onNodesDelete}
+        onEdgesDelete={onEdgesDelete}
+        onNodeDoubleClick={onNodeDoubleClick}
+        fitView
+        // Keep the board clear of the control bar and top bar
+        fitViewOptions={{ padding: { top: '88px', bottom: '40px', left: '40px', right: '40px' }, maxZoom: 1 }}
+      >
+        <Background variant={BackgroundVariant.Dots} gap={24} size={1} />
+        <Controls />
+        <Cursors />
+      </ReactFlow>
     </div>
   );
 }

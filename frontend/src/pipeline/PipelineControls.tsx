@@ -23,9 +23,9 @@ export function PipelineControls() {
   return (
     <div className="pipeline-controls">
       <p className="controls-summary">
-        {isRunning ? `Running ${running} of ${statuses.length || 4} sources` : 'Paused'}
-        {' · '}
-        {events.length} events received
+        <strong>{isRunning ? '▶ Running' : '‖ Paused'}</strong>
+        {isRunning && ` · ${running} of ${statuses.length || 4} sources`}
+        {` · ${events.length} events`}
       </p>
       <div className="controls-buttons">
         <button className="btn btn-primary" onClick={act(() => run())} disabled={busy || isRunning}>

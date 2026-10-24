@@ -1,69 +1,135 @@
 /* Inbound pipeline: Settle tokens only (design-system/src/tokens/tokens.css).
    Ink and paper, hairlines, no shadows; status is a glyph and a word. */
 
-.pipeline-node,
-.pipeline-controls {
+/* ─── Board ─────────────────────────────────────────────────────────────── */
+
+.react-flow {
+  --xy-background-color: var(--color-bg-surface);
   font-family: var(--font-sans);
+}
+
+.react-flow__background-pattern.dots {
+  fill: var(--color-border-control);
+}
+
+.react-flow__controls {
+  box-shadow: none;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.react-flow__controls-button {
+  background: var(--color-bg-canvas);
+  border-bottom: 1px solid var(--color-border-default);
+  color: var(--color-text-secondary);
+}
+
+.react-flow__controls-button:hover {
+  background: var(--color-bg-surface);
+}
+
+.react-flow__controls-button svg {
+  fill: currentColor;
+}
+
+/* Handles are wiring points, not controls */
+.pipeline-node .react-flow__handle {
+  width: 6px;
+  height: 6px;
+  min-width: 0;
+  min-height: 0;
+  background: var(--color-border-strong);
+  border: 0;
+}
+
+/* ─── Cards ─────────────────────────────────────────────────────────────── */
+
+.pipeline-node {
+  box-sizing: border-box;
+  padding: var(--space-md) var(--space-lg) var(--space-lg);
+  font-family: var(--font-sans);
+  font-size: var(--type-small-size);
+  line-height: var(--type-small-line);
   color: var(--color-text-primary);
   background: var(--color-bg-canvas);
   border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-panel);
-}
-
-.pipeline-node {
-  padding: var(--space-lg);
-  font-size: var(--type-body-size);
-  line-height: var(--type-body-line);
-}
-
-.source-node {
-  width: 270px;
+  border-radius: var(--radius-md);
   transition: border-color var(--motion-base) var(--motion-ease);
 }
 
-/* An event is leaving this source */
-.source-node.is-sending {
-  border-color: var(--color-border-strong);
+.source-node {
+  width: 260px;
 }
 
-.feed-node {
-  width: 600px;
+.agent-node {
+  width: 340px;
+}
+
+/* Activity on a wire: the card it leaves or reaches darkens its edge */
+.source-node.is-sending,
+.agent-node.is-receiving {
+  border-color: var(--color-border-strong);
 }
 
 .node-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: var(--space-md);
 }
 
 .pipeline-node h3 {
   margin: 0;
-  font-size: var(--type-subheading-size);
-  line-height: var(--type-subheading-line);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
   font-weight: var(--type-subheading-weight);
 }
 
 .node-meta {
-  margin: var(--space-xs) 0 0;
-  font-size: var(--type-small-size);
-  line-height: var(--type-small-line);
+  margin: var(--space-2xs) 0 0;
   color: var(--color-text-secondary);
 }
 
 .node-error {
   margin: var(--space-sm) 0 0;
-  font-size: var(--type-small-size);
-  line-height: var(--type-small-line);
   color: var(--color-status-held);
   overflow-wrap: anywhere;
 }
 
-.node-count {
-  margin: var(--space-sm) 0 0;
-  font-size: var(--type-small-size);
-  color: var(--color-text-secondary);
+/* Label/value pairs under a hairline */
+.node-stats {
+  display: flex;
+  gap: var(--space-xl);
+  margin: var(--space-md) 0 0;
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-border-default);
+}
+
+.node-stats div {
+  min-width: 0;
+}
+
+.node-stats dt {
+  font-size: var(--type-label-size);
+  line-height: var(--type-label-line);
+  color: var(--color-text-tertiary);
+}
+
+.node-stats dd {
+  margin: 0;
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.node-latest {
+  margin: var(--space-sm) 0 0;
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .status {
@@ -87,113 +153,79 @@
   white-space: nowrap;
 }
 
-/* Most recent event on a source */
-.node-last {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-md);
-  margin: var(--space-md) 0 0;
-  padding-top: var(--space-sm);
-  border-top: 1px solid var(--color-border-default);
-  font-size: var(--type-small-size);
-  line-height: var(--type-small-line);
-}
+/* ─── Event chips around the agent (fixed size: CHIP_WIDTH/HEIGHT) ─────── */
 
-.event-party {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Central feed */
-.feed-scroll {
-  max-height: 640px;
-  overflow-y: auto;
-  margin-top: var(--space-md);
-}
-
-.feed-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--type-small-size);
-  line-height: var(--type-small-line);
+.event-chip {
+  box-sizing: border-box;
+  width: 196px;
+  height: 56px;
+  padding: var(--space-sm) var(--space-md);
+  font-family: var(--font-sans);
+  font-size: var(--type-label-size);
+  line-height: var(--type-label-line);
+  color: var(--color-text-primary);
+  background: var(--color-bg-canvas);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
   cursor: default;
 }
 
-.feed-table th {
-  position: sticky;
-  top: 0;
-  background: var(--color-bg-canvas);
-  text-align: left;
-  font-weight: var(--type-label-weight);
-  color: var(--color-text-secondary);
-  padding: var(--space-xs) var(--space-md) var(--space-xs) 0;
-  border-bottom: 1px solid var(--color-border-default);
+.event-chip.is-new {
+  animation: chip-arrive 1800ms var(--motion-ease);
 }
 
-.feed-table td {
-  padding: var(--space-xs) var(--space-md) var(--space-xs) 0;
-  border-bottom: 1px solid var(--color-border-default);
-  vertical-align: top;
+.chip-top {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-sm);
 }
 
-.feed-table .num {
-  text-align: right;
-  padding-right: 0;
-}
-
-.feed-table .mono {
-  font-family: var(--font-mono);
-  font-size: calc(var(--type-small-size) * var(--mono-scale));
+.chip-source {
   color: var(--color-text-tertiary);
   white-space: nowrap;
 }
 
-.feed-table .kind {
-  display: block;
-  color: var(--color-text-tertiary);
-}
-
-.feed-table .party {
-  max-width: 220px;
+.chip-party {
+  margin-top: var(--space-2xs);
+  font-size: var(--type-small-size);
+  line-height: var(--type-small-line);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* Edges into the feed */
+@keyframes chip-arrive {
+  0%,
+  35% {
+    background: var(--color-bg-sunken);
+    border-color: var(--color-border-strong);
+  }
+  100% {
+    background: var(--color-bg-canvas);
+    border-color: var(--color-border-default);
+  }
+}
+
+/* ─── Wires ─────────────────────────────────────────────────────────────── */
+
 .pipeline-edge .react-flow__edge-path {
-  stroke: var(--color-border-strong);
-  stroke-width: 1.5;
+  stroke: var(--color-border-control);
+  stroke-width: 1;
 }
 
 .pipeline-edge.is-running .react-flow__edge-path {
-  stroke: var(--color-text-secondary);
+  stroke: var(--color-border-strong);
 }
 
 /* An event travelling along a wire */
 .packet {
   fill: var(--color-text-primary);
   stroke: var(--color-bg-canvas);
-  stroke-width: 2;
+  stroke-width: 1.5;
 }
 
-/* A row that just landed in the feed */
-.feed-table tr.is-new td {
-  animation: feed-arrive 1800ms var(--motion-ease);
-}
+/* ─── Run / Pause / Restart ─────────────────────────────────────────────── */
 
-@keyframes feed-arrive {
-  0%,
-  35% {
-    background: var(--color-bg-sunken);
-  }
-  100% {
-    background: transparent;
-  }
-}
-
-/* Run / Pause / Restart */
 .pipeline-controls {
   position: fixed;
   top: var(--space-md);
@@ -202,34 +234,46 @@
   display: flex;
   align-items: center;
   gap: var(--space-lg);
-  padding: var(--space-sm) var(--space-sm) var(--space-sm) var(--space-lg);
+  padding: var(--space-xs) var(--space-xs) var(--space-xs) var(--space-lg);
+  font-family: var(--font-sans);
+  background: var(--color-bg-canvas);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
 }
 
 .controls-summary {
   margin: 0;
   font-size: var(--type-small-size);
+  line-height: var(--type-small-line);
   color: var(--color-text-secondary);
   font-variant-numeric: tabular-nums;
 }
 
+.controls-summary strong {
+  font-weight: var(--type-label-weight);
+  color: var(--color-text-primary);
+}
+
 .controls-buttons {
   display: flex;
-  gap: var(--space-xs);
+  gap: var(--space-2xs);
 }
 
 .btn {
   height: 32px;
   padding: 0 var(--space-md);
-  border-radius: var(--radius-control);
+  border-radius: var(--radius-sm);
   font-family: var(--font-sans);
   font-size: var(--type-small-size);
   font-weight: var(--type-label-weight);
   cursor: pointer;
-  transition: opacity var(--motion-fast) var(--motion-ease);
+  transition:
+    background-color var(--motion-fast) var(--motion-ease),
+    opacity var(--motion-fast) var(--motion-ease);
 }
 
 .btn:disabled {
-  opacity: 0.4;
+  opacity: 0.35;
   cursor: default;
 }
 
@@ -248,16 +292,21 @@
 .btn-quiet {
   border: 1px solid transparent;
   background: transparent;
-  color: var(--color-text-primary);
+  color: var(--color-text-secondary);
+}
+
+.btn-secondary:not(:disabled):hover,
+.btn-quiet:not(:disabled):hover {
+  background: var(--color-bg-surface);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .btn,
-  .source-node {
+  .pipeline-node {
     transition: none;
   }
 
-  .feed-table tr.is-new td {
+  .event-chip.is-new {
     animation: none;
   }
 }
