@@ -8,6 +8,7 @@ import {
 import type spacetimedb from '../index';
 import {
   FactoryClient,
+  FactoryError,
   finalReply,
   toEvents,
   type AutonomyLevel,
@@ -88,6 +89,26 @@ export function enqueueAgentTask(ctx: Ctx, kind: string, prompt: string, autonom
   return task.id;
 }
 
+// Queue a Factory session to be stopped and deleted on the next tick.
+export function closeSession(ctx: Ctx, sessionId: string | undefined) {
+  if (!sessionId || ctx.db.sessionCleanup.sessionId.find(sessionId)) return;
+  ctx.db.sessionCleanup.insert({ sessionId });
+  ensureTicking(ctx);
+}
+
+// Stop every agent this database runs and close all of its sessions (Restart
+// and scenario swaps). Unfinished tasks are cancelled; finished ones lose
+// their session, so old download links stop working.
+export function shutDownAgents(ctx: Ctx) {
+  for (const o of [...ctx.db.agentOutbox.iter()]) ctx.db.agentOutbox.id.delete(o.id);
+  for (const task of [...ctx.db.agentTask.iter()]) {
+    const open = !['done', 'failed', 'cancelled'].includes(task.status);
+    if (!open && !task.sessionId) continue;
+    closeSession(ctx, task.sessionId);
+    updateTask(ctx, task.id, { sessionId: undefined, ...(open ? { status: 'cancelled' } : {}) });
+  }
+}
+
 // ─── Exports ────────────────────────────────────────────────────────────────
 
 export function droidAgents(stdb: Schema) {
@@ -160,10 +181,11 @@ export function droidAgents(stdb: Schema) {
           pending,
           running: tasks.filter(task => task.status === 'running' && task.sessionId),
           outbox: [...tx.db.agentOutbox.iter()],
+          cleanup: [...tx.db.sessionCleanup.iter()].map(r => r.sessionId),
         };
       });
 
-      if (!work.pending.length && !work.running.length && !work.outbox.length) {
+      if (!work.pending.length && !work.running.length && !work.outbox.length && !work.cleanup.length) {
         ctx.withTx(tx => {
           for (const row of [...tx.db.agentTickSchedule.iter()]) {
             tx.db.agentTickSchedule.scheduledId.delete(row.scheduledId);
@@ -187,6 +209,24 @@ export function droidAgents(stdb: Schema) {
       }
       const factory = new FactoryClient(ctx.http, apiKey);
 
+      // 0. Stop and delete sessions that are no longer wanted (a few a tick)
+      for (const sessionId of work.cleanup.slice(0, 10)) {
+        try {
+          try {
+            factory.interrupt(sessionId);
+          } catch {
+            // already idle or gone
+          }
+          factory.deleteSession(sessionId);
+        } catch (err) {
+          if (!(err instanceof FactoryError && err.status === 404)) {
+            console.warn(`delete session ${sessionId} failed: ${message(err)}`);
+            continue;
+          }
+        }
+        ctx.withTx(tx => tx.db.sessionCleanup.sessionId.delete(sessionId));
+      }
+
       // 1. Start pending tasks
       if (work.pending.length) {
         try {
@@ -204,7 +244,7 @@ export function droidAgents(stdb: Schema) {
           ctx.withTx(tx => {
             // Cancelled while we were starting it
             if (tx.db.agentTask.id.find(task.id)?.status !== 'starting') {
-              updateTask(tx, task.id, { sessionId });
+              closeSession(tx, sessionId);
               return;
             }
             updateTask(tx, task.id, { status: 'running', sessionId });

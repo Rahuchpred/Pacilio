@@ -156,6 +156,13 @@ export function uploadSnapshot(ctx: PCtx): string {
   return dir;
 }
 
+// Forget the upload session (Restart closes it); the next upload makes a new one.
+export function dropUploadSession(ctx: Ctx): string | undefined {
+  const sessionId = files(ctx)?.uploadSessionId;
+  if (sessionId) saveFiles(ctx, { uploadSessionId: undefined });
+  return sessionId;
+}
+
 export function setRenderDir(ctx: Ctx, dir: string) {
   saveFiles(ctx, { renderDir: dir });
 }

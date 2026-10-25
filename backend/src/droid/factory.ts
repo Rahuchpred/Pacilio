@@ -105,6 +105,11 @@ export class FactoryClient {
     this.request('POST', `/sessions/${sessionId}/interrupt`, {});
   }
 
+  // Ends a session for good (Factory keeps it restorable for a while)
+  deleteSession(sessionId: string): void {
+    this.request('DELETE', `/sessions/${sessionId}`);
+  }
+
   getSessionStatus(sessionId: string): SessionStatus {
     return this.request<{ status: SessionStatus }>('GET', `/sessions/${sessionId}`)
       .status;

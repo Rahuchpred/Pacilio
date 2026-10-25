@@ -75,7 +75,17 @@ export const agentTickSchedule = table(
   }
 );
 
-export const droidTables = { agentTask, agentStep, agentOutbox, agentTickSchedule };
+// Sessions to stop and delete on the Factory computer (private). Restart and
+// scenario swaps queue every session this database started; the agent tick
+// interrupts each one and deletes it.
+export const sessionCleanup = table(
+  { name: 'session_cleanup' },
+  {
+    sessionId: t.string().primaryKey(),
+  }
+);
+
+export const droidTables = { agentTask, agentStep, agentOutbox, agentTickSchedule, sessionCleanup };
 
 // Set at publish time from the shell (see backend/package.json).
 export const droidEnv = {

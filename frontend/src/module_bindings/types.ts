@@ -477,18 +477,23 @@ export const ReviewItem = __t.object("ReviewItem", {
 });
 export type ReviewItem = __Infer<typeof ReviewItem>;
 
+export const Scenario = __t.object("Scenario", {
+  id: __t.u32(),
+  key: __t.string(),
+});
+export type Scenario = __Infer<typeof Scenario>;
+
+export const SessionCleanup = __t.object("SessionCleanup", {
+  sessionId: __t.string(),
+});
+export type SessionCleanup = __Infer<typeof SessionCleanup>;
+
 export const ToolInstall = __t.object("ToolInstall", {
   path: __t.string(),
   version: __t.string(),
   installedAt: __t.timestamp(),
 });
 export type ToolInstall = __Infer<typeof ToolInstall>;
-
-export const Scenario = __t.object("Scenario", {
-  id: __t.u32(),
-  key: __t.string(),
-});
-export type Scenario = __Infer<typeof Scenario>;
 
 export const User = __t.object("User", {
   identity: __t.identity(),

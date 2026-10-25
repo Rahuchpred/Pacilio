@@ -1,11 +1,11 @@
 import { SenderError, t, type InferSchema, type ProcedureCtx, type ReducerCtx } from 'spacetimedb/server';
 import type spacetimedb from '../index';
-import { enqueueAgentTask } from '../droid/agents';
+import { closeSession, enqueueAgentTask, shutDownAgents } from '../droid/agents';
 import { FactoryClient, FactoryError } from '../droid/factory';
 import { LEDGER_HTML, LEDGER_XLSX, MAX_AUTO_EMAILS, buildPrompt, buildRenderPrompt, type PromptDecision, type PromptEvent } from './prompt';
 import { finishMessages, markSent, promptId, queuedFor, requeueMessages } from '../settle/messages';
 import { currentClassifying } from '../classify/classify';
-import { latestFiles, ledgerRows, relative, setRenderDir, uploadSnapshot } from './snapshot';
+import { dropUploadSession, latestFiles, ledgerRows, relative, setRenderDir, uploadSnapshot } from './snapshot';
 import {
   MAX_AUTO_REMINDERS,
   billInMemo,
@@ -120,6 +120,9 @@ export function resetPipeline(ctx: Ctx) {
   for (const r of [...ctx.db.ledgerDocument.iter()]) ctx.db.ledgerDocument.id.delete(r.id);
   updateRender(ctx, { status: 'idle', taskId: undefined, requested: false, pendingRunId: 0n, renderedRunId: 0n, renderedAt: undefined, sessionId: undefined, lastError: undefined });
   updateAgent(ctx, { status: 'idle', currentRunId: undefined, lastError: undefined, resetLedger: true });
+  // Stop every agent (reports, learner, render, Ask too) and close their sessions
+  shutDownAgents(ctx);
+  closeSession(ctx, dropUploadSession(ctx));
   resetReports(ctx);
 }
 
@@ -718,7 +721,10 @@ export function pipeline(stdb: Schema) {
               else tx.db.toolInstall.insert(row);
             });
           }
-          ctx.withTx(tx => updateAgent(tx, { lastError: undefined }));
+          ctx.withTx(tx => {
+            updateAgent(tx, { lastError: undefined });
+            closeSession(tx, sessionId);
+          });
         } catch (err) {
           // Retried on the next tick; a fresh session can briefly 404
           ctx.withTx(tx => updateAgent(tx, { lastError: `Installing tools: ${message(err)}` }));

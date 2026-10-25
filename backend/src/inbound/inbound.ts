@@ -11,6 +11,7 @@ import { corrupt } from './corrupt';
 import { InboundHub } from './hub';
 import { inboundTickSchedule } from './tables';
 import { resetPipeline, setPipelineEnabled } from '../pipeline/pipeline';
+import { shutDownAgents } from '../droid/agents';
 import type { InboundEventDraft, Source, SourceContext } from './types';
 import { logAction } from '../learn/audit';
 import { activeScenario } from './simulation';
@@ -229,6 +230,8 @@ export function inbound(stdb: Schema) {
   // Clear the books and everything that refers to them, then replay. What was
   // learned or set up stays: patterns, categories, settings, chart requests.
   function restart(ctx: Ctx) {
+    // Stop every agent and close its Factory session before the rows go
+    shutDownAgents(ctx);
     for (const r of [...ctx.db.accountingPayment.iter()]) ctx.db.accountingPayment.id.delete(r.id);
     for (const r of [...ctx.db.accountingExpense.iter()]) ctx.db.accountingExpense.id.delete(r.id);
     for (const r of [...ctx.db.accountingBill.iter()]) ctx.db.accountingBill.id.delete(r.id);
