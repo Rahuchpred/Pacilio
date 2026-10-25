@@ -9,7 +9,7 @@
     "publish:reset": "spacetime publish cal-hacks-ansingh --module-path . --server maincloud --delete-data",
     "generate": "spacetime generate --yes --lang typescript --out-dir ../frontend/src/module_bindings --module-path .",
     "logs": "spacetime logs cal-hacks-ansingh --server maincloud",
-    "publish:droid-test": "set -a && . ../.env && set +a && spacetime publish REDACTED_DB_NAME --module-path . --server maincloud"
+    "publish:droid-test": "set -a && . ../.env && set +a && spacetime publish $SPACETIMEDB_DB_NAME --module-path . --server maincloud"
   },
   "dependencies": {
     "spacetimedb": "^2.13.0"
