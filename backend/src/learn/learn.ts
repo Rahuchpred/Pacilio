@@ -54,6 +54,17 @@ export function activePatterns(ctx: Ctx): Pattern[] {
   return [...ctx.db.pattern.iter()].filter(p => p.status === 'active').sort((a, b) => (a.id < b.id ? -1 : 1));
 }
 
+// Patterns belong to the business they were learned in. Switching scenarios
+// sets the old one's aside as 'shelved:<key>' and brings the new one's back,
+// so rules learned at the concert never steer the coffee shop.
+export function swapPatterns(ctx: Ctx, from: string, to: string) {
+  if (from === to) return;
+  for (const p of [...ctx.db.pattern.iter()]) {
+    if (p.status === 'active') ctx.db.pattern.id.update({ ...p, status: `shelved:${from}`, updatedAt: ctx.timestamp });
+    else if (p.status === `shelved:${to}`) ctx.db.pattern.id.update({ ...p, status: 'active', updatedAt: ctx.timestamp });
+  }
+}
+
 // For the Bookkeeper's prompt
 export function patternsForPrompt(ctx: Ctx): { id: string; text: string }[] {
   return activePatterns(ctx).map(p => ({ id: patternId(p), text: p.text }));

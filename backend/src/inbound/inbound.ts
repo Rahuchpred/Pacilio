@@ -16,6 +16,7 @@ import { logAction } from '../learn/audit';
 import { activeScenario } from './simulation';
 import { SCENARIOS } from '../scenarios';
 import { resetClassificationsTo } from '../classify/classify';
+import { swapPatterns } from '../learn/learn';
 
 type Schema = typeof spacetimedb;
 type Ctx = ReducerCtx<InferSchema<Schema>>;
@@ -225,7 +226,24 @@ export function inbound(stdb: Schema) {
 
   // Start over: drop every stored event and label, rewind every source to its
   // beginning, then run. Sources replay with fresh corruption.
+  // Clear the books and everything that refers to them, then replay. What was
+  // learned or set up stays: patterns, categories, settings, chart requests.
   function restart(ctx: Ctx) {
+    for (const r of [...ctx.db.accountingPayment.iter()]) ctx.db.accountingPayment.id.delete(r.id);
+    for (const r of [...ctx.db.accountingExpense.iter()]) ctx.db.accountingExpense.id.delete(r.id);
+    for (const r of [...ctx.db.accountingBill.iter()]) ctx.db.accountingBill.id.delete(r.id);
+    for (const r of [...ctx.db.accountingInvoice.iter()]) ctx.db.accountingInvoice.id.delete(r.id);
+    // Threads about rows that no longer exist would keep nudging vendors
+    for (const r of [...ctx.db.emailMessage.iter()]) ctx.db.emailMessage.id.delete(r.id);
+    for (const r of [...ctx.db.emailThread.iter()]) ctx.db.emailThread.id.delete(r.id);
+    // Ask Pacioli's chat and the messages it queued talk about the old rows
+    for (const r of [...ctx.db.agentMessage.iter()]) ctx.db.agentMessage.id.delete(r.id);
+    for (const task of [...ctx.db.agentTask.iter()].filter(t => t.kind === 'ask')) {
+      for (const s of [...ctx.db.agentStep.taskId.filter(task.id)]) ctx.db.agentStep.id.delete(s.id);
+      for (const o of [...ctx.db.agentOutbox.iter()].filter(o => o.taskId === task.id)) ctx.db.agentOutbox.id.delete(o.id);
+      ctx.db.agentTask.id.delete(task.id);
+    }
+    for (const r of [...ctx.db.auditLog.iter()]) ctx.db.auditLog.id.delete(r.id);
     for (const event of [...ctx.db.inboundEvent.iter()]) ctx.db.inboundEvent.id.delete(event.id);
     for (const label of [...ctx.db.inboundLabel.iter()]) ctx.db.inboundLabel.eventId.delete(label.eventId);
     for (const source of InboundHub.sources) {
@@ -244,8 +262,8 @@ export function inbound(stdb: Schema) {
   }
 
   const restartInbound = stdb.reducer(ctx => {
-    logAction(ctx, ctx.sender, 'pipeline', 'Pressed Restart (cleared the events, ledger and report)');
     restart(ctx);
+    logAction(ctx, ctx.sender, 'pipeline', 'Pressed Restart (cleared the books and replayed)');
   });
 
   // Play a different business (the sidebar). Its vendors and customers are
@@ -254,17 +272,15 @@ export function inbound(stdb: Schema) {
   const setScenario = stdb.reducer({ key: t.string() }, (ctx, { key }) => {
     const scenario = SCENARIOS.find(s => s.key === key);
     if (!scenario) throw new SenderError(`Unknown scenario "${key}". Expected one of: ${SCENARIOS.map(s => s.key).join(', ')}`);
-    logAction(ctx, ctx.sender, 'pipeline', `Switched to the ${scenario.name} scenario (cleared the books and replayed)`);
+    const from = activeScenario(ctx).key;
     if (ctx.db.scenario.id.find(0)) ctx.db.scenario.id.update({ id: 0, key });
     else ctx.db.scenario.insert({ id: 0, key });
-    for (const r of [...ctx.db.accountingPayment.iter()]) ctx.db.accountingPayment.id.delete(r.id);
-    for (const r of [...ctx.db.accountingExpense.iter()]) ctx.db.accountingExpense.id.delete(r.id);
-    for (const r of [...ctx.db.accountingBill.iter()]) ctx.db.accountingBill.id.delete(r.id);
-    for (const r of [...ctx.db.accountingInvoice.iter()]) ctx.db.accountingInvoice.id.delete(r.id);
-    for (const r of [...ctx.db.emailMessage.iter()]) ctx.db.emailMessage.id.delete(r.id);
-    for (const r of [...ctx.db.emailThread.iter()]) ctx.db.emailThread.id.delete(r.id);
+    // A different business: its own patterns, categories and charts
+    swapPatterns(ctx, from, key);
+    for (const r of [...ctx.db.reportChart.iter()]) ctx.db.reportChart.id.delete(r.id);
     resetClassificationsTo(ctx, scenario.categories);
     restart(ctx);
+    logAction(ctx, ctx.sender, 'pipeline', `Switched to the ${scenario.name} scenario (cleared the books and replayed)`);
   });
 
   // Polls every enabled source, applies its corruption profile to new events
