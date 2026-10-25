@@ -4,14 +4,38 @@
     {
       "name": "design-system",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "design-system", "run", "dev"],
+      "runtimeArgs": [
+        "--prefix",
+        "design-system",
+        "run",
+        "dev"
+      ],
       "port": 5180
     },
     {
       "name": "frontend",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "frontend", "run", "dev"],
+      "runtimeArgs": [
+        "--prefix",
+        "frontend",
+        "run",
+        "dev"
+      ],
       "port": 5173
+    },
+    {
+      "name": "check-cards",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "5190",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "/private/tmp/claude-501/-Users-rahazh-Documents-dev-projects-cal-hacks/6e8360ce-ec7f-4007-9311-5828a1cb6fda/scratchpad/check-cards"
+      ],
+      "port": 5190
     }
   ]
 }
