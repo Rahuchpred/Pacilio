@@ -1,0 +1,137 @@
+/* The left sidebar: docked full height on paper, one hairline on its right
+   edge, no shadow. The board starts where it ends (--sidebar-w). */
+
+:root { --sidebar-w: 0px; }
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  box-sizing: border-box;
+  padding: var(--space-lg) var(--space-sm);
+  background: var(--color-bg-canvas);
+  border-right: var(--border-hairline) solid var(--color-border-default);
+  font-family: var(--font-sans);
+  font-size: var(--type-small-size);
+  line-height: var(--type-small-line);
+  color: var(--color-text-primary);
+  transition: transform 200ms var(--motion-ease-out), visibility 0s;
+}
+/* Closed: slides out, then leaves the tab order */
+.sidebar.is-closed {
+  transform: translateX(-100%);
+  visibility: hidden;
+  transition: transform 200ms var(--motion-ease-out), visibility 0s linear 200ms;
+}
+
+/* The name sits where it does with the sidebar closed, so closing it
+   doesn't move it */
+.sidebar-head,
+.sidebar-closed {
+  display: flex;
+  align-items: center;
+  height: 40px;
+}
+.sidebar-head {
+  justify-content: space-between;
+  padding-left: var(--space-sm);
+}
+.sidebar-closed {
+  position: fixed;
+  top: var(--space-lg);
+  left: var(--space-lg);
+  z-index: 20;
+  gap: var(--space-sm);
+}
+.sidebar-toggle { color: var(--color-text-secondary); }
+
+.sidebar-section { display: flex; flex-direction: column; gap: var(--space-xs); }
+.sidebar-heading {
+  margin: 0;
+  padding: 0 var(--space-sm);
+  font-size: var(--type-label-size);
+  line-height: var(--type-label-line);
+  font-weight: var(--type-label-weight);
+  color: var(--color-text-secondary);
+}
+.sidebar-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 32px;
+  padding: 0 var(--space-sm);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font: inherit;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+.sidebar-item:hover { background: var(--color-bg-sunken); color: var(--color-text-primary); }
+.sidebar-item.is-active {
+  background: var(--color-bg-sunken);
+  color: var(--color-text-primary);
+  font-weight: 500;
+  cursor: default;
+}
+.sidebar-item:focus-visible { outline: 2px solid var(--color-action-primary); outline-offset: -2px; }
+
+.sidebar-confirm {
+  display: flex;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm) var(--space-sm);
+}
+
+/* The handle straddles the edge; its line shows on hover (after a beat,
+   so passing over it doesn't flash) and while dragging */
+.sidebar-resize {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: -4px;
+  width: 8px;
+  cursor: col-resize;
+  touch-action: none;
+}
+.sidebar-resize::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 3px;
+  width: 2px;
+  background: transparent;
+  transition: background-color 120ms ease;
+}
+.sidebar-resize:hover::after { background: var(--color-border-strong); transition-delay: 150ms; }
+.sidebar-resize:focus-visible { outline: none; }
+.sidebar-resize:focus-visible::after,
+.is-resizing-sidebar .sidebar-resize::after { background: var(--color-border-strong); transition-delay: 0s; }
+
+.is-resizing-sidebar,
+.is-resizing-sidebar * { cursor: col-resize !important; user-select: none; }
+.is-resizing-sidebar .board { transition: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .sidebar.is-closed { transition: visibility 0s; }
+}

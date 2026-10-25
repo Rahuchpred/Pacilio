@@ -1,9 +1,8 @@
 import { ReactFlowProvider } from '@xyflow/react';
 import { useSpacetimeDB } from 'spacetimedb/react';
 import { Pipeline } from './Pipeline';
-import { Icon } from '../../design-system/src/components';
 import { TopBar } from './TopBar';
-import { Scenarios } from './ui/Scenarios';
+import { Sidebar } from './ui/Sidebar';
 import { PipelineActivityProvider } from './pipeline/activity';
 import { CanvasStateProvider, LiveProvider } from './pipeline/store';
 import '@xyflow/react/dist/style.css';
@@ -22,25 +21,12 @@ function App() {
         <CanvasStateProvider>
         <PipelineActivityProvider>
           <Pipeline />
-          <div className="top-left">
-            <Brand />
-            <Scenarios />
-          </div>
+          <Sidebar />
           <TopBar />
         </PipelineActivityProvider>
         </CanvasStateProvider>
       </LiveProvider>
     </ReactFlowProvider>
-  );
-}
-
-// Top left: the mark and the name, nothing else.
-function Brand() {
-  return (
-    <div className="brand" aria-label="Pacioli">
-      <Icon name="Pacioli" size={20} />
-      <span>Pacioli</span>
-    </div>
   );
 }
 

@@ -28,9 +28,21 @@ button {
   color: var(--muted);
 }
 
+/* The canvas starts where the sidebar ends. It is also the container the
+   dock's breakpoints measure. */
 .board {
   position: fixed;
   inset: 0;
+  left: var(--sidebar-w, 0px);
+  container: board / inline-size;
+  transition: left 200ms var(--motion-ease-out);
+}
+@media (max-width: 720px) {
+  /* Phones: the sidebar opens over the canvas instead */
+  .board { left: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .board { transition: none; }
 }
 
 /* ─── Cursors ─── */

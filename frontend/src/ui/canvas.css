@@ -140,8 +140,10 @@
 
 /* ---- Bottom dock: replay the run and the clock ---- */
 
+/* Placed against the board (it is the dock's parent), so it stays centered
+   on the canvas when the sidebar is open */
 .dock {
-  position: fixed;
+  position: absolute;
   bottom: var(--space-lg);
   left: 50%;
   transform: translateX(-50%);
@@ -176,7 +178,7 @@
   padding: 0;
 }
 
-/* Top left: the Pacioli mark in the decide orange and the name in ink. */
+/* The Pacioli mark in the decide orange and the name in ink (in the sidebar). */
 .brand {
   display: flex;
   align-items: center;
@@ -358,8 +360,6 @@
 .topbar,
 .ask-button,
 .ask-window,
-.scenario-toggle,
-.scenario-panel,
 .pipeline .react-flow__controls {
   border-color: transparent;
   background: linear-gradient(180deg, var(--color-bg-canvas) 60%, color-mix(in srgb, var(--color-bg-canvas) 97%, var(--color-action-decide)) 100%);
@@ -384,10 +384,10 @@
 /* The dock sits centered while there is room. On narrower windows it would
    cover the detail filter at the bottom right, so it moves left, next to
    the zoom controls; narrower still, the filter stacks above it. */
-@media (max-width: 1240px) {
+@container board (max-width: 1240px) {
   .dock { left: 60px; transform: none; }
 }
-@media (max-width: 940px) {
+@container board (max-width: 940px) {
   .pipeline .lv-control { margin-bottom: calc(var(--space-lg) + 42px + var(--space-sm)); }
 }
 
