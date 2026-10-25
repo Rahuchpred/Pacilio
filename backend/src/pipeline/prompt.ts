@@ -52,7 +52,8 @@ export function buildPrompt(
   ledgerDir: string,
   messages: PromptMessage[] = [],
   classifying: Classifying = { mode: 'auto', categories: DEFAULT_CATEGORIES },
-  patterns: { id: string; text: string }[] = []
+  patterns: { id: string; text: string }[] = [],
+  overdue: { docNumber: string; customer: string; balance: string; daysOverdue: number }[] = []
 ): string {
   const categories =
     classifying.mode === 'manual'
@@ -88,8 +89,12 @@ Amounts: positive = money in, negative = money out.
 ## Sources
 - nessie: the bank account (purchases, deposits, withdrawals, transfers, bill pay)
 - stripe: card payments for tickets (charges, refunds, chargebacks)
-- ledger: the accounting system, QuickBooks (vendor bills, sponsor invoices, recorded payments). Typed by hand, so it
-  has typos and double entries. In anything a person reads (notes, evidence, titles), call this source "QuickBooks".
+- ledger: the accounting system, QuickBooks. Typed by hand, so it has typos and double entries. In anything a person
+  reads (notes, evidence, titles), call this source "QuickBooks". It records who owes whom, not money moving:
+  a bill is what we owe a vendor (kind "bill", paid later from the bank, whose memo quotes the bill number);
+  an invoice is what a sponsor owes us (kind "invoice", paid later by a bank deposit "<sponsor> - payment for INV-…").
+  Bills and invoices are normally "ok" (category as for the money they cover); flag one only if it is itself wrong
+  (a duplicate entry, a mistyped amount).
 - cord: scanned receipts for small purchases
 
 ## Patterns from the team
@@ -115,6 +120,8 @@ Then do the work below. Your final JSON still decides; it may differ if you chan
    - Double payment: money actually left twice for one thing (e.g. two bank payments for the same bill).
    - Mismatch: a payment that disagrees with its bill, invoice or receipt (paid more or less than billed).
    - Missing paperwork: money moved with no bill, invoice or receipt behind it.
+   When a bank or Stripe row pays one of our bills, or is a sponsor paying our invoice, put that bill or invoice
+   number in "pays" (Settle records the payment in QuickBooks).
    Normal, not problems (mark "ok"): our own money moving (cash float withdrawals, crew payroll transfers,
    box office deposits, Stripe payouts); a payment whose bill hasn't reached the ledger yet (bills often arrive
    after payment: note "Awaiting bill <number>"); separate bills or payments with different document numbers.
@@ -167,6 +174,17 @@ existing row you change in "changes" (Pacioli writes them), and answer each mess
     : '- none'
 }
 
+## Overdue invoices (sponsors who owe us and are late; nobody is reminding them yet)
+${
+  overdue.length
+    ? overdue.map(o => `- ${o.docNumber} · ${o.customer} · ${o.balance} open · ${o.daysOverdue} days overdue`).join('\n') +
+      `
+Remind one only when a pattern from the team says to remind in that kind of case: add it to "reminders" with that
+pattern's id and a short, polite email (2-4 sentences: the invoice number, the amount open, how late it is, and a
+request to confirm when it will be paid; no dashes). At most 3 per run. Otherwise leave them: a person decides.`
+    : '- none'
+}
+
 ## New events (JSON, each with the row number it will get)
 ${events.length ? JSON.stringify(events) : '[] (no new events this run; just handle the messages)'}
 
@@ -176,11 +194,13 @@ When you're done, reply with ONLY this JSON and nothing else:
  "changes": [{"event_id": "...", "status": "ok|void|review|refunded|following_up", "category": "...", "note": "..."}],
  "messages": [{"id": "m…", "reply": "one sentence on what you did, with row numbers and amounts"}],
  "patterns_used": ["p…"],
+ "reminders": [{"invoice": "INV-…", "pattern": "p…", "message": "..."}],
  "decisions": [{"event_id": "...", "status": "ok|void|review|follow_up", "category": "...", "note": "...",
-   "duplicate_of": "event_id or null", "pattern": "p… (follow_up only) or null",
+   "duplicate_of": "event_id or null", "pattern": "p… (follow_up only) or null", "pays": "bill or invoice number or null",
    "review": null or {"title": "...", "what_happened": "...", "evidence": ["...", "..."], "action": "void|refund|follow_up|keep",
      "fix": "...", "question": "...", "follow_up_to": "... or null", "follow_up_subject": "... or null",
      "follow_up_message": "... or null"}}]}
 "review" is required when status is "review" or "follow_up", and null otherwise.
-Include every new event exactly once. "changes" and "messages" are [] when there were no messages.`;
+Include every new event exactly once. "changes" and "messages" are [] when there were no messages; "reminders" is []
+unless a pattern allowed one.`;
 }

@@ -97,6 +97,8 @@ export function totals(rows: Row[]): Totals {
   let settled = 0;
   let held = 0;
   for (const r of rows) {
+    // Bills and invoices say who owes whom; the bank rows that pay them carry the money
+    if (isDocument(r.event)) continue;
     if (SETTLED.includes(r.state)) {
       settled++;
       // A refund cancels the charge it refunds
@@ -163,3 +165,32 @@ export function classificationLine(r: Row): string {
   if (r.state === 'checking') return c ? `→ ${c}` : 'Classifying…';
   return c ?? ROW_STATUS[r.state].label;
 }
+
+// ─── QuickBooks ─────────────────────────────────────────────────────────────
+
+// A bill or invoice from QuickBooks: an obligation, not money moving
+export function isDocument(e: { source: string; kind: string }): boolean {
+  return e.source === 'ledger' && (e.kind === 'bill' || e.kind === 'invoice');
+}
+
+const DAY_MS = 86_400_000;
+
+export function daysOverdue(due: Date, now = Date.now()): number {
+  const late = now - due.getTime();
+  return late > 0 ? Math.ceil(late / DAY_MS) : 0;
+}
+
+export type DocState = 'owed' | 'part_paid' | 'paid' | 'overdue';
+
+export function docState(d: { balanceMinor: bigint; totalMinor: bigint; dueDate: { toDate(): Date } }, now = Date.now()): DocState {
+  if (d.balanceMinor <= 0n) return 'paid';
+  if (daysOverdue(d.dueDate.toDate(), now) > 0) return 'overdue';
+  return d.balanceMinor < d.totalMinor ? 'part_paid' : 'owed';
+}
+
+export const DOC_STATUS: Record<DocState, { kind: StatusKind; label: string }> = {
+  owed: { kind: 'held', label: 'Owed' },
+  part_paid: { kind: 'held', label: 'Part paid' },
+  overdue: { kind: 'disputed', label: 'Overdue' },
+  paid: { kind: 'cleared', label: 'Paid' },
+};

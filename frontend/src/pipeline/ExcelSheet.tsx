@@ -1,6 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from '../../../design-system/src/components';
-import { ROW_STATUS, SOURCE_TITLES, dollars, kindLabel, openItem, type Row, type RowState } from './live';
+import {
+  DOC_STATUS,
+  ROW_STATUS,
+  SOURCE_TITLES,
+  daysOverdue,
+  docState,
+  dollars,
+  isDocument,
+  kindLabel,
+  openItem,
+  type Row,
+  type RowState,
+} from './live';
+import { useLive, type Doc } from './store';
 import './excel.css';
 
 // The master ledger as a spreadsheet, the way Excel draws it: a formula bar,
@@ -52,7 +65,20 @@ const LEDGER_HEADERS = ['#', 'Date', 'Source', 'Counterparty', 'Description', 'C
 const LEDGER_WIDTHS = [44, 92, 74, 180, 230, 190, 104, 110, 300];
 const AMOUNT_COL = 6;
 
-function ledgerCells(r: Row, n: number): Cell[] {
+// QuickBooks bills and invoices (who owes whom), and which bank row paid what
+type Books = { docOf: (eventId: bigint) => Doc | undefined; paidDoc: (eventId: bigint) => string | undefined };
+
+function docStatusText(d: Doc): string {
+  const s = docState(d);
+  if (s === 'part_paid') return `Part paid, ${money(dollars(d.balanceMinor, d.currency))} left`;
+  if (s === 'overdue') return `Overdue ${daysOverdue(d.dueDate.toDate())}d`;
+  return DOC_STATUS[s].label;
+}
+
+function ledgerCells(r: Row, n: number, books?: Books): Cell[] {
+  const doc = books?.docOf(r.event.id);
+  const paid = books?.paidDoc(r.event.id);
+  const note = r.review?.note ?? '';
   return [
     String(n),
     date(r.event.occurredAt.toDate()),
@@ -61,21 +87,30 @@ function ledgerCells(r: Row, n: number): Cell[] {
     r.event.description,
     r.review?.category ?? kindLabel(r.event.kind),
     money(dollars(r.event.amountMinor, r.event.currency)),
-    STATUS_TEXT[r.state] ?? ROW_STATUS[r.state].label,
-    r.review?.note ?? '',
+    // A bill or invoice shows what's still owed; a bank row that paid one says which
+    doc && r.state === 'posted' ? docStatusText(doc) : STATUS_TEXT[r.state] ?? ROW_STATUS[r.state].label,
+    paid ? `→ ${paid}${note ? ` · ${note}` : ''}` : note,
   ];
 }
 
-function buildSheets(rows: Row[], fresh: Set<string>): Sheet[] {
-  const counted = rows.filter(r => SETTLED_OR_HELD(r.state));
+// Pending (still owed) documents get their own highlight; paid ones go quiet
+function toneOf(r: Row, books?: Books): string | undefined {
+  const doc = books?.docOf(r.event.id);
+  if (doc && r.state === 'posted') return docState(doc) === 'paid' ? 'doc-paid' : 'pending';
+  return TONE[r.state];
+}
+
+function buildSheets(rows: Row[], fresh: Set<string>, books?: Books): Sheet[] {
+  // Cash only: bills and invoices are obligations, paid by the bank rows
+  const counted = rows.filter(r => SETTLED_OR_HELD(r.state) && !isDocument(r.event));
   const amount = (r: Row) => dollars(r.event.amountMinor, r.event.currency);
   const moneyIn = counted.reduce((t, r) => t + Math.max(0, amount(r)), 0);
   const moneyOut = counted.reduce((t, r) => t + Math.min(0, amount(r)), 0);
   const last = rows.length + 1;
 
   const ledgerRows: SheetRow[] = rows.map((r, i) => ({
-    cells: ledgerCells(r, i + 1),
-    tone: TONE[r.state],
+    cells: ledgerCells(r, i + 1, books),
+    tone: toneOf(r, books),
     eventId: r.event.id,
     fresh: fresh.has(r.event.id.toString()),
   }));
@@ -87,7 +122,7 @@ function buildSheets(rows: Row[], fresh: Set<string>): Sheet[] {
 
   const review = rows.map((r, i) => ({ r, n: i + 1 })).filter(({ r }) => r.state === 'review');
   const reviewRows: SheetRow[] = review.map(({ r, n }) => ({
-    cells: [...ledgerCells(r, n), (r.item?.recommendation ?? '').replace(/_/g, ' ').replace(/^./, c => c.toUpperCase())],
+    cells: [...ledgerCells(r, n, books), (r.item?.recommendation ?? '').replace(/_/g, ' ').replace(/^./, c => c.toUpperCase())],
     tone: 'review',
     eventId: r.event.id,
   }));
@@ -221,7 +256,20 @@ export function ExcelSheet({ rows }: { rows: Row[] }) {
     setUnseen(prev => new Set([...prev, ...fresh]));
   }, [fresh]);
   const lit = useMemo(() => new Set([...fresh, ...revealed]), [fresh, revealed]);
-  const sheets = useMemo(() => buildSheets(rows, lit), [rows, lit]);
+  const { docByEvent, paidByEvent, bills, invoices } = useLive();
+  const books = useMemo<Books>(() => {
+    const docNumber = new Map<string, string>();
+    for (const b of bills) docNumber.set(`bill:${b.id}`, b.docNumber);
+    for (const i of invoices) docNumber.set(`invoice:${i.id}`, i.docNumber);
+    return {
+      docOf: id => docByEvent.get(id.toString()),
+      paidDoc: id => {
+        const p = paidByEvent.get(id.toString());
+        return p ? docNumber.get(`${p.kind}:${p.docId}`) : undefined;
+      },
+    };
+  }, [docByEvent, paidByEvent, bills, invoices]);
+  const sheets = useMemo(() => buildSheets(rows, lit, books), [rows, lit, books]);
   const [tab, setTab] = useState('ledger');
   const [sel, setSel] = useState<Selection>(null);
   const grid = useRef<HTMLDivElement>(null);

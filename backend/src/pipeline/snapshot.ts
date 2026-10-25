@@ -60,6 +60,8 @@ export function buildLedgerJson(ctx: Ctx): { json: string; rows: number } {
         event_id: e.id.toString(),
         date: e.occurredAt.toDate().toISOString().slice(0, 10),
         source: e.source,
+        // "bill" / "invoice" are QuickBooks documents (who owes whom), not money moving
+        kind: e.kind,
         counterparty: e.counterparty,
         description: e.description,
         reference: e.reference ?? null,

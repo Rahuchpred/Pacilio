@@ -19,6 +19,21 @@ import type {
 
 type Rows<T> = readonly T[];
 
+// A QuickBooks bill (we owe) or invoice (owed to us), joined to the event that brought it in
+export type Doc = {
+  kind: 'bill' | 'invoice';
+  id: bigint;
+  party: string;
+  docNumber: string;
+  totalMinor: bigint;
+  balanceMinor: bigint;
+  currency: string;
+  txnDate: import('spacetimedb').Timestamp;
+  dueDate: import('spacetimedb').Timestamp;
+  status: string;
+  eventId: bigint | undefined;
+};
+
 const byId = <T extends { id: bigint }>(a: T, b: T) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 
 function useLiveTables() {
@@ -44,10 +59,16 @@ function useLiveTables() {
   const [auditLog] = useTable(tables.auditLog);
   const [ledgerRenders] = useTable(tables.ledgerRender);
   const [ledgerFiles] = useTable(tables.ledgerFiles);
+  const [bills] = useTable(tables.accountingBill);
+  const [invoices] = useTable(tables.accountingInvoice);
+  const [payments] = useTable(tables.accountingPayment);
   const [patterns] = useTable(tables.pattern);
   const [patternStates] = useTable(tables.patternState);
   const [classificationModes] = useTable(tables.classificationMode);
   return {
+    bills,
+    invoices,
+    payments,
     ledgerFiles,
     ledgerRenders,
     auditLog,
@@ -146,9 +167,40 @@ function useDerived(t: ReturnType<typeof useLiveTables>) {
     () => [...t.followUps].sort((a, b) => a.step - b.step).map(r => ({ delayMin: r.delayMin, message: r.message })),
     [t.followUps]
   );
+  // QuickBooks: each bill or invoice by the event that brought it in, and
+  // which bank row paid what (payments carry "event:<id>" as their reference)
+  const docByEvent = useMemo(() => {
+    const m = new Map<string, Doc>();
+    const byKey = new Map<string, Doc>();
+    for (const b of t.bills) byKey.set(`bill:${b.id}`, { kind: 'bill', id: b.id, party: b.vendor, docNumber: b.docNumber, totalMinor: b.totalMinor, balanceMinor: b.balanceMinor, currency: b.currency, txnDate: b.txnDate, dueDate: b.dueDate, status: b.status, eventId: undefined });
+    for (const i of t.invoices) byKey.set(`invoice:${i.id}`, { kind: 'invoice', id: i.id, party: i.customer, docNumber: i.docNumber, totalMinor: i.totalMinor, balanceMinor: i.balanceMinor, currency: i.currency, txnDate: i.txnDate, dueDate: i.dueDate, status: i.status, eventId: undefined });
+    for (const e of t.events) {
+      if (e.source !== 'ledger') continue;
+      const d = byKey.get(e.sourceId);
+      if (!d) continue;
+      // The first event for a document is the real one; later ones are copies
+      if (!d.eventId || e.id < d.eventId) d.eventId = e.id;
+      m.set(e.id.toString(), d);
+    }
+    return m;
+  }, [t.bills, t.invoices, t.events]);
+  const docs = useMemo(() => [...new Set(docByEvent.values())], [docByEvent]);
+  const paymentsByDoc = useMemo(() => group([...t.payments].sort(byId), p => `${p.docType}:${p.docId}`), [t.payments]);
+  const paidByEvent = useMemo(() => {
+    const m = new Map<string, { kind: string; docId: bigint; amountMinor: bigint }>();
+    for (const p of t.payments) {
+      const id = p.reference.startsWith('event:') ? p.reference.slice(6) : '';
+      if (id) m.set(id, { kind: p.docType, docId: p.docId, amountMinor: p.amountMinor });
+    }
+    return m;
+  }, [t.payments]);
   return {
     rows,
     rowBy,
+    docByEvent,
+    docs,
+    paymentsByDoc,
+    paidByEvent,
     eventsSorted,
     eventBy,
     reviewBy,

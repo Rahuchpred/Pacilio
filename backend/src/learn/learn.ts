@@ -94,6 +94,9 @@ Find what people keep doing the same way and write it as a pattern the Bookkeepe
   "Mark Mission Corner Cafe receipts under $50 as Catering and don't ask about them."
 - Only from at least 2 actions that agree, unless a person stated a rule outright ("from now on ...").
 - When a person overruled the Bookkeeper, learn what they chose instead, not what it suggested.
+- When people remind sponsors about overdue invoices (Remind them), a pattern may let the Bookkeeper send such
+  reminders itself: "Remind sponsors when an invoice is more than 7 days overdue". Write it from at least 2 reminders
+  that agree, with the overdue threshold people actually used.
 - A pattern may let the Bookkeeper email the other party itself in a kind of case ("Email Golden Gate Catering
   when a payment has no bill, asking for the bill"). Write one only when people chose Email them for that kind of
   case at least twice, or said so outright. Name who and when clearly.

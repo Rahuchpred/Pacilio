@@ -1340,3 +1340,41 @@ button.audit-row { cursor: pointer; }
 }
 .triage-scope button:active { transform: scale(0.97); }
 .triage-scope button[aria-selected="true"] { background: var(--color-bg-canvas); color: var(--color-text-primary); box-shadow: 0 1px 2px rgb(31 26 20 / 0.08), inset 0 0 0 var(--border-hairline) var(--color-border-default); }
+
+/* ---- QuickBooks: who owes whom ---- */
+
+.pipeline .w-books,
+.pipeline .far-card.w-books { width: 480px; }
+.pipeline .w-books-full { width: 980px; }
+.books-far { display: inline-flex; align-items: baseline; gap: var(--space-sm); }
+.books-far-sep { color: var(--color-text-tertiary); font-weight: 300; }
+.books-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-xl); align-items: start; }
+.books-col { display: flex; flex-direction: column; gap: var(--space-sm); min-width: 0; }
+.books-col-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); flex-wrap: wrap; }
+.books-col-head h4 { margin: 0; }
+.docs { list-style: none; margin: 0; padding: 0; max-height: 520px; overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-xs); }
+.doc { display: flex; flex-direction: column; gap: var(--space-xs); padding: var(--space-sm) var(--space-md); border-radius: var(--radius-panel); background: var(--color-bg-surface); }
+.doc.is-overdue { box-shadow: inset 2px 0 0 var(--color-status-disputed); }
+.doc-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-2xs) var(--space-md);
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.doc-head { display: flex; flex-direction: column; min-width: 0; }
+.doc-party { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.doc-amount { font-variant-numeric: tabular-nums; align-self: start; }
+/* How much of it is paid, as a thin bar in the accept green */
+.doc-bar { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: var(--color-border-default); overflow: hidden; }
+.doc-bar > span { display: block; height: 100%; background: var(--color-status-cleared); border-radius: 2px; }
+.doc-line { grid-column: 1 / -1; display: flex; align-items: center; gap: var(--space-sm); color: var(--color-text-secondary); min-width: 0; overflow-wrap: anywhere; }
+.doc-line.is-late { color: var(--color-status-disputed); }
+.doc-actions { display: flex; align-items: center; gap: var(--space-sm); }
+.doc-trail { margin: var(--space-sm) 0 0; padding-left: var(--space-lg); display: flex; flex-direction: column; gap: var(--space-2xs); font-size: var(--type-small-size); }

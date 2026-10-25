@@ -76,6 +76,7 @@ import TidyPipelineLayoutReducer from "./tidy_pipeline_layout_reducer";
 // Import all procedure arg schemas
 import * as AgentFileUrlProcedure from "./agent_file_url_procedure";
 import * as LedgerXlsxUrlProcedure from "./ledger_xlsx_url_procedure";
+import * as RemindInvoiceProcedure from "./remind_invoice_procedure";
 import * as ReportXlsxUrlProcedure from "./report_xlsx_url_procedure";
 import * as ResolveReviewItemProcedure from "./resolve_review_item_procedure";
 import * as SendEmailReplyProcedure from "./send_email_reply_procedure";
@@ -577,6 +578,7 @@ const reducersSchema = __reducers(
 const proceduresSchema = __procedures(
   __procedureSchema("agent_file_url", AgentFileUrlProcedure.params, AgentFileUrlProcedure.returnType),
   __procedureSchema("ledger_xlsx_url", LedgerXlsxUrlProcedure.params, LedgerXlsxUrlProcedure.returnType),
+  __procedureSchema("remind_invoice", RemindInvoiceProcedure.params, RemindInvoiceProcedure.returnType),
   __procedureSchema("report_xlsx_url", ReportXlsxUrlProcedure.params, ReportXlsxUrlProcedure.returnType),
   __procedureSchema("resolve_review_item", ResolveReviewItemProcedure.params, ResolveReviewItemProcedure.returnType),
   __procedureSchema("send_email_reply", SendEmailReplyProcedure.params, SendEmailReplyProcedure.returnType),

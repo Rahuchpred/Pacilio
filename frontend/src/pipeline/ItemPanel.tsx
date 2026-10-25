@@ -4,6 +4,7 @@ import { ACTION_LABEL, Decide } from './NeedsYou';
 import { ROW_STATUS, SOURCE_TITLES, clock, dollars, jsonList, openItem, useOpenItem } from './live';
 import { Evidence } from './Evidence';
 import { useLive } from './store';
+import { BooksSection } from './Books';
 import { SourceTag, sentence } from './Transactions';
 
 // One event, looked at closely: what came in, what the agent decided and why,
@@ -162,6 +163,8 @@ export function ItemPanel() {
           )}
         </dl>
       </section>
+
+      <BooksSection eventId={event.id} />
 
       <section className="bill-card">
         <header className="bill-card-head">

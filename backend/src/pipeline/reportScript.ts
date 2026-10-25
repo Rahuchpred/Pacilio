@@ -11,11 +11,11 @@
 // (money in), warm grey (money out) and secondary ink (totals), so no hue
 // competes with the decide orange.
 
-export const REPORT_VERSION = 'v3';
+export const REPORT_VERSION = 'v4';
 export const REPORT_PATH = `settle/tools/report-${REPORT_VERSION}.py`;
 
-export const REPORT_SCRIPT = String.raw`# settle-report v3 -- provided by Settle. Do not edit.
-# Run: python3 /home/factory-user/settle/tools/report-v3.py /home/factory-user/settle
+export const REPORT_SCRIPT = String.raw`# settle-report v4 -- provided by Settle. Do not edit.
+# Run: python3 /home/factory-user/settle/tools/report-v4.py /home/factory-user/settle
 """Build report.json, report.html and report.xlsx from the settled rows of ledger.json."""
 import datetime
 import html
@@ -28,6 +28,7 @@ from pathlib import Path
 HERE = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path(__file__).resolve().parents[1]
 
 SETTLED = ("ok", "refunded")
+DOCUMENT_KINDS = ("bill", "invoice")
 HELD = ("review", "void", "following_up")
 # Settle tokens, orange accent, light (design-system/src/tokens/tokens.css).
 # Money is ink and paper: no hue, so nothing in the report reads like the
@@ -58,6 +59,9 @@ def load_rows():
 # ------------------------------------------------------------- numbers -----
 
 def summarize(rows):
+    # Bills and invoices say who owes whom; the money moves in the bank rows
+    # that pay them, so only cash rows count (no money counted twice)
+    rows = [r for r in rows if r.get("kind") not in DOCUMENT_KINDS]
     settled = [r for r in rows if r.get("status", "ok") in SETTLED]
     held = [r for r in rows if r.get("status") in HELD]
     amt = lambda r: int(r.get("amount_cents", 0))

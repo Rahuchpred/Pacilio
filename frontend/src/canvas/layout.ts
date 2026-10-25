@@ -49,6 +49,8 @@ export const LAYOUT: Record<string, { type: string; x: number; y: number }> = {
   // Left of the question it learns from, above the sources
   audit: { type: 'audit', x: MAIN_X - INBOX_GAP - AUDIT_W, y: TOP_Y },
   ledger: { type: 'ledger', x: LEDGER_X, y: 0 },
+  // Under the ledger: who owes whom, kept current by the payments the Bookkeeper matches
+  books: { type: 'books', x: LEDGER_X, y: 320 },
   emails: { type: 'emails', x: RAGENT_X, y: TOP_Y },
   reportAgent: { type: 'reportAgent', x: RAGENT_X, y: 20 },
   report: { type: 'report', x: REPORT_X, y: 0 },
@@ -74,6 +76,7 @@ export const OVERVIEW: Record<string, { width: number; height: number }> = {
   reportAgent: { width: RAGENT_W, height: 190 },
   report: { width: 420, height: 190 },
   audit: { width: AUDIT_W, height: 190 },
+  books: { width: 480, height: 190 },
 };
 
 export type HandleSpec = { type: 'source' | 'target'; position: Position; id?: string; left?: string; top?: string };
@@ -87,6 +90,8 @@ export const HANDLES: Record<string, HandleSpec[]> = {
     { type: 'source', position: Position.Right, id: 'out' },
     { type: 'source', position: Position.Top, id: 'flag' },
     { type: 'source', position: Position.Bottom, id: 'txn' },
+    // Payments it matched go to QuickBooks
+    { type: 'source', position: Position.Right, id: 'books', top: '80%' },
     // Patterns from the audit log come in from the upper left
     { type: 'target', position: Position.Top, id: 'patterns', left: '18%' },
   ],
@@ -111,6 +116,10 @@ export const HANDLES: Record<string, HandleSpec[]> = {
     { type: 'source', position: Position.Right, id: 'out' },
   ],
   report: [{ type: 'target', position: Position.Left, id: 'in' }],
+  books: [
+    { type: 'target', position: Position.Left, id: 'in' },
+    { type: 'source', position: Position.Right, id: 'remind' },
+  ],
   audit: [
     { type: 'target', position: Position.Right, id: 'calls' },
     { type: 'source', position: Position.Bottom, id: 'patterns' },

@@ -5,7 +5,7 @@ import { ensureTicking } from '../pipeline/ticking';
 
 type Ctx = ReducerCtx<InferSchema<typeof spacetimedb>>;
 
-export type AuditKind = 'decision' | 'settle' | 'ask' | 'classification' | 'email' | 'pipeline' | 'report' | 'pattern';
+export type AuditKind = 'decision' | 'settle' | 'ask' | 'classification' | 'email' | 'pipeline' | 'report' | 'pattern' | 'reminder';
 
 // Record one human action. Learnable ones wake the pipeline tick, which runs
 // the pattern learner a few seconds later.

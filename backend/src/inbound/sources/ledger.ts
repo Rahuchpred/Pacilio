@@ -30,52 +30,30 @@ function simulateLedger(ctx: SourceContext): void {
   const roll = ctx.random();
   ctx.withTx(raw => {
     const tx = raw as Ctx;
-    const openBills = [...tx.db.accountingBill.iter()].filter(b => b.balanceMinor > 0n);
-    const openInvoices = [...tx.db.accountingInvoice.iter()].filter(i => i.balanceMinor > 0n);
-    const open = [
-      ...openBills.map(doc => ({ docType: 'bill' as const, doc })),
-      ...openInvoices.map(doc => ({ docType: 'invoice' as const, doc })),
-    ];
-
-    // Settle something that's open: usually in full, sometimes half now
-    if (roll < 0.35 && open.length) {
-      const { docType, doc } = pick(ctx.random, open);
-      const full = ctx.random() < 0.8;
-      const amount = full ? doc.balanceMinor : doc.balanceMinor / 2n;
-      const balanceMinor = doc.balanceMinor - amount;
-      const status = balanceMinor === 0n ? 'paid' : 'open';
-      if (docType === 'bill') tx.db.accountingBill.id.update({ ...doc, balanceMinor, status } as typeof openBills[number]);
-      else tx.db.accountingInvoice.id.update({ ...doc, balanceMinor, status } as typeof openInvoices[number]);
-      tx.db.accountingPayment.insert({
-        id: 0n,
-        docType,
-        docId: doc.id,
-        amountMinor: amount,
-        paidAt: tx.timestamp,
-        method: docType === 'bill' ? pick(ctx.random, ['ach', 'card', 'check']) : 'ach',
-        reference: full ? '' : 'Partial payment',
-      });
-      return;
-    }
-
     const docNumber = (prefix: string) => `${prefix}-${ctx.random.integerInRange(1000, 9999)}`;
+    // Documents dated over the past few weeks, so some are already due or
+    // overdue when they reach the books (the show is today)
+    const dated = (maxDaysAgo: number) => addDays(now, -ctx.random.integerInRange(0, maxDaysAgo));
     const base = {
       id: 0n,
-      txnDate: Timestamp.fromDate(now),
       currency: 'USD',
       status: 'open',
       createdAt: tx.timestamp,
     };
 
-    // A sponsor invoice now and then; otherwise a vendor bill for the show
-    if (roll < 0.55) {
+    // A sponsor invoice now and then; otherwise a vendor bill for the show.
+    // Payments aren't made up here: the bank pays bills and sponsors pay
+    // invoices into the bank, and Settle records them when it matches them.
+    if (roll < 0.3) {
       const sponsor = pick(ctx.random, SPONSORS);
       const total = BigInt(amountBetween(ctx.random, sponsor.min, sponsor.max));
+      const issued = dated(45);
       tx.db.accountingInvoice.insert({
         ...base,
+        txnDate: Timestamp.fromDate(issued),
         customer: sponsor.name,
         docNumber: docNumber('INV'),
-        dueDate: Timestamp.fromDate(addDays(now, 30)),
+        dueDate: Timestamp.fromDate(addDays(issued, 30)),
         lines: [{ description: `${sponsor.item} - ${SHOW}`, amountMinor: total }],
         totalMinor: total,
         balanceMinor: total,
@@ -89,11 +67,13 @@ function simulateLedger(ctx: SourceContext): void {
     const lines = [{ description: `${vendor.item} - ${SHOW}`, amountMinor: main }];
     if (ctx.random() < 0.3) lines.push({ description: 'Delivery and setup', amountMinor: BigInt(amountBetween(ctx.random, 5_000, 20_000)) });
     const total = lines.reduce((sum, l) => sum + l.amountMinor, 0n);
+    const received = dated(20);
     tx.db.accountingBill.insert({
       ...base,
+      txnDate: Timestamp.fromDate(received),
       vendor: vendor.name,
       docNumber: docNumber(initials(vendor.name)),
-      dueDate: Timestamp.fromDate(addDays(now, ctx.random() < 0.5 ? 15 : 30)),
+      dueDate: Timestamp.fromDate(addDays(received, ctx.random() < 0.5 ? 15 : 30)),
       lines,
       totalMinor: total,
       balanceMinor: total,
@@ -171,28 +151,9 @@ export const ledger: Source = {
         });
       }
 
-      for (const p of tx.db.accountingPayment.iter()) {
-        if (p.id <= after.payment) continue;
-        const isBill = p.docType === 'bill';
-        const doc = isBill ? tx.db.accountingBill.id.find(p.docId) : tx.db.accountingInvoice.id.find(p.docId);
-        const party = doc && ('vendor' in doc ? doc.vendor : doc.customer);
-        out.push({
-          table: 'payment',
-          id: p.id,
-          draft: {
-            sourceId: `payment:${p.id}`,
-            kind: 'payment_recorded',
-            occurredAt: p.paidAt.toDate(),
-            // Paying a bill is money out; collecting on an invoice is money in
-            amountMinor: isBill ? -p.amountMinor : p.amountMinor,
-            currency: doc?.currency ?? 'USD',
-            counterparty: party ?? '',
-            description: `Payment for ${p.docType} ${doc?.docNumber ?? p.docId} via ${p.method}`,
-            reference: p.reference || doc?.docNumber,
-            raw: p,
-          },
-        });
-      }
+      // Payments aren't events of their own: each one is recorded by Settle when
+      // the Bookkeeper matches a bank row to its bill or invoice, so sending it
+      // back into the feed would count the same money twice.
       return out;
     });
 

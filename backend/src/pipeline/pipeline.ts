@@ -6,6 +6,7 @@ import { LEDGER_HTML, LEDGER_XLSX, MAX_AUTO_EMAILS, buildPrompt, buildRenderProm
 import { finishMessages, markSent, promptId, queuedFor, requeueMessages } from '../settle/messages';
 import { currentClassifying } from '../classify/classify';
 import { latestFiles, relative, setRenderDir, uploadSnapshot } from './snapshot';
+import { MAX_AUTO_REMINDERS, createReminder, overdueInvoices, recordPayment } from '../books/books';
 import { learnTick, patternsForPrompt, recordPatternUses } from '../learn/learn';
 import { logAction } from '../learn/audit';
 import { RENDER_PATH, RENDER_SCRIPT, RENDER_VERSION } from './renderScript';
@@ -165,7 +166,8 @@ function startRun(ctx: Ctx, ledgerDir?: string, dryRun = false): boolean {
       ledgerDir,
       messages.map(m => ({ id: promptId(m), text: m.text })),
       currentClassifying(ctx),
-      patternsForPrompt(ctx)
+      patternsForPrompt(ctx),
+      overdueInvoices(ctx)
     ),
     'high'
   );
@@ -215,6 +217,8 @@ interface Decision {
   status: string;
   // The pattern that allowed a follow_up, like "p3"
   pattern?: string | null;
+  // The QuickBooks bill or invoice number this bank or Stripe row pays
+  pays?: string | null;
   category?: string;
   note?: string;
   duplicate_of?: string | null;
@@ -234,7 +238,15 @@ interface Change {
   note?: string;
 }
 
-type Reply = { summary: string; decisions: Decision[]; changes: Change[]; messages: unknown; patterns_used?: unknown };
+type Reminder = { invoice?: unknown; pattern?: unknown; message?: unknown };
+type Reply = {
+  summary: string;
+  decisions: Decision[];
+  changes: Change[];
+  messages: unknown;
+  patterns_used?: unknown;
+  reminders?: Reminder[];
+};
 
 function parseReply(text: string | undefined): Reply {
   if (!text) throw new Error('Agent finished without a reply');
@@ -249,6 +261,7 @@ function parseReply(text: string | undefined): Reply {
     changes: Array.isArray(parsed.changes) ? parsed.changes : [],
     messages: parsed.messages,
     patterns_used: parsed.patterns_used,
+    reminders: Array.isArray(parsed.reminders) ? parsed.reminders : [],
   };
 }
 
@@ -290,7 +303,8 @@ function emailAllowed(ctx: Ctx, d: Decision): string | null {
   return pattern.text;
 }
 
-// Returns the review items the Bookkeeper decided to email about, to send after this transaction.
+// Returns the review items the Bookkeeper decided to email about (problems
+// and invoice reminders), to send after this transaction.
 function applyDecisions(ctx: Ctx, run: Run, reply: Reply): bigint[] {
   const { summary, decisions } = reply;
   const autoEmails: bigint[] = [];
@@ -320,6 +334,8 @@ function applyDecisions(ctx: Ctx, run: Run, reply: Reply): bigint[] {
         updatedAt: ctx.timestamp,
       });
     }
+    // A bank or Stripe row that pays a bill (or a sponsor paying an invoice): record it in QuickBooks
+    if (outcome !== 'void') recordPayment(ctx, BigInt(id), d.pays);
     if (outcome === 'review') {
       const r = d.review ?? {};
       const action = normalizeAction(r.action ?? d.recommendation);
@@ -386,6 +402,27 @@ function applyDecisions(ctx: Ctx, run: Run, reply: Reply): bigint[] {
   for (const itemId of run.reviewItemIds) {
     const item = ctx.db.reviewItem.id.find(itemId);
     if (item) ctx.db.reviewItem.id.update({ ...item, status: 'applied' });
+  }
+
+  // Overdue invoices it decided to remind, each allowed by a pattern
+  let reminders = 0;
+  for (const r of reply.reminders ?? []) {
+    if (reminders >= MAX_AUTO_REMINDERS || typeof r.invoice !== 'string') continue;
+    const m = typeof r.pattern === 'string' ? /^p(\d+)$/.exec(r.pattern) : null;
+    const pattern = m ? ctx.db.pattern.id.find(BigInt(m[1])) : undefined;
+    if (!pattern || pattern.status !== 'active') continue;
+    try {
+      const made = createReminder(
+        ctx,
+        r.invoice,
+        typeof r.message === 'string' ? clip(r.message, 2000) : undefined,
+        `Reminded by the Bookkeeper, following the pattern "${clip(pattern.text, 200)}"`
+      );
+      autoEmails.push(made.itemId);
+      reminders++;
+    } catch {
+      // already paid, already being reminded, or not an invoice: skip it
+    }
   }
 
   ctx.db.agentRun.id.update({ ...run, status: 'done', summary, finishedAt: ctx.timestamp });

@@ -191,3 +191,8 @@
 }
 @starting-style { .xl-new { opacity: 0; transform: translateX(-50%) translateY(4px); } }
 .xl-new:active { transform: translateX(-50%) scale(0.97); }
+
+/* QuickBooks bills and invoices: still owed (pending), or paid (quiet). They
+   say who owes whom and stay out of the cash total. */
+.xl tr.is-pending td { background: #efeaf8; color: #4b3a87; }
+.xl tr.is-doc-paid td { color: #6f6f78; }

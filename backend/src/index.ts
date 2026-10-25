@@ -13,6 +13,7 @@ import { settleTables } from './settle/tables';
 import { classifyTables } from './classify/tables';
 import { learnTables } from './learn/tables';
 import { learn } from './learn/learn';
+import { books } from './books/books';
 import { classify, ensureClassificationDefaults } from './classify/classify';
 import { settle } from './settle/messages';
 
@@ -262,3 +263,7 @@ export const { setClassificationMode, setClassifications, resetClassifications }
 // ─── Audit log & patterns ───────────────────────────────────────────────────
 
 export const { editPattern, deletePattern, addPattern } = learn(spacetimedb);
+
+// ─── QuickBooks: who owes whom ──────────────────────────────────────────────
+
+export const { remindInvoice } = books(spacetimedb);

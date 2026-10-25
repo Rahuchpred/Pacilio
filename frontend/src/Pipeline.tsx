@@ -27,6 +27,7 @@ import { mainAgent } from './pipeline/Agent';
 import { emails } from './pipeline/Emails';
 import { inbox } from './pipeline/Inbox';
 import { audit } from './pipeline/Audit';
+import { quickbooks } from './pipeline/Books';
 import { ItemPanel } from './pipeline/ItemPanel';
 import { ledger } from './pipeline/Ledger';
 import { needsYou } from './pipeline/NeedsYou';
@@ -60,6 +61,7 @@ const nodeTypes = {
   reportAgent: leveled(reportAgent),
   report: leveled(report),
   audit: leveled(audit),
+  books: leveled(quickbooks),
 };
 
 const typeOf = (id: string) => LAYOUT[id].type;
@@ -140,6 +142,8 @@ function useEdges(): Edge[] {
         data: { path: 'smoothstep' },
       }),
       e({ id: 'e-main-ledger', source: 'main', sourceHandle: 'out', target: 'ledger', targetHandle: 'in', label: 'Posts', className: 'edge-money', markerEnd: moneyArrow }),
+      e({ id: 'e-main-books', source: 'main', sourceHandle: 'books', target: 'books', targetHandle: 'in', label: 'Matches payments', data: { path: 'smoothstep' } }),
+      e({ id: 'e-books-emails', source: 'books', sourceHandle: 'remind', target: 'emails', targetHandle: 'in', label: 'Reminds', data: { path: 'smoothstep' } }),
       e({ id: 'e-flagged-audit', source: 'flagged', sourceHandle: 'calls', target: 'audit', targetHandle: 'calls', label: 'Your calls' }),
       e({
         id: 'e-audit-main',

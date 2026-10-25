@@ -99,6 +99,8 @@ interface NessieSim {
   // Ledger bill ids this account has already paid, so each is paid once
   // (except the deliberate double payments)
   paidBills: string[];
+  // Invoice ids a sponsor has already paid into this account
+  paidInvoices?: string[];
 }
 
 // Nessie accepts records missing fields its own list endpoints require, which
@@ -206,6 +208,29 @@ export const nessie: Source = {
           amount: dollars(cents),
           description: memo,
         });
+      } else if (roll < 0.58) {
+        // A sponsor pays one of our invoices into the bank, quoting its number:
+        // usually in full, sometimes short. Only invoices already in the feed,
+        // and some never get paid, so the books always have something overdue.
+        const paid = new Set(sim.paidInvoices ?? []);
+        const invoices = ctx.withTx(raw => {
+          const tx = raw as Ctx;
+          return [...tx.db.accountingInvoice.iter()].filter(
+            i => !paid.has(i.id.toString()) && tx.db.inboundEvent.dedupeKey.find(`ledger:invoice:${i.id}`)
+          );
+        });
+        if (!invoices.length || ctx.random() < 0.4) continue;
+        const invoice = pick(ctx.random, invoices);
+        sim.paidInvoices = [...(sim.paidInvoices ?? []), invoice.id.toString()];
+        const total = Number(invoice.totalMinor);
+        const cents = ctx.random() < 0.85 ? total : Math.round(total * ctx.random.integerInRange(50, 90) / 100);
+        nessiePost(ctx, `${base}/deposits`, {
+          medium: 'balance',
+          status: 'completed',
+          transaction_date: today,
+          amount: dollars(cents),
+          description: `${invoice.customer} - payment for ${invoice.docNumber}`,
+        });
       } else if (roll < 0.65) {
         const fromStripe = ctx.random() < 0.7;
         nessiePost(ctx, `${base}/deposits`, {
@@ -277,7 +302,8 @@ export const nessie: Source = {
           occurredAt: date(d.transaction_date),
           amountMinor: toMinor(d.amount),
           currency: 'USD',
-          counterparty: d.description || 'Deposit',
+          // "Bayline Energy Drinks - payment for INV-2497": the sponsor is the counterparty
+          counterparty: (d.description || 'Deposit').split(' - payment for ')[0],
           description: memo(d),
           reference: acct,
           raw: d,
