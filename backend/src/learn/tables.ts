@@ -36,7 +36,6 @@ export const pattern = table(
     // 'learned' (the learner may refine it) | 'edited' | 'person' (people own it; the learner leaves it alone)
     source: t.string(),
     // 'active' | 'deleted' (deleted ones are kept so the learner doesn't bring them back)
-    // | 'shelved:<scenario>' (learned in another business; back when it is switched to)
     status: t.string(),
     // Runs that said they applied it
     uses: t.u32(),

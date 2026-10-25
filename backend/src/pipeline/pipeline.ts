@@ -5,7 +5,7 @@ import { FactoryClient, FactoryError } from '../droid/factory';
 import { LEDGER_HTML, LEDGER_XLSX, MAX_AUTO_EMAILS, buildPrompt, buildRenderPrompt, type PromptDecision, type PromptEvent } from './prompt';
 import { finishMessages, markSent, promptId, queuedFor, requeueMessages } from '../settle/messages';
 import { currentClassifying } from '../classify/classify';
-import { dropUploadSession, latestFiles, ledgerRows, relative, setRenderDir, uploadSnapshot } from './snapshot';
+import { dropUploadSession, forgetFiles, latestFiles, ledgerRows, relative, setRenderDir, uploadSnapshot } from './snapshot';
 import {
   MAX_AUTO_REMINDERS,
   billInMemo,
@@ -123,6 +123,7 @@ export function resetPipeline(ctx: Ctx) {
   // Stop every agent (reports, learner, render, Ask too) and close their sessions
   shutDownAgents(ctx);
   closeSession(ctx, dropUploadSession(ctx));
+  forgetFiles(ctx);
   resetReports(ctx);
 }
 

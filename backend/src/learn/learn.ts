@@ -54,15 +54,11 @@ export function activePatterns(ctx: Ctx): Pattern[] {
   return [...ctx.db.pattern.iter()].filter(p => p.status === 'active').sort((a, b) => (a.id < b.id ? -1 : 1));
 }
 
-// Patterns belong to the business they were learned in. Switching scenarios
-// sets the old one's aside as 'shelved:<key>' and brings the new one's back,
-// so rules learned at the concert never steer the coffee shop.
-export function swapPatterns(ctx: Ctx, from: string, to: string) {
-  if (from === to) return;
-  for (const p of [...ctx.db.pattern.iter()]) {
-    if (p.status === 'active') ctx.db.pattern.id.update({ ...p, status: `shelved:${from}`, updatedAt: ctx.timestamp });
-    else if (p.status === `shelved:${to}`) ctx.db.pattern.id.update({ ...p, status: 'active', updatedAt: ctx.timestamp });
-  }
+// Restart and scenario swaps start learning over: every pattern goes (learned,
+// edited, set by a person, deleted) and the learner forgets where it was.
+export function resetPatterns(ctx: Ctx) {
+  for (const p of [...ctx.db.pattern.iter()]) ctx.db.pattern.id.delete(p.id);
+  update(ctx, { learnedThrough: 0n, taskId: undefined, pendingThrough: 0n, lastRunAt: undefined, lastError: undefined });
 }
 
 // For the Bookkeeper's prompt

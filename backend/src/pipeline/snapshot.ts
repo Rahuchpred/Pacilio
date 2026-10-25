@@ -156,6 +156,12 @@ export function uploadSnapshot(ctx: PCtx): string {
   return dir;
 }
 
+// Forget where the last ledger, workbook and report were written (Restart).
+// seq keeps counting: uploads can't overwrite a file that's already there.
+export function forgetFiles(ctx: Ctx) {
+  if (files(ctx)) saveFiles(ctx, { latestDir: '', rows: 0, renderDir: undefined, reportDir: undefined });
+}
+
 // Forget the upload session (Restart closes it); the next upload makes a new one.
 export function dropUploadSession(ctx: Ctx): string | undefined {
   const sessionId = files(ctx)?.uploadSessionId;

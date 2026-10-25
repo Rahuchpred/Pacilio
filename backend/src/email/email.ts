@@ -50,6 +50,11 @@ export function ensureFollowUpDefaults(ctx: Ctx) {
   if (ctx.db.emailFollowUp.count() === 0n) writeSteps(ctx, DEFAULT_FOLLOW_UPS);
 }
 
+// Back to the default schedule (Restart).
+export function resetFollowUps(ctx: Ctx) {
+  writeSteps(ctx, DEFAULT_FOLLOW_UPS);
+}
+
 // The schedule in order (the defaults until it has been seeded).
 function followUpSteps(ctx: Ctx): Step[] {
   const rows = [...ctx.db.emailFollowUp.iter()].sort((a, b) => a.step - b.step);
