@@ -44,16 +44,17 @@ export class AgentMail {
     return this.request('POST', '/inboxes', { display_name: displayName });
   }
 
-  send(inboxId: string, to: string, subject: string, text: string): { message_id: string; thread_id: string } {
-    return this.request('POST', `/inboxes/${encodeURIComponent(inboxId)}/messages/send`, { to: [to], subject, text });
+  // `text` is the plain fallback; `html` is what most inboxes show
+  send(inboxId: string, to: string, subject: string, text: string, html?: string): { message_id: string; thread_id: string } {
+    return this.request('POST', `/inboxes/${encodeURIComponent(inboxId)}/messages/send`, { to: [to], subject, text, html });
   }
 
   // Answer a message in its thread
-  reply(inboxId: string, messageId: string, text: string): { message_id: string; thread_id: string } {
+  reply(inboxId: string, messageId: string, text: string, html?: string): { message_id: string; thread_id: string } {
     return this.request(
       'POST',
       `/inboxes/${encodeURIComponent(inboxId)}/messages/${encodeURIComponent(messageId)}/reply`,
-      { text }
+      { text, html }
     );
   }
 

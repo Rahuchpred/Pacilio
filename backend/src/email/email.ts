@@ -4,6 +4,7 @@ import type spacetimedb from '../index';
 import { AgentMail, type AgentMailMessage } from './agentmail';
 import { emailTickSchedule } from './tables';
 import { logAction } from '../learn/audit';
+import { SENDER, SHOW, money, reference, renderEmail, shortDate, type Detail } from './template';
 
 type Schema = typeof spacetimedb;
 type Ctx = ReducerCtx<InferSchema<Schema>>;
@@ -24,8 +25,8 @@ const MAX_DELAY_MIN = 7 * 24 * 60;
 const MAX_MESSAGE = 1000;
 const TICK_INTERVAL_MICROS = 30_000_000n;
 const MINUTE_MICROS = 60_000_000n;
-const INBOX_NAME = 'Settle Bookkeeping';
-const SIGNATURE = '\n\nSettle\nBookkeeping for the Oct 24 show';
+const INBOX_NAME = SENDER;
+const SIGNATURE = `\n\n${SENDER}\nSettlement for the ${SHOW}`;
 
 // No em or en dashes in anything we email: number ranges get a hyphen, any
 // other dash becomes a comma.
@@ -111,13 +112,24 @@ export function startFollowUp(ctx: PCtx, reviewItemId: bigint): string {
   if (!info.item) throw new SenderError('Item not found');
   const counterparty = info.detail?.followUpTo || info.event?.counterparty || 'the vendor';
   const subject = info.detail?.followUpSubject || info.detail?.title || info.item.question;
-  const body = noDashes(
-    (info.detail?.followUpMessage ||
-      `Hello ${counterparty},\n\n${info.detail?.whatHappened || info.item.reason}\n\n${info.detail?.fix || ''}`) +
-      SIGNATURE
+  const text = noDashes(
+    info.detail?.followUpMessage ||
+      `Hello ${counterparty},\n\n${info.detail?.whatHappened || info.item.reason}\n\n${info.detail?.fix || ''}`
   );
+  const body = text + SIGNATURE;
   const subjectClean = noDashes(subject);
   const to = ctx.env.FOLLOWUP_EMAIL_TO ?? '';
+  const ref = reference(reviewItemId);
+  const event = info.event;
+  const amount = event && event.amountMinor !== 0n ? money(event.amountMinor, event.currency) : undefined;
+  const details: Detail[] = [
+    { label: 'Show', value: SHOW.replace(/ show$/, '') },
+    { label: 'Counterparty', value: counterparty },
+    ...(event && amount ? [{ label: 'Amount', value: amount, tone: event.amountMinor > 0n ? ('in' as const) : undefined }] : []),
+    ...(event?.reference ? [{ label: 'Their reference', value: event.reference, mono: true }] : []),
+    ...(event ? [{ label: 'Dated', value: shortDate(event.occurredAt.toDate()) }] : []),
+    { label: 'Our reference', value: ref, mono: true },
+  ];
 
   const threadId = ctx.withTx(tx => {
     const thread = tx.db.emailThread.insert({
@@ -144,7 +156,17 @@ export function startFollowUp(ctx: PCtx, reviewItemId: bigint): string {
     if (!to) throw new Error('FOLLOWUP_EMAIL_TO is not set in .env');
     const mail = client(ctx);
     const box = inbox(ctx, mail);
-    const sent = mail.send(box.inboxId, to, subjectClean, body);
+    const html = renderEmail({
+      preheader: noDashes(info.item.question),
+      reference: ref,
+      title: subjectClean,
+      details,
+      amount,
+      sentOn: shortDate(ctx.timestamp.toDate()),
+      message: text,
+      replyTo: box.address,
+    });
+    const sent = mail.send(box.inboxId, to, subjectClean, body, html);
     ctx.withTx(tx => {
       tx.db.emailMessage.insert({
         id: 0n,
@@ -171,13 +193,22 @@ export function startFollowUp(ctx: PCtx, reviewItemId: bigint): string {
   }
 }
 
-// Send something in a thread from us and (re)start waiting for an answer.
+// Send something in a thread from us (signed in both versions) and
+// (re)start waiting for an answer.
 function sendInThread(ctx: PCtx, thread: Thread, raw: string, kind: 'follow_up' | 'reply', followUps: number) {
-  const text = noDashes(raw);
+  const message = noDashes(raw);
+  const text = message + SIGNATURE;
   const mail = client(ctx);
   const box = inbox(ctx, mail);
   if (!thread.lastMessageId) throw new Error('This thread has no message to reply to');
-  const sent = mail.reply(box.inboxId, thread.lastMessageId, text);
+  const html = renderEmail({
+    preheader: message.split('\n')[0],
+    reference: reference(thread.reviewItemId),
+    sentOn: shortDate(ctx.timestamp.toDate()),
+    message,
+    replyTo: box.address,
+  });
+  const sent = mail.reply(box.inboxId, thread.lastMessageId, text, html);
   ctx.withTx(tx => {
     tx.db.emailMessage.insert({
       id: 0n,
@@ -272,7 +303,7 @@ export function email(stdb: Schema) {
             current.nextFollowUpAt.microsSinceUnixEpoch <= ctx.timestamp.microsSinceUnixEpoch
           ) {
             const step = steps[current.followUps];
-            if (step) sendInThread(ctx, current, step.message + SIGNATURE, 'follow_up', current.followUps + 1);
+            if (step) sendInThread(ctx, current, step.message, 'follow_up', current.followUps + 1);
           }
         } catch (err) {
           ctx.withTx(tx => updateThread(tx, thread.id, { error: message(err) }));
@@ -292,7 +323,7 @@ export function email(stdb: Schema) {
       const thread = ctx.withTx(tx => tx.db.emailThread.id.find(threadId));
       if (!thread) throw new SenderError('Thread not found');
       try {
-        sendInThread(ctx, thread, body + SIGNATURE, 'reply', 0);
+        sendInThread(ctx, thread, body, 'reply', 0);
       } catch (err) {
         throw new SenderError(message(err));
       }
