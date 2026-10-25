@@ -100,6 +100,7 @@ import EventReviewRow from "./event_review_table";
 import InboundEventRow from "./inbound_event_table";
 import InboundSourceStatusRow from "./inbound_source_status_table";
 import LedgerDocumentRow from "./ledger_document_table";
+import LedgerFilesRow from "./ledger_files_table";
 import LedgerRenderRow from "./ledger_render_table";
 import NodeRow from "./node_table";
 import PatternRow from "./pattern_table";
@@ -349,6 +350,17 @@ const tablesSchema = __schema({
       { name: 'ledger_document_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, LedgerDocumentRow),
+  ledgerFiles: __table({
+    name: 'ledger_files',
+    indexes: [
+      { accessor: 'id', name: 'ledger_files_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'ledger_files_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, LedgerFilesRow),
   ledgerRender: __table({
     name: 'ledger_render',
     indexes: [

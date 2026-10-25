@@ -305,6 +305,18 @@ export const LedgerDocument = __t.object("LedgerDocument", {
 });
 export type LedgerDocument = __Infer<typeof LedgerDocument>;
 
+export const LedgerFiles = __t.object("LedgerFiles", {
+  id: __t.u32(),
+  seq: __t.u64(),
+  latestDir: __t.string(),
+  rows: __t.u32(),
+  writtenAt: __t.timestamp(),
+  renderDir: __t.option(__t.string()),
+  reportDir: __t.option(__t.string()),
+  uploadSessionId: __t.option(__t.string()),
+});
+export type LedgerFiles = __Infer<typeof LedgerFiles>;
+
 export const LedgerRender = __t.object("LedgerRender", {
   id: __t.u32(),
   status: __t.string(),

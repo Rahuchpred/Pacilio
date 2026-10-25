@@ -5,6 +5,7 @@ import { FactoryClient } from '../droid/factory';
 import { REPORT_PATH, REPORT_VERSION } from './reportScript';
 import { finishMessages, markSent, promptId, queuedFor, requeueMessages, type Message } from '../settle/messages';
 import { logAction } from '../learn/audit';
+import { latestFiles, relative, setReportDir, uploadSnapshot } from './snapshot';
 
 // The reports agent: every REPORT_EVERY_MICROS while the pipeline runs (and
 // only if the ledger changed), or when someone presses Refresh, Droid runs the
@@ -16,8 +17,6 @@ type PCtx = ProcedureCtx<InferSchema<Schema>>;
 type State = NonNullable<ReturnType<Ctx['db']['reportState']['id']['find']>>;
 
 const REPORT_EVERY_MICROS = 10n * 60_000_000n;
-const WORKDIR = '/home/factory-user/settle';
-const REPORT_CMD = `python3 /home/factory-user/${REPORT_PATH} ${WORKDIR}`;
 const MAX_HTML_CHARS = 2_000_000;
 
 function state(ctx: Ctx): State {
@@ -50,7 +49,10 @@ const MAX_CHARTS = 8;
 const MAX_CHART_ROWS = 30;
 const chartId = (c: Chart) => `c${c.id}`;
 
-function buildReportPrompt(requests: Message[], charts: Chart[]): string {
+// dir: this build's ledger snapshot folder; the tool writes the report there too
+function buildReportPrompt(requests: Message[], charts: Chart[], dir: string): string {
+  const WORKDIR = dir;
+  const REPORT_CMD = `python3 /home/factory-user/${REPORT_PATH} ${dir}`;
   return `You are Settle's reports agent for a concert promoter's Oct 25 show.
 Work quickly: don't look for AGENTS.md, skills or other context.
 
@@ -191,7 +193,8 @@ export function reportsTick(ctx: PCtx) {
         remove?: unknown;
       };
       const factory = new FactoryClient(ctx.http, ctx.env.FACTORY_API_KEY);
-      const url = factory.downloadUrl(ctx.env.FACTORY_COMPUTER_ID, task.sessionId!, 'settle/report.html');
+      const dir = ctx.withTx(tx => latestFiles(tx)?.reportDir);
+      const url = factory.downloadUrl(ctx.env.FACTORY_COMPUTER_ID, task.sessionId!, dir ? relative(dir, 'report.html') : 'settle/report.html');
       const res = ctx.http.fetch(url);
       if (res.status !== 200) throw new Error(`Report download returned ${res.status}`);
       const html = res.text().slice(0, MAX_HTML_CHARS);
@@ -231,10 +234,13 @@ export function reportsTick(ctx: PCtx) {
       (!snap.s.lastStartedAt ||
         ctx.timestamp.microsSinceUnixEpoch - snap.s.lastStartedAt.microsSinceUnixEpoch >= REPORT_EVERY_MICROS));
   if (!due) return;
+  // The report reads a fresh snapshot of the ledger and writes its files beside it
+  const dir = uploadSnapshot(ctx);
   ctx.withTx(tx => {
     const requests = queuedFor(tx, 'reports');
     const charts = [...tx.db.reportChart.iter()].sort((a, b) => (a.id < b.id ? -1 : 1));
-    const taskId = enqueueAgentTask(tx, 'report', buildReportPrompt(requests, charts), 'high');
+    const taskId = enqueueAgentTask(tx, 'report', buildReportPrompt(requests, charts, dir), 'high');
+    setReportDir(tx, dir);
     markSent(tx, requests, taskId);
     update(tx, {
       status: 'running',
@@ -263,7 +269,8 @@ export function reports(stdb: Schema, ensurePipelineTicking: (ctx: Ctx) => void)
     });
     if (!sessionId) throw new SenderError('No report has been built yet');
     const factory = new FactoryClient(ctx.http, ctx.env.FACTORY_API_KEY);
-    return factory.downloadUrl(ctx.env.FACTORY_COMPUTER_ID, sessionId, 'settle/report.xlsx');
+    const dir = ctx.withTx(tx => latestFiles(tx)?.reportDir);
+    return factory.downloadUrl(ctx.env.FACTORY_COMPUTER_ID, sessionId, dir ? relative(dir, 'report.xlsx') : 'settle/report.xlsx');
   });
 
   return { requestReport, reportXlsxUrl };

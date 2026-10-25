@@ -5,6 +5,7 @@ import { FactoryClient, FactoryError } from '../droid/factory';
 import { LEDGER_HTML, LEDGER_XLSX, MAX_AUTO_EMAILS, buildPrompt, buildRenderPrompt, type PromptDecision, type PromptEvent } from './prompt';
 import { finishMessages, markSent, promptId, queuedFor, requeueMessages } from '../settle/messages';
 import { currentClassifying } from '../classify/classify';
+import { latestFiles, relative, setRenderDir, uploadSnapshot } from './snapshot';
 import { learnTick, patternsForPrompt, recordPatternUses } from '../learn/learn';
 import { logAction } from '../learn/audit';
 import { RENDER_PATH, RENDER_SCRIPT, RENDER_VERSION } from './renderScript';
@@ -108,7 +109,9 @@ export function resetPipeline(ctx: Ctx) {
 // ─── Runs ───────────────────────────────────────────────────────────────────
 
 // Hand the waiting events (and any human decisions) to Droid, if there are any.
-function startRun(ctx: Ctx): boolean {
+// Start a Bookkeeper run if one is due. With `dryRun` it only says whether it
+// would (the tick uploads a fresh ledger snapshot first, then starts it).
+function startRun(ctx: Ctx, ledgerDir?: string, dryRun = false): boolean {
   const agent = agentState(ctx);
   if (agent.currentRunId !== undefined) return false;
   // Messages from the team go out even while paused (just without new events)
@@ -127,8 +130,13 @@ function startRun(ctx: Ctx): boolean {
     ? ctx.timestamp.microsSinceUnixEpoch - waiting[0].receivedAt.microsSinceUnixEpoch
     : 0n;
   if (!decided.length && !messages.length && waiting.length < MIN_BATCH && oldestWaitedMicros < MAX_WAIT_MICROS) return false;
+  if (dryRun || !ledgerDir) return true;
 
-  const events: PromptEvent[] = waiting.map(e => ({
+  // Settle numbers rows in arrival order; these come right after the rows so far
+  let rowsSoFar = 0;
+  for (const r of ctx.db.eventReview.iter()) if (r.status === 'done') rowsSoFar++;
+  const events: PromptEvent[] = waiting.map((e, i) => ({
+    row: rowsSoFar + i + 1,
     id: e.id.toString(),
     source: e.source,
     kind: e.kind,
@@ -154,7 +162,7 @@ function startRun(ctx: Ctx): boolean {
     buildPrompt(
       events,
       decisions,
-      agent.resetLedger,
+      ledgerDir,
       messages.map(m => ({ id: promptId(m), text: m.text })),
       currentClassifying(ctx),
       patternsForPrompt(ctx)
@@ -453,7 +461,8 @@ function renderTick(ctx: PCtx): boolean {
     let html: string | undefined;
     try {
       const factory = new FactoryClient(ctx.http, ctx.env.FACTORY_API_KEY);
-      const res = ctx.http.fetch(factory.downloadUrl(ctx.env.FACTORY_COMPUTER_ID, task.sessionId!, LEDGER_HTML));
+      const dir = ctx.withTx(tx => latestFiles(tx)?.renderDir);
+      const res = ctx.http.fetch(factory.downloadUrl(ctx.env.FACTORY_COMPUTER_ID, task.sessionId!, dir ? relative(dir, 'ledger.html') : LEDGER_HTML));
       if (res.status === 200) html = res.text().slice(0, MAX_HTML_CHARS);
     } catch {
       // the .xlsx is what matters
@@ -480,8 +489,10 @@ function renderTick(ctx: PCtx): boolean {
   const stale =
     !r.renderedAt || ctx.timestamp.microsSinceUnixEpoch - r.renderedAt.microsSinceUnixEpoch >= RENDER_EVERY_MICROS;
   if (!r.requested && !stale) return false;
+  const dir = uploadSnapshot(ctx);
   ctx.withTx(tx => {
-    const taskId = enqueueAgentTask(tx, 'render', buildRenderPrompt(), 'high');
+    const taskId = enqueueAgentTask(tx, 'render', buildRenderPrompt(dir), 'high');
+    setRenderDir(tx, dir);
     updateRender(tx, { status: 'running', taskId, requested: false, pendingRunId: doc.runId, lastError: undefined });
   });
   return true;
@@ -620,7 +631,16 @@ export function pipeline(stdb: Schema) {
       }
       if (rendering) return {};
 
-      const started = ctx.withTx(tx => startRun(tx));
+      // A run is due: write a fresh ledger snapshot for it, then start it
+      let started = false;
+      if (ctx.withTx(tx => startRun(tx, undefined, true))) {
+        try {
+          const dir = uploadSnapshot(ctx);
+          started = ctx.withTx(tx => startRun(tx, dir));
+        } catch (err) {
+          ctx.withTx(tx => updateAgent(tx, { lastError: `Ledger snapshot: ${message(err)}` }));
+        }
+      }
       const reportRunning = ctx.withTx(tx => {
         const report = tx.db.reportState.id.find(0);
         return report?.status === 'running' || !!report?.requested;
@@ -725,10 +745,13 @@ export function pipeline(stdb: Schema) {
   // A fresh download link for the .xlsx workbook the agent last wrote.
   // A fresh link to the last built workbook
   const ledgerXlsxUrl = stdb.procedure(t.string(), ctx => {
-    const sessionId = ctx.withTx(tx => tx.db.ledgerRender.id.find(0)?.sessionId);
+    const { sessionId, dir } = ctx.withTx(tx => ({
+      sessionId: tx.db.ledgerRender.id.find(0)?.sessionId,
+      dir: latestFiles(tx)?.renderDir,
+    }));
     if (!sessionId) throw new SenderError('The workbook has not been built yet');
     const factory = new FactoryClient(ctx.http, ctx.env.FACTORY_API_KEY);
-    return factory.downloadUrl(ctx.env.FACTORY_COMPUTER_ID, sessionId, LEDGER_XLSX);
+    return factory.downloadUrl(ctx.env.FACTORY_COMPUTER_ID, sessionId, dir ? relative(dir, 'ledger.xlsx') : LEDGER_XLSX);
   });
 
   // Build the workbook from the latest ledger (between Bookkeeper runs)

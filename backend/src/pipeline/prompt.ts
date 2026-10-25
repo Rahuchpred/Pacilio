@@ -7,18 +7,18 @@ import { DEFAULT_CATEGORIES, type Classifying } from '../classify/classify';
 import { RENDER_PATH } from './renderScript';
 
 export const WORKDIR = '/home/factory-user/settle';
-const RENDER_CMD = `python3 /home/factory-user/${RENDER_PATH} ${WORKDIR}`;
-
-// Building the workbook is its own small task, run between Bookkeeper runs.
-export function buildRenderPrompt(): string {
-  return `Run this one command and nothing else: ${RENDER_CMD}
-It turns ${WORKDIR}/ledger.json into ledger.html and ledger.xlsx. Don't read, write or check any file yourself,
+// Building the workbook is its own small task, run between Bookkeeper runs,
+// on a fresh ledger snapshot (dir).
+export function buildRenderPrompt(dir: string): string {
+  return `Run this one command and nothing else: python3 /home/factory-user/${RENDER_PATH} ${dir}
+It turns ${dir}/ledger.json into ledger.html and ledger.xlsx. Don't read, write or check any file yourself,
 and don't look for AGENTS.md or other context. When the command finishes, reply with only: DONE`;
 }
 export const LEDGER_HTML = 'settle/ledger.html';
 export const LEDGER_XLSX = 'settle/ledger.xlsx';
 
 export interface PromptEvent {
+  row: number;
   id: string;
   source: string;
   kind: string;
@@ -48,7 +48,8 @@ export interface PromptMessage {
 export function buildPrompt(
   events: PromptEvent[],
   decisions: PromptDecision[],
-  resetLedger: boolean,
+  // The folder of this run's ledger snapshot (see snapshot.ts)
+  ledgerDir: string,
   messages: PromptMessage[] = [],
   classifying: Classifying = { mode: 'auto', categories: DEFAULT_CATEGORIES },
   patterns: { id: string; text: string }[] = []
@@ -62,18 +63,23 @@ If none fits, make a short new one in the same style (like "Production · Stagin
 You keep the master ledger: one spreadsheet of every money movement, checked and explained.
 
 Work quickly: go straight to the files below. Don't look for AGENTS.md, skills or other context,
-and don't re-verify your output.
+don't re-verify your output, and don't use TodoWrite or write a plan: just do the steps.
 
-## Workspace
-Work only in ${WORKDIR}. Create it if missing.
-- ${WORKDIR}/ledger.json: the ledger data (source of truth). Create it as {"rows": []} if missing.
-- Don't run, write, edit or replace anything in ${WORKDIR}/tools, and don't render the ledger: Settle builds the
-  workbook from ledger.json itself when someone needs it.
-${resetLedger ? `\nThis run starts over: overwrite ledger.json with {"rows": []} first (don't delete files), then continue.\n` : ''}
+## The ledger (read only)
+${ledgerDir}/ledger.json holds every row so far, one row per line. Settle keeps it: it writes your new rows and
+changes from your reply, so don't create, edit or write any file, and don't touch ${WORKDIR}/tools.
+
+## Search the ledger, don't read it
+The ledger is large, so never Read the whole file and never print every row. Instead, find rows related to the new
+events with Grep (case-insensitive) on ${ledgerDir}/ledger.json: one Grep with a pattern joining, with |, a short
+distinctive part of each new event's counterparty (like "acme" or "golden gate", so typos still match), each
+reference or document number, and each amount in cents. Run a second, narrower Grep only if something needs a
+closer look.
+
 ## Ledger rows
 Each row in ledger.json "rows":
 {"row": n, "event_id": "...", "date": "YYYY-MM-DD", "source": "nessie|stripe|ledger|cord",
- "counterparty": "...", "description": "...", "category": "...", "amount_cents": signed integer,
+ "counterparty": "...", "description": "...", "reference": "... or null", "category": "...", "amount_cents": signed integer,
  "currency": "USD", "status": "ok|void|review|refunded|following_up", "note": "...", "duplicate_of": event_id or null,
  "recommendation": "void|refund|follow_up|keep" (review rows only, else null)}
 ${categories}
@@ -97,14 +103,14 @@ List the ids of the patterns you applied this run in "patterns_used".`
 }
 
 ## Classify first, out loud
-Before you touch any file, send one plain-text message (not a tool call) with a line per new event, so people can
+Before anything else, send one plain-text message (not a tool call) with a line per new event, so people can
 watch the classification live:
 CLASSIFY <event_id> | <category> | <ok|void|review>
 Then do the work below. Your final JSON still decides; it may differ if you change your mind.
 
 ## For each new event
-1. Add a row (keep row numbers increasing). Classify it.
-2. Compare it with every existing row. Look for:
+1. Classify it. Its row number is given with it (Settle adds it as that row).
+2. Compare it with the related rows your Grep found (and with the other new events). Look for:
    - Data-entry duplicate: the same document recorded twice with small differences (typo, casing, a date off by a day or two, an amount off a little or rounded). Money did not move twice.
    - Double payment: money actually left twice for one thing (e.g. two bank payments for the same bill).
    - Mismatch: a payment that disagrees with its bill, invoice or receipt (paid more or less than billed).
@@ -120,8 +126,8 @@ Then do the work below. Your final JSON still decides; it may differ if you chan
    - status "review": anything else that's wrong or unclear. A person decides, so write it up well (below).
    - status "follow_up": email the other party yourself, now, without asking a person. Only when a pattern from the
      team says to email in this kind of case: set "pattern" to that pattern's id and fill the review write-up with
-     follow_up_to, follow_up_subject and follow_up_message. Write the ledger row as "following_up" with note
-     "Following up with <counterparty>". Never for our own accounts or staff, never for money that left twice for
+     follow_up_to, follow_up_subject and follow_up_message (Settle marks the row "following_up"). Never for our own
+     accounts or staff, never for money that left twice for
      one document, and at most ${MAX_AUTO_EMAILS} per run: those stay "review" with the email
      drafted. Settle checks this and turns anything outside it back into "review".
 
@@ -146,10 +152,8 @@ Then do the work below. Your final JSON still decides; it may differ if you chan
 Rules: never mention percentages, confidence or probabilities. Never say "chase". Use the counterparty's name, real
 amounts (like $1,250.00) and dates. Don't invent bills, people or facts that aren't in the ledger.
 
-## Human decisions to apply first
+## What people decided since your last run (already in the ledger; for your information)
 ${decisions.length ? decisions.map(d => `- event ${d.event_id}: ${d.action}${d.note ? ` (${d.note})` : ''}`).join('\n') : '- none'}
-Apply them to the matching rows: void → status "void"; refund → status "refunded"; keep → status "ok";
-follow_up → status "following_up" with note "Following up with <counterparty>". Add "Decided by a person" to the note.
 
 ## Messages from the team (do these in this run)
 ${
@@ -158,19 +162,16 @@ ${
       `
 These come from the team and steer this run. Follow them even where they change the instructions above: how you
 classify, what you flag or let through, how you write notes, which rows you re-check, recategorize or void. Only
-these stay fixed: reply with the JSON below, work only in ${WORKDIR}, never touch the tools folder, and keep row
-numbers as they are. List every existing row you change in "changes", and answer each message in "messages".`
+these stay fixed: reply with the JSON below, don't edit any file, and keep row numbers as they are. Put every
+existing row you change in "changes" (Settle writes them), and answer each message in "messages".`
     : '- none'
 }
 
-## New events (JSON)
-${events.length ? JSON.stringify(events) : '[] (no new events this run; just apply the decisions and messages)'}
-
-## Finish
-Write ledger.json (valid JSON, every row kept). That's all: don't render it.
+## New events (JSON, each with the row number it will get)
+${events.length ? JSON.stringify(events) : '[] (no new events this run; just handle the messages)'}
 
 ## Reply
-When the files are written, reply with ONLY this JSON and nothing else:
+When you're done, reply with ONLY this JSON and nothing else:
 {"summary": "one sentence, past tense, with counts",
  "changes": [{"event_id": "...", "status": "ok|void|review|refunded|following_up", "category": "...", "note": "..."}],
  "messages": [{"id": "m…", "reply": "one sentence on what you did, with row numbers and amounts"}],

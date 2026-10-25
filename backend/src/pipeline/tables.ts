@@ -123,6 +123,29 @@ export const ledgerRender = table(
   }
 );
 
+// Where the latest ledger snapshot lives on the Factory computer (singleton,
+// id 0). The backend owns the ledger: before each Bookkeeper run (and before a
+// workbook build, report or Ask Settle) it writes every checked row from these
+// tables to a fresh folder there, since Factory won't overwrite an upload.
+export const ledgerFiles = table(
+  { name: 'ledger_files', public: true },
+  {
+    id: t.u32().primaryKey(),
+    // Increases with every snapshot: settle/data/<seq>/ledger.json
+    seq: t.u64(),
+    // Absolute folder of the latest snapshot, e.g. /home/factory-user/settle/data/12
+    latestDir: t.string(),
+    // Rows in it, and when it was written
+    rows: t.u32(),
+    writtenAt: t.timestamp(),
+    // Where the last workbook build and show report wrote their files
+    renderDir: t.string().optional(),
+    reportDir: t.string().optional(),
+    // A session kept for uploads (any session on the computer can receive files)
+    uploadSessionId: t.string().optional(),
+  }
+);
+
 // The master ledger as Droid last rendered it (singleton, id 0). runId moves
 // with every Bookkeeper run; html with every workbook build.
 export const ledgerDocument = table(
@@ -216,6 +239,7 @@ export const pipelineTables = {
   reviewDetail,
   ledgerDocument,
   ledgerRender,
+  ledgerFiles,
   toolInstall,
   reportDocument,
   reportChart,
