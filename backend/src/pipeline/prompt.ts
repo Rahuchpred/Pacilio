@@ -104,7 +104,7 @@ is 0 is a double payment.
 
 ## Ledger rows
 Each row in ledger.json "rows":
-{"row": n, "event_id": "...", "date": "YYYY-MM-DD", "source": "nessie|stripe|ledger|cord",
+{"row": n, "event_id": "...", "date": "YYYY-MM-DD", "source": "nessie|stripe|ledger",
  "counterparty": "...", "description": "...", "reference": "... or null", "category": "...", "amount_cents": signed integer,
  "currency": "USD", "status": "ok|void|review|refunded|following_up", "note": "...", "duplicate_of": event_id or null,
  "recommendation": "void|refund|follow_up|keep" (review rows only, else null)}
@@ -120,7 +120,6 @@ Amounts: positive = money in, negative = money out.
   an invoice is what a sponsor owes us (kind "invoice", paid later by a bank deposit "<sponsor> - payment for INV-…").
   Bills and invoices are normally "ok" (category as for the money they cover); flag one only if it is itself wrong
   (a duplicate entry, a mistyped amount).
-- cord: scanned receipts for small purchases
 
 ## Patterns from the team
 ${
@@ -143,7 +142,7 @@ Then do the work below. Your final JSON still decides; it may differ if you chan
 2. Compare it with its related rows and documents (and with the other new events). Look for:
    - Data-entry duplicate: the same document recorded twice with small differences (typo, casing, a date off by a day or two, an amount off a little or rounded). Money did not move twice.
    - Double payment: money actually left twice for one thing (e.g. two bank payments for the same bill).
-   - Mismatch: a payment that disagrees with its bill, invoice or receipt (paid more or less than billed).
+   - Mismatch: a payment that disagrees with its bill or invoice (paid more or less than billed).
    - No bill: a bank payment to a vendor whose memo quotes no bill number and that matches no bill in its
      documents or related rows (same vendor, same amount). Money left with nothing in QuickBooks behind it.
    When a bank or Stripe row pays one of our bills, or is a sponsor paying our invoice, put that bill or invoice
@@ -158,7 +157,7 @@ Then do the work below. Your final JSON still decides; it may differ if you chan
    Under ${noBillLimit} to a vendor we already have bills from ("vendor_bills" above 0): status "ok", note "No bill on file".
    ${noBillLimit} or more, or a vendor we have no bills from ("vendor_bills" 0): status "review", action "follow_up", asking the vendor for the bill.
    Only ask a person when something is actually wrong: money left twice for one document, an amount that
-   disagrees with its bill, invoice or receipt, a no-bill payment as above, or a duplicate entry you aren't sure about.
+   disagrees with its bill or invoice, a no-bill payment as above, or a duplicate entry you aren't sure about.
 3. Decide:
    - status "ok": nothing wrong. Put a short match in "note" if there is one, e.g. "Pays bill AV-0423".
    - status "void": an obvious data-entry duplicate (same counterparty, same document, tiny differences). Set duplicate_of.
@@ -178,7 +177,7 @@ Then do the work below. Your final JSON still decides; it may differ if you chan
 - action: exactly one of
     "void"      - the row is a duplicate entry in our books; remove it. No money moves.
     "refund"    - only for a Stripe ticket charge we should give back; Pacioli refunds it on Stripe.
-    "follow_up" - we need the other party to act or explain (refund an overpayment, send a missing bill or receipt,
+    "follow_up" - we need the other party to act or explain (refund an overpayment, send a missing bill,
                   confirm a charge). Pacioli will email them.
     "keep"      - the row is fine on reflection; leave it.
 - fix: one sentence saying exactly what the action does to which row. "Void row 14, the second −$1,250.00 payment."

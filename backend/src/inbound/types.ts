@@ -8,8 +8,7 @@ export type EventKind =
   | 'card_transaction' // Nessie purchases
   | 'bill' // Ledger (and Nessie bill pay): we owe a vendor
   | 'invoice' // Ledger: a customer owes us
-  | 'payment_recorded' // Ledger: a payment booked against a bill or invoice
-  | 'receipt'; // CORD: proof of a purchase
+  | 'payment_recorded'; // Ledger: a payment booked against a bill or invoice
 
 export interface InboundEventDraft {
   // Stable id in the source system; with `source` it de-duplicates re-polls

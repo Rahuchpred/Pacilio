@@ -83,7 +83,7 @@ function useEdges(): Edge[] {
   return useMemo(() => {
     const e = (edge: Edge): Edge => ({ type: 'flow', markerEnd: arrow, ...edge });
     return [
-      // Four lanes, one per source, each in its source's color
+      // One lane per source, each in its source's color
       ...LANE_SOURCES.map(source =>
         e({
           id: laneId(source),

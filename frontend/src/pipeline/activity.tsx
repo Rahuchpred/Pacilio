@@ -10,7 +10,7 @@ import { sentence } from './text';
 // up to Needs you. Every line keeps its own queue, spaced so tags never
 // overlap. An event's transaction card shows only once its packet has arrived.
 
-export const LANE_SOURCES = ['nessie', 'stripe', 'ledger', 'cord'] as const;
+export const LANE_SOURCES = ['nessie', 'stripe', 'ledger'] as const;
 export const laneId = (source: string) => `e-in-${source}`;
 
 // How long a trip takes and how far apart tags start, per kind of line.

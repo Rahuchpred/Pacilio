@@ -9,7 +9,6 @@
   --color-source-nessie: #2f6fdb;
   --color-source-stripe: #635bff;
   --color-source-ledger: #0e8a8a;
-  --color-source-cord: #a3509b;
 }
 /* Presence: who is on the canvas. Six soft hues, light enough to glow,
    clear of the action colors (orange decide, green done, red issue) and
@@ -34,7 +33,6 @@
 .src-nessie { --src: var(--color-source-nessie); }
 .src-stripe { --src: var(--color-source-stripe); }
 .src-ledger { --src: var(--color-source-ledger); }
-.src-cord { --src: var(--color-source-cord); }
 /* A source tag: the source's color as a soft fill with its own ink. */
 .src-tag {
   display: inline-flex;

@@ -91,7 +91,7 @@ ${actions.map(a => `- ${auditId(a)} · ${clockOf(a)} · ${a.whoName}: ${a.summar
 ## Your job
 Find what people keep doing the same way and write it as a pattern the Bookkeeper can follow.
 - One plain sentence, written as an instruction, with a clear scope (vendor, category, amount range, source):
-  "Mark Mission Corner Cafe receipts under $50 as Catering and don't ask about them."
+  "Mark Bay Venue Security payments under $500 as Security and don't ask about them."
 - Only from at least 2 actions that agree, unless a person stated a rule outright ("from now on ...").
 - When a person overruled the Bookkeeper, learn what they chose instead, not what it suggested.
 - When people remind sponsors about overdue invoices (Remind them), a pattern may let the Bookkeeper send such

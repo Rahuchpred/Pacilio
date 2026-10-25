@@ -34,7 +34,7 @@ STATUS_LABEL = {
     "refunded": "\u21ba Refunded",
     "following_up": "\u2709 Following up",
 }
-SOURCE_LABEL = {"nessie": "Nessie", "stripe": "Stripe", "ledger": "QuickBooks", "cord": "Receipts"}
+SOURCE_LABEL = {"nessie": "Nessie", "stripe": "Stripe", "ledger": "QuickBooks"}
 FILLS = {
     "void": ("FFC7CE", "9C0006"),
     "review": ("FFEB9C", "9C5700"),

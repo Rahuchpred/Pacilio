@@ -887,8 +887,6 @@ button.ask-fact:active,
 .pipeline .react-flow__node-main .react-flow__handle[data-handleid="in-stripe"] { background: var(--color-source-stripe); }
 .pipeline .react-flow__node-inbox .react-flow__handle[data-handleid="out-ledger"],
 .pipeline .react-flow__node-main .react-flow__handle[data-handleid="in-ledger"] { background: var(--color-source-ledger); }
-.pipeline .react-flow__node-inbox .react-flow__handle[data-handleid="out-cord"],
-.pipeline .react-flow__node-main .react-flow__handle[data-handleid="in-cord"] { background: var(--color-source-cord); }
 
 /* Decisions riding out: posted in the accept green, voided in ink, a
    question in the decide orange (it goes to a person). */

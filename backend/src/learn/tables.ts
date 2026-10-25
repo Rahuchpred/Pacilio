@@ -27,7 +27,7 @@ export const pattern = table(
   { name: 'pattern', public: true },
   {
     id: t.u64().primaryKey().autoInc(),
-    // One plain instruction: "Mark Mission Corner Cafe receipts under $50 as Catering; don't ask."
+    // One plain instruction: "Mark Bay Venue Security payments under $500 as Security; don't ask."
     text: t.string(),
     // Why: "You chose Keep on 3 of these"
     because: t.string(),

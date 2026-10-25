@@ -7,13 +7,12 @@ import { usePipelineActivity } from './activity';
 // Live state for the canvas, read straight from SpacetimeDB. Every card and
 // the item panel derive what they show from these few hooks.
 
-// The four inbound sources, matching the backend's InboundHub.
+// The three inbound sources, matching the backend's InboundHub.
 export const SOURCES = [
   { name: 'nessie', title: 'Nessie', provides: 'Bank: purchases, deposits, bills' },
   { name: 'stripe', title: 'Stripe', provides: 'Payments: charges, refunds, disputes' },
   // Our stand-in for QuickBooks; the data keeps the internal name 'ledger'
   { name: 'ledger', title: 'QuickBooks', provides: 'Accounting: bills, invoices, payments' },
-  { name: 'cord', title: 'Receipts', provides: 'Scanned receipts (CORD)' },
 ] as const;
 
 export const SOURCE_TITLES: Record<string, string> = Object.fromEntries(SOURCES.map(s => [s.name, s.title]));

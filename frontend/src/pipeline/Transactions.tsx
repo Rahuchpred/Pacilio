@@ -20,7 +20,7 @@ import {
 // while checked, then turns green when posted or red when it needs you. Open, it
 // shows the details and links to the item panel.
 
-export const SOURCE_ICON: Record<string, IconName> = { nessie: 'bank', stripe: 'ticket', ledger: 'doc', cord: 'DocumentBlank' };
+export const SOURCE_ICON: Record<string, IconName> = { nessie: 'bank', stripe: 'ticket', ledger: 'doc' };
 
 const LOOK: Record<RowState, Look> = {
   waiting: 'idle',
