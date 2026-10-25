@@ -6,7 +6,8 @@ import { SpacetimeDBProvider } from 'spacetimedb/react';
 import { DbConnection, ErrorContext } from './module_bindings/index.ts';
 
 const HOST = import.meta.env.VITE_SPACETIMEDB_HOST ?? 'https://maincloud.spacetimedb.com';
-const DB_NAME = import.meta.env.VITE_SPACETIMEDB_DB_NAME ?? 'cal-hacks-ansingh';
+// The database running the current backend (pipeline, agents, emails)
+const DB_NAME = import.meta.env.VITE_SPACETIMEDB_DB_NAME ?? 'REDACTED_DB_NAME';
 const TOKEN_KEY = `${HOST}/${DB_NAME}/auth_token`;
 
 const onConnect = (_conn: DbConnection, identity: Identity, token: string) => {
