@@ -3,8 +3,9 @@
 Settle runs show settlement for concert promoters. Agents read invoices, check them and post them; a person only sees the calls the agents are unsure about.
 
 - Figma file: https://www.figma.com/design/j5FmqSGsD6uUaGOeOq06GP (pages are numbered by stage)
+- Figma Slides: https://www.figma.com/slides/e4vwifUeeOymRiDCOY6APj (built by Claude Code through the Figma MCP from this log)
 - Repo: this one. Times come from git commits and Figma version history.
-- Team: fill in names. Items marked **(confirm)** are not in any record yet.
+- Team: rahuchpred (design system, Figma, front end), AnSingh1 (SpacetimeDB backend, live canvas, Droid client). Handles from git.
 
 Our real path was not a straight line. We started the design system in Figma, built the canvas in code because the agents' work changes every second, then brought Figma back to check the shipped screens and to prototype the decision. That loop is the workflow we would reuse.
 
@@ -12,7 +13,7 @@ Our real path was not a straight line. We started the design system in Figma, bu
 
 **Tools:** Figma Design (page "1 Ideation: pipeline map"), Mobbin, context.dev for brand research.
 **Why:** a map of the six steps (sources, agent seats, controls, escalate, settle, learn) was faster to argue about on a canvas than in a doc.
-**Time:** about 30 min **(confirm)**. **Rating:** 4/5.
+**Time:** about 20 min, Friday 19:40 to 19:59, first commit to team brief (git). **Rating:** 4/5.
 **Into the project:** the map became the six-step pipeline in `AGENTS.md` and the node layout of the canvas.
 **Friction:** Mobbin found good finance and agent screens, but none for "agent hands a decision to a person", so that pattern came from Glaze on design.how.
 
@@ -23,6 +24,7 @@ Our real path was not a straight line. We started the design system in Figma, bu
 **Time:** Friday 21:07 to 22:26 design system and themes (git). Saturday morning, eight canvas versions in code, narrowed to one.
 **Rating:** Figma for the system 5/5. Figma for a live canvas 2/5, it cannot show agents moving.
 **Into the project:** `design-system/src/tokens/tokens.json` uses the same names as the Figma variables (Color, Space, Radius, Accent).
+**Also:** page 5 compares four agent marks and a simpler chat layout side by side.
 **Friction:** we drew a phone prototype and an A vs B theme comparison, then deleted both on Saturday because the product is web only. Dead end, kept in version history.
 
 ## 3. Handoff
@@ -38,24 +40,22 @@ Our real path was not a straight line. We started the design system in Figma, bu
 
 ## 4. Code generation
 
-**Tools:** Claude Code writing React, with the Settle agent skill (`skills/settle-design/SKILL.md`) and the Figma MCP for checks.
+**Tools:** Claude Code writing React with the Settle agent skill (`skills/settle-design/SKILL.md`), plus the Figma and Mobbin MCPs.
 **Why:** the skill holds the design rules, so generated code follows the system without us repeating them.
-**Time:** most of the build **(confirm hours)**. **Rating:** 4/5.
-**Check against Figma:** we put each Figma frame (exported through the MCP) next to the running app. First pass found 4 differences, all where the code had moved ahead: Inbox reads "4" over "invoices since 9:00 am", Running is a status tag, the dock lost its version picker, and the app gained a Share button. We updated Figma to match.
+**Time:** Friday 20:38 to Saturday 21:49 (git). **Rating:** 4/5.
+**Loop 1, Saturday ~11:30, 15 min:** Figma frames, exported through the MCP, sat next to the running app. 4 differences, all where code had moved ahead; we fixed Figma.
+**Loop 2, Saturday 15:30, 10 min:** code moved first. The agent pushed the card glow to Figma as effect styles and pulled five question-card patterns from Mobbin; we kept Band.
+**Loop 3, Saturday 18:40 to 22:07:** a teammate's merge broke the system in six places. The agent logged each on Figma page "6 Merge check" with file and line; we fixed them in code (78a08e0). Recheck: five fixed, one back, because a chart file added four minutes earlier reused the raw blue. The agent then rebuilt the triage view in Figma from our components.
 
 | Figma frame | Running app |
 |---|---|
 | ![Figma overview](stage-log/figma-overview.png) | ![App overview](stage-log/app-overview.jpg) |
 | ![Figma needs you open](stage-log/figma-needs-you-open.png) | ![App needs you open](stage-log/app-needs-you-open.jpg) |
 | ![Figma cards](stage-log/figma-cards.png) | ![App cards](stage-log/app-cards.jpg) |
-
-Still different: the Figma Citation component draws sources as inline chips; the app lists them on two lines. The app's Cards level fits the whole canvas on screen at small size; the Figma frame shows it at real size and scrolls, because tiny text makes a poor design file. The short card's deadline text wraps in both.
-
-**Second loop, Saturday 15:30 (about 10 min):** code moved first this time. Close-up cards got the glow their far versions had, so the color now means state at every zoom: orange waits on you, green is done, red is an open issue. The inbox tray got darker so it reads behind the list. The agent pushed it back to Figma through the MCP as four effect styles (Glow/Decide, Glow/Accept, Glow/Reject, Tray/Inset) built from our color variables, then applied them in the Cards frame. Friction: a variable-bound fill ignored its opacity and turned the tray near black; we replaced it with one mixed color. After a look on a real screen we dropped the colored halo outside the cards and kept the glow inside; the same edit went to the three Figma styles, so every frame updated at once. For the question card we pulled five patterns from Mobbin through its MCP (PayPal, Binance, Airwallex, Base44, PandaDoc), built all six looks behind a switcher in the live app, and kept Band: the question on the far card's orange, evidence on white. The losing five were deleted the same hour.
-
-| Figma frame | Running app |
-|---|---|
 | ![Figma needs you glow](stage-log/figma-needs-you-glow.png) | ![App needs you glow](stage-log/app-needs-you-glow.png) |
+| ![Figma triage](stage-log/figma-triage.png) | ![App triage](stage-log/app-triage.png) |
+
+**Friction:** a variable-bound fill ignored its opacity; new auto-layout frames hid the band under a default white fill. A fix only covers the files it touched.
 
 ## Run this yourself
 
@@ -63,3 +63,4 @@ Still different: the Figma Citation component draws sources as inline chips; the
 2. Build fast-changing UI in code. Every few hours, ask the agent to rebuild the key screens in Figma from your components through the Figma MCP.
 3. Export each Figma frame and screenshot the app at the same size. List every difference, decide which side is right, fix the other.
 4. Prototype only the moment a person decides, in Figma, and test it on someone outside the team.
+5. After every merge, log what broke in Figma with file and line, fix it in code, then recheck the whole app, not just the files you fixed.
