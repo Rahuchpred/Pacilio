@@ -11,11 +11,11 @@
 // (money in), warm grey (money out) and secondary ink (totals), so no hue
 // competes with the decide orange.
 
-export const REPORT_VERSION = 'v5';
+export const REPORT_VERSION = 'v6';
 export const REPORT_PATH = `settle/tools/report-${REPORT_VERSION}.py`;
 
 export const REPORT_SCRIPT = String.raw`# settle-report v5 -- provided by Pacioli. Do not edit.
-# Run: python3 /home/factory-user/settle/tools/report-v5.py /home/factory-user/settle
+# Run: python3 /home/factory-user/settle/tools/report-v6.py /home/factory-user/settle
 """Build report.json, report.html and report.xlsx from the settled rows of ledger.json."""
 import datetime
 import html
