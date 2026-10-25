@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useProcedure, useReducer, useTable } from 'spacetimedb/react';
+import { useProcedure, useReducer } from 'spacetimedb/react';
 import { Button, Status, type StatusKind } from '../../../design-system/src/components';
-import { procedures, reducers, tables } from '../module_bindings';
+import { procedures, reducers } from '../module_bindings';
 import type { EmailMessage, EmailThread } from '../module_bindings/types';
 import { logError } from '../throttle';
 import { FarCard, type CardLevels } from '../canvas/levels';
@@ -9,6 +9,7 @@ import { Card } from './Card';
 import { FollowUpSettings } from './FollowUpSettings';
 import { describeSchedule, useFollowUpSchedule } from './followUps';
 import { clock, openItem } from './live';
+import { useLive } from './store';
 
 // Emails (AgentMail): one thread per item a person chose to follow up on.
 // Without a reply, Settle nudges on a schedule; a reply comes to the top with
@@ -57,11 +58,7 @@ function statusLine(thread: EmailThread, now: number, total: number): string {
 }
 
 function useThreads() {
-  const [threads] = useTable(tables.emailThread);
-  const sorted = [...threads].sort((a, b) => {
-    if (a.unread !== b.unread) return a.unread ? -1 : 1;
-    return b.lastActivityAt.microsSinceUnixEpoch > a.lastActivityAt.microsSinceUnixEpoch ? 1 : -1;
-  });
+  const { threadsSorted: sorted, threads } = useLive();
   return {
     threads: sorted,
     unread: threads.filter(t => t.unread).length,
@@ -182,7 +179,7 @@ function Conversation({ thread, messages }: { thread: EmailThread; messages: Ema
 
 function Full() {
   const { threads } = useThreads();
-  const [messages] = useTable(tables.emailMessage);
+  const { messagesByThread } = useLive();
   const markRead = useReducer(reducers.markEmailThreadRead);
   const [openId, setOpenId] = useState<string | null>(null);
   const [settings, setSettings] = useState(false);
@@ -220,9 +217,7 @@ function Full() {
         <ul className="email-threads nodrag nowheel">
           {threads.map(thread => {
             const open = openId === thread.id.toString();
-            const mine = messages
-              .filter(m => m.threadId === thread.id)
-              .sort((a, b) => (a.sentAt.microsSinceUnixEpoch < b.sentAt.microsSinceUnixEpoch ? -1 : 1));
+            const mine = messagesByThread.get(thread.id.toString()) ?? [];
             return (
               <li key={thread.id.toString()} className={`email-thread${open ? ' is-open' : ''}`}>
                 <button type="button" className="row-button" onClick={() => toggle(thread)} aria-expanded={open}>

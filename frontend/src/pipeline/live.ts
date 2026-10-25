@@ -1,6 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import { useTable } from 'spacetimedb/react';
-import { tables } from '../module_bindings';
+import { useLive } from './store';
 import type { EventReview, InboundEvent, ReviewItem } from '../module_bindings/types';
 import type { StatusKind } from '../../../design-system/src/components';
 import { usePipelineActivity } from './activity';
@@ -28,8 +27,10 @@ export function dollars(amountMinor: bigint, currency = 'USD'): number {
 export const byIdAsc = <T extends { id: bigint }>(a: T, b: T) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 export const byIdDesc = <T extends { id: bigint }>(a: T, b: T) => byIdAsc(b, a);
 
+// Formatters are slow to create; make each once
+const CLOCK = new Intl.DateTimeFormat([], { hour: 'numeric', minute: '2-digit' });
 export function clock(d: Date): string {
-  return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  return CLOCK.format(d);
 }
 
 export function kindLabel(kind: string): string {
@@ -82,21 +83,9 @@ export function rowState(review: EventReview | undefined, item: ReviewItem | und
 
 export type Row = { event: InboundEvent; state: RowState; review?: EventReview; item?: ReviewItem };
 
-// Every event with its state, oldest first.
+// Every event with its state, oldest first (worked out once, in the store).
 export function useRows(): Row[] {
-  const [events] = useTable(tables.inboundEvent);
-  const [reviews] = useTable(tables.eventReview);
-  const [items] = useTable(tables.reviewItem);
-  const reviewBy = new Map(reviews.map(r => [r.eventId.toString(), r]));
-  // The newest review item for each event decides its state
-  const itemBy = new Map<string, ReviewItem>();
-  for (const i of [...items].sort(byIdAsc)) itemBy.set(i.eventId.toString(), i);
-  return [...events].sort(byIdAsc).map(event => {
-    const id = event.id.toString();
-    const review = reviewBy.get(id);
-    const item = itemBy.get(id);
-    return { event, review, item, state: rowState(review, item) };
-  });
+  return useLive().rows;
 }
 
 export type Totals = { moneyIn: number; moneyOut: number; net: number; settled: number; held: number };
@@ -123,15 +112,13 @@ export function totals(rows: Row[]): Totals {
 
 // Open questions for a person, oldest first.
 export function useOpenItems(): ReviewItem[] {
-  const [items] = useTable(tables.reviewItem.where(r => r.status.eq('open')));
-  return [...items].sort(byIdAsc);
+  return useLive().openItems;
 }
 
 export type AgentLook = { state: 'idle' | 'working' | 'done' | 'issue'; kind: StatusKind; label: string };
 
 export function useAgentLook(): AgentLook {
-  const [agents] = useTable(tables.pipelineAgent);
-  const agent = agents[0];
+  const agent = useLive().agents[0];
   if (agent?.lastError) return { state: 'issue', kind: 'disputed', label: 'Error' };
   if (agent?.status === 'running') return { state: 'working', kind: 'needs', label: 'Working' };
   if (agent?.enabled) return { state: 'idle', kind: 'cleared', label: 'Ready' };
@@ -140,16 +127,10 @@ export function useAgentLook(): AgentLook {
 
 // The transactions around the main agent: what it is checking now, then what
 // waits for its next run, then what it just finished.
-export const TXN_SLOTS = 6;
+export { TXN_SLOTS } from './activity';
 
 export function useTransactions(): Row[] {
-  const rows = useRows();
-  const { inFlight } = usePipelineActivity();
-  const landed = rows.filter(r => !inFlight.has(r.event.id.toString()));
-  const checking = landed.filter(r => r.state === 'checking');
-  const waiting = landed.filter(r => r.state === 'waiting');
-  const finished = landed.filter(r => r.state !== 'checking' && r.state !== 'waiting').reverse();
-  return [...checking, ...waiting, ...finished].slice(0, TXN_SLOTS);
+  return usePipelineActivity().transactions;
 }
 
 // The item panel: one event, looked at closely.

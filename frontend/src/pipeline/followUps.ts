@@ -1,5 +1,4 @@
-import { useTable } from 'spacetimedb/react';
-import { tables } from '../module_bindings';
+import { useLive } from './store';
 
 // The shared follow-up schedule (email_follow_up): one row per nudge, in order.
 
@@ -11,8 +10,7 @@ export function useFollowUpSteps(): Step[] {
 
 // The steps, and whether they have loaded (before that, say nothing about them).
 export function useFollowUpSchedule(): { steps: Step[]; ready: boolean } {
-  const [rows, ready] = useTable(tables.emailFollowUp);
-  const steps = [...rows].sort((a, b) => a.step - b.step).map(r => ({ delayMin: r.delayMin, message: r.message }));
+  const { followUpSteps: steps, followUpsReady: ready } = useLive();
   return { steps, ready };
 }
 

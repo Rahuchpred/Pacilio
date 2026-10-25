@@ -12,8 +12,8 @@ import {
   type NodeChange,
   type NodeMouseHandler,
 } from '@xyflow/react';
-import { useReducer, useTable } from 'spacetimedb/react';
-import { reducers, tables } from './module_bindings';
+import { useReducer } from 'spacetimedb/react';
+import { reducers } from './module_bindings';
 import { Cursors } from './Cursors';
 import { logError, throttle } from './throttle';
 import { arrange, type Point, type Size } from './canvas/arrange';
@@ -38,6 +38,7 @@ import './ui/canvas.css';
 import './pipeline/pipeline.css';
 import './canvas/levels.css';
 import './pipeline/cards.css';
+import { useLive } from './pipeline/store';
 
 const SYNC_INTERVAL_MS = 40;
 const MOVE_SYNC_MS = 50;
@@ -69,7 +70,7 @@ const moneyArrow = { ...arrow, color: 'var(--color-action-accept)' };
 function useEdges(): Edge[] {
   const open = useOpenItems().length;
   const txns = useTransactions();
-  const [reportStates] = useTable(tables.reportState);
+  const { reportStates } = useLive();
   const building = reportStates[0]?.status === 'running' || !!reportStates[0]?.requested;
   const checking = txns.map(r => r.state === 'checking');
 
@@ -132,7 +133,7 @@ function useEdges(): Edge[] {
 
 // Where everyone has put each card (shared), falling back to the default layout.
 function useSharedBase(): Record<string, Point> {
-  const [rows] = useTable(tables.pipelineLayout);
+  const rows = useLive().layout;
   return useMemo(() => {
     const placed = new Map(rows.map(r => [localId(r.nodeId), { x: r.x, y: r.y }]));
     return Object.fromEntries(Object.entries(LAYOUT).map(([id, n]) => [id, placed.get(id) ?? { x: n.x, y: n.y }]));

@@ -51,10 +51,13 @@ export function Icon({ name, size = 16 }: { name: IconName; size?: number }) {
   );
 }
 
-/* Money: plain amounts with tabular figures and a true minus sign. */
+/* Money: plain amounts with tabular figures and a true minus sign. Formatters
+   are made once: creating one per amount is slow on screens with many. */
+const WITH_CENTS = new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const WHOLE = new Intl.NumberFormat("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 export function Money({ value, sign = false, cents = true }: { value: number; sign?: boolean; cents?: boolean }) {
   const prefix = value < 0 ? "\u2212" : sign ? "+" : "";
-  const text = Math.abs(value).toLocaleString("en-US", { minimumFractionDigits: cents ? 2 : 0, maximumFractionDigits: cents ? 2 : 0 });
+  const text = (cents ? WITH_CENTS : WHOLE).format(Math.abs(value));
   return (
     <span className="money">
       {prefix}${text}

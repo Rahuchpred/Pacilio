@@ -23,13 +23,16 @@ function Packet({ path, delay, onDone }: { path: string; delay: number; onDone: 
 
   useEffect(() => {
     let frame = 0;
+    let length = -1;
     const start = performance.now() + delay;
     const step = (now: number) => {
       const path = track.current;
       const circle = dot.current;
       if (!path || !circle) return;
+      // Measuring a path is slow; once per dot is enough
+      if (length < 0) length = path.getTotalLength();
       const t = Math.min(1, Math.max(0, (now - start) / TRAVEL_MS));
-      const point = path.getPointAtLength(path.getTotalLength() * ease(t));
+      const point = path.getPointAtLength(length * ease(t));
       circle.setAttribute('cx', String(point.x));
       circle.setAttribute('cy', String(point.y));
       circle.style.opacity = now < start ? '0' : '1';

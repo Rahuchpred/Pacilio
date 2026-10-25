@@ -158,3 +158,9 @@
 @media (prefers-reduced-motion: reduce) {
   .xl tr.is-fresh td { animation: none; }
 }
+
+/* Every row the same height, so only the rows in view need drawing */
+.xl tbody tr { height: 22px; }
+.xl tbody th,
+.xl tbody td { height: 22px; box-sizing: border-box; }
+.xl tr.xl-spacer td { padding: 0; border: 0; background: transparent; }

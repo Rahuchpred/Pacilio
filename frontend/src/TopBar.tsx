@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useReducer, useSpacetimeDB, useTable } from 'spacetimedb/react';
 import { Icon } from '../../design-system/src/components';
 import { useFocus, useSetExpanded } from './canvas/view';
@@ -7,6 +7,7 @@ import { reducers, tables } from './module_bindings';
 import type { User } from './module_bindings/types';
 import { Avatar } from './Avatar';
 import { useDismiss } from './useDismiss';
+import { useLive } from './pipeline/store';
 
 const MAX_PEOPLE = 4;
 
@@ -52,14 +53,11 @@ function Notifications() {
   const close = useCallback(() => setOpen(false), []);
   useDismiss(rootRef, open, close);
 
-  const [flagRows] = useTable(tables.reviewItem.where(r => r.status.eq('open')));
-  const [details] = useTable(tables.reviewDetail);
-  const [replyRows] = useTable(tables.emailThread.where(r => r.unread.eq(true)));
-  const titleById = new Map(details.map(d => [d.itemId.toString(), d.title]));
-  const flags = [...flagRows].sort((a, b) => (a.id < b.id ? 1 : -1));
-  const replies = [...replyRows].sort((a, b) =>
-    a.lastActivityAt.microsSinceUnixEpoch < b.lastActivityAt.microsSinceUnixEpoch ? 1 : -1
-  );
+  const { openItems, detailBy, threadsSorted } = useLive();
+  // Newest first
+  const flags = useMemo(() => [...openItems].reverse(), [openItems]);
+  const replies = threadsSorted.filter(t => t.unread);
+  const titleOf = (id: bigint) => detailBy.get(id.toString())?.title;
   const unread = replies.length + flags.filter(f => f.createdAt.toDate().getTime() > seenAt).length;
   const time = (d: Date) => d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 
@@ -111,7 +109,7 @@ function Notifications() {
                   <button type="button" onClick={() => go('flagged', f.eventId)}>
                     <Icon name="hourglass" size={14} />
                     <span className="stack">
-                      <b>{titleById.get(f.id.toString()) ?? f.question}</b>
+                      <b>{titleOf(f.id) ?? f.question}</b>
                       <span className="tertiary small">Needs your OK · {time(f.createdAt.toDate())}</span>
                     </span>
                   </button>

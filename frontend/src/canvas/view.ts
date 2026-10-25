@@ -1,6 +1,7 @@
 import { useReactFlow, useStoreApi } from '@xyflow/react';
-import { useReducer, useTable } from 'spacetimedb/react';
-import { reducers, tables } from '../module_bindings';
+import { useReducer } from 'spacetimedb/react';
+import { reducers } from '../module_bindings';
+import { useLive } from '../pipeline/store';
 import { logError } from '../throttle';
 
 // Each card is either an overview (one word, one number) or open in full.
@@ -14,7 +15,7 @@ export const reducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export function useExpanded(): Set<string> {
-  const [rows] = useTable(tables.pipelineCard);
+  const rows = useLive().cards;
   return new Set(rows.filter(r => r.expanded).map(r => localId(r.nodeId)));
 }
 

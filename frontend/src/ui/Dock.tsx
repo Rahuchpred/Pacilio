@@ -1,14 +1,14 @@
 import { useState } from 'react';
-import { useReducer, useTable } from 'spacetimedb/react';
+import { useReducer } from 'spacetimedb/react';
 import { Button, Status } from '../../../design-system/src/components';
-import { reducers, tables } from '../module_bindings';
+import { reducers } from '../module_bindings';
 import { logError } from '../throttle';
+import { useLive } from '../pipeline/store';
 
 // Bottom center: run, pause or restart every source and both agents at once,
 // and tidy the canvas back to its default layout for everyone.
 export function Dock() {
-  const [statuses] = useTable(tables.inboundSourceStatus);
-  const [events] = useTable(tables.inboundEvent);
+  const { statuses, events } = useLive();
   const run = useReducer(reducers.runInbound);
   const pause = useReducer(reducers.pauseInbound);
   const restart = useReducer(reducers.restartInbound);

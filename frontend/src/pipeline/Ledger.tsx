@@ -1,19 +1,21 @@
-import { useState } from 'react';
-import { useProcedure, useTable } from 'spacetimedb/react';
+import { useMemo, useState } from 'react';
+import { useProcedure } from 'spacetimedb/react';
 import { Button, Money } from '../../../design-system/src/components';
-import { procedures, tables } from '../module_bindings';
+import { procedures } from '../module_bindings';
 import { FarCard, type CardLevels } from '../canvas/levels';
 import { Card } from './Card';
 import { ExcelSheet } from './ExcelSheet';
-import { clock, totals, useRows } from './live';
+import { clock, totals } from './live';
+import { useLive } from './store';
 
 // The master ledger: every event the agent has checked, with where it stands.
 // Open, it is a live spreadsheet with the same sheets as the agent's workbook.
 
 function useLedger() {
-  const rows = useRows().filter(r => r.state !== 'waiting' && r.state !== 'checking');
-  const [docs] = useTable(tables.ledgerDocument);
-  return { rows, t: totals(rows), doc: docs[0] };
+  const { rows: all, ledgerDocs } = useLive();
+  const rows = useMemo(() => all.filter(r => r.state !== 'waiting' && r.state !== 'checking'), [all]);
+  const t = useMemo(() => totals(rows), [rows]);
+  return { rows, t, doc: ledgerDocs[0] };
 }
 
 function Far() {

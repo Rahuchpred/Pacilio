@@ -27,8 +27,9 @@ const TONE: Partial<Record<RowState, string>> = {
 };
 const SETTLED_OR_HELD = (s: RowState) => s !== 'voided';
 
+const MONEY = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const money = (v: number) => {
-  const text = '$' + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const text = '$' + MONEY.format(Math.abs(v));
   return v < 0 ? '−' + text : text;
 };
 const parseMoney = (s: string): number | null => {
@@ -151,7 +152,7 @@ const FLASH_MS = 1600;
 function useFresh(rows: Row[]): Set<string> {
   const seen = useRef<Set<string> | null>(null);
   const [fresh, setFresh] = useState<Set<string>>(new Set());
-  const key = rows.map(r => `${r.event.id}:${r.state}`).join(',');
+  const key = useMemo(() => rows.map(r => `${r.event.id}:${r.state}`).join(','), [rows]);
   useEffect(() => {
     const now = new Set(rows.map(r => `${r.event.id}:${r.state}`));
     if (!seen.current) {
@@ -172,6 +173,40 @@ function useFresh(rows: Row[]): Set<string> {
 
 type Selection = { r: number; c: number } | { col: number } | null;
 
+// Only the rows in view are drawn (thousands of rows would freeze the page):
+// every row is ROW_H tall, and spacer rows stand in for the rest.
+const ROW_H = 22;
+const OVERSCAN = 12;
+
+function useWindow(grid: React.RefObject<HTMLDivElement | null>, count: number) {
+  const [view, setView] = useState({ top: 0, height: 600 });
+  useEffect(() => {
+    const el = grid.current;
+    if (!el) return;
+    let frame = 0;
+    const read = () => {
+      frame = 0;
+      setView(v => (v.top === el.scrollTop && v.height === el.clientHeight ? v : { top: el.scrollTop, height: el.clientHeight }));
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(read);
+    };
+    read();
+    el.addEventListener('scroll', onScroll, { passive: true });
+    const ro = new ResizeObserver(onScroll);
+    ro.observe(el);
+    return () => {
+      el.removeEventListener('scroll', onScroll);
+      ro.disconnect();
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [grid]);
+  // The header row (row 1) sits above the data rows
+  const first = Math.max(0, Math.floor((view.top - ROW_H) / ROW_H) - OVERSCAN);
+  const last = Math.min(count, Math.ceil((view.top + view.height) / ROW_H) + OVERSCAN);
+  return { first, last };
+}
+
 export function ExcelSheet({ rows }: { rows: Row[] }) {
   const fresh = useFresh(rows);
   const sheets = useMemo(() => buildSheets(rows, fresh), [rows, fresh]);
@@ -179,6 +214,7 @@ export function ExcelSheet({ rows }: { rows: Row[] }) {
   const [sel, setSel] = useState<Selection>(null);
   const grid = useRef<HTMLDivElement>(null);
   const sheet = sheets.find(s => s.id === tab) ?? sheets[0];
+  const { first, last } = useWindow(grid, sheet.rows.length);
 
   // The bar's name box and contents, and the status bar's count and sum
   let name = 'A1';
@@ -221,7 +257,14 @@ export function ExcelSheet({ rows }: { rows: Row[] }) {
       const r = Math.max(0, Math.min(sheet.rows.length - 1, sel.r + m[0]));
       const c = Math.max(0, Math.min(sheet.headers.length - 1, sel.c + m[1]));
       setSel({ r, c });
-      grid.current?.querySelector(`[data-cell="${r}-${c}"]`)?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      // Keep the selected row in view (it may not be drawn yet)
+      const el = grid.current;
+      if (el) {
+        const top = (r + 1) * ROW_H;
+        const header = 20;
+        if (top - header < el.scrollTop) el.scrollTop = top - header;
+        else if (top + ROW_H > el.scrollTop + el.clientHeight) el.scrollTop = top + ROW_H - el.clientHeight;
+      }
     } else if (e.key === 'Enter') {
       look(sheet.rows[sel.r]);
     }
@@ -266,7 +309,14 @@ export function ExcelSheet({ rows }: { rows: Row[] }) {
                 </td>
               ))}
             </tr>
-            {sheet.rows.map((row, r) => (
+            {first > 0 && (
+              <tr className="xl-spacer" style={{ height: first * ROW_H }}>
+                <td colSpan={sheet.headers.length + 1} />
+              </tr>
+            )}
+            {sheet.rows.slice(first, last).map((row, k) => {
+              const r = first + k;
+              return (
               <tr
                 key={row.eventId?.toString() ?? `x${r}`}
                 className={`${row.tone ? 'is-' + row.tone : ''}${row.total ? ' is-total' : ''}${row.fresh ? ' is-fresh' : ''}`}
@@ -289,7 +339,13 @@ export function ExcelSheet({ rows }: { rows: Row[] }) {
                   </td>
                 ))}
               </tr>
-            ))}
+              );
+            })}
+            {last < sheet.rows.length && (
+              <tr className="xl-spacer" style={{ height: (sheet.rows.length - last) * ROW_H }}>
+                <td colSpan={sheet.headers.length + 1} />
+              </tr>
+            )}
             {sheet.rows.length === 0 && (
               <tr>
                 <th className="xl-rn">2</th>

@@ -1,10 +1,9 @@
-import { useTable } from 'spacetimedb/react';
 import { Money, Status } from '../../../design-system/src/components';
-import { tables } from '../module_bindings';
 import type { InboundSourceStatus } from '../module_bindings/types';
 import { FarCard, type CardLevels } from '../canvas/levels';
 import { Card } from './Card';
 import { ROW_STATUS, SOURCES, SOURCE_TITLES, byIdDesc, clock, dollars, kindLabel, openItem, useRows } from './live';
+import { useLive } from './store';
 
 // Inbox: the four sources feeding the main agent, and what they sent.
 
@@ -19,8 +18,7 @@ function SourceTag({ status }: { status: InboundSourceStatus | undefined }) {
 }
 
 function useSources() {
-  const [statuses] = useTable(tables.inboundSourceStatus);
-  const [events] = useTable(tables.inboundEvent);
+  const { statuses, events } = useLive();
   const counts = new Map<string, number>();
   for (const e of events) counts.set(e.source, (counts.get(e.source) ?? 0) + 1);
   return {

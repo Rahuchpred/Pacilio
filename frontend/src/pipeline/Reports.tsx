@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { useProcedure, useReducer, useTable } from 'spacetimedb/react';
+import { useProcedure, useReducer } from 'spacetimedb/react';
 import { Button, Money, Status, type StatusKind } from '../../../design-system/src/components';
-import { procedures, reducers, tables } from '../module_bindings';
+import { procedures, reducers } from '../module_bindings';
 import { logError } from '../throttle';
 import { FarCard, type CardLevels, type Look } from '../canvas/levels';
 import { Steps } from './Agent';
 import { Card } from './Card';
 import { clock, jsonList, totals, useRows } from './live';
+import { useLive } from './store';
 
 // The reports agent, between the ledger and the show report: every 10 minutes
 // while the pipeline runs (if the ledger changed), or on request, Droid runs
@@ -15,9 +16,7 @@ import { clock, jsonList, totals, useRows } from './live';
 const EVERY_MIN = 10;
 
 function useReport() {
-  const [states] = useTable(tables.reportState);
-  const [docs] = useTable(tables.reportDocument);
-  const [agents] = useTable(tables.pipelineAgent);
+  const { reportStates: states, reportDocs: docs, agents } = useLive();
   const state = states[0];
   const doc = docs[0];
   const running = !!agents[0]?.enabled;

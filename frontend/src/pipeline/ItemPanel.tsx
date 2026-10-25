@@ -1,9 +1,8 @@
 import { useEffect } from 'react';
-import { useTable } from 'spacetimedb/react';
 import { Button, Icon, Money, Source, Status } from '../../../design-system/src/components';
-import { tables } from '../module_bindings';
 import { ACTION_LABEL, Decide } from './NeedsYou';
-import { ROW_STATUS, SOURCE_TITLES, byIdAsc, clock, dollars, jsonList, kindLabel, openItem, useOpenItem, useRows } from './live';
+import { ROW_STATUS, SOURCE_TITLES, clock, dollars, jsonList, kindLabel, openItem, useOpenItem } from './live';
+import { useLive } from './store';
 
 // One event, looked at closely: what came in, what the agent decided and why,
 // any question it asked you, and the emails that followed. Opens from any
@@ -23,12 +22,7 @@ function pretty(raw: string): string {
 
 export function ItemPanel() {
   const id = useOpenItem();
-  const rows = useRows();
-  const [items] = useTable(tables.reviewItem);
-  const [details] = useTable(tables.reviewDetail);
-  const [runs] = useTable(tables.agentRun);
-  const [threads] = useTable(tables.emailThread);
-  const [messages] = useTable(tables.emailMessage);
+  const { rowBy, itemsByEvent, detailBy, runs, threads, messagesByThread } = useLive();
 
   useEffect(() => {
     if (!id) return;
@@ -43,16 +37,15 @@ export function ItemPanel() {
   }, [id]);
 
   if (!id) return null;
-  const row = rows.find(r => r.event.id.toString() === id);
+  const row = rowBy.get(id);
   if (!row) return null;
   const { event, review, state } = row;
   const status = ROW_STATUS[state];
-  const asked = items.filter(i => i.eventId === event.id).sort(byIdAsc);
-  const detailBy = new Map(details.map(d => [d.itemId.toString(), d]));
+  const asked = itemsByEvent.get(id) ?? [];
   const run = review ? runs.find(r => r.id === review.runId) : undefined;
   const mail = threads.filter(t => t.eventId === event.id);
   const twinIds = new Set(asked.flatMap(i => (i.duplicateOf !== undefined ? [i.duplicateOf.toString()] : [])));
-  const twins = rows.filter(r => twinIds.has(r.event.id.toString()));
+  const twins = [...twinIds].flatMap(t => rowBy.get(t) ?? []);
 
   return (
     <aside className="item-panel" aria-label={`${event.counterparty} details`}>
@@ -202,10 +195,7 @@ export function ItemPanel() {
             {t.subject} · {t.toAddress}
           </p>
           <ol className="thread">
-            {messages
-              .filter(m => m.threadId === t.id)
-              .sort((a, b) => (a.sentAt.microsSinceUnixEpoch < b.sentAt.microsSinceUnixEpoch ? -1 : 1))
-              .map(m => (
+            {(messagesByThread.get(t.id.toString()) ?? []).map(m => (
                 <li key={m.id.toString()} className={`msg ${m.direction === 'in' ? 'msg-them' : 'msg-agent'}`}>
                   <div className="msg-line">
                     <span className="msg-who">{m.direction === 'in' ? m.fromAddress : 'Settle'}</span>

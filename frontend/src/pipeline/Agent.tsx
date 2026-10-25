@@ -1,11 +1,10 @@
 import { useState } from 'react';
-import { useTable } from 'spacetimedb/react';
 import { Icon, Status } from '../../../design-system/src/components';
-import { tables } from '../module_bindings';
 import type { AgentRun } from '../module_bindings/types';
 import { FarCard, type CardLevels } from '../canvas/levels';
 import { Card } from './Card';
-import { byIdDesc, clock, openItem, useAgentLook, useRows } from './live';
+import { clock, openItem, useAgentLook, useRows } from './live';
+import { useLive } from './store';
 
 // The main agent: Droid on the Factory computer, checking events in batches
 // and writing the master ledger.
@@ -16,13 +15,12 @@ const RUN_CHIPS = 10;
 
 function useAgent() {
   const look = useAgentLook();
-  const [agents] = useTable(tables.pipelineAgent);
-  const [runs] = useTable(tables.agentRun);
+  const { agents, runsDesc } = useLive();
   const rows = useRows();
   const checking = rows.filter(r => r.state === 'checking').length;
   const waiting = rows.filter(r => r.state === 'waiting').length;
   const done = rows.length - checking - waiting;
-  return { look, agent: agents[0], runs: [...runs].sort(byIdDesc), checking, waiting, done };
+  return { look, agent: agents[0], runs: runsDesc, checking, waiting, done };
 }
 
 function runLine(run: AgentRun): string {
@@ -33,12 +31,11 @@ function runLine(run: AgentRun): string {
 
 // What Droid did in one run: commands, files, its notes.
 export function Steps({ taskId, limit = STEPS }: { taskId: bigint | undefined; limit?: number }) {
-  const [steps] = useTable(tables.agentStep);
+  const { stepsByTask } = useLive();
   if (taskId === undefined) return null;
-  const mine = steps
-    // Droid's own words and tool calls; not the prompt, its thinking or the JSON reply
-    .filter(s => s.taskId === taskId && s.role !== 'user' && s.kind !== 'thinking' && s.text.trim() && !s.text.trim().startsWith('{'))
-    .sort((a, b) => (a.seq < b.seq ? -1 : 1))
+  // Droid's own words and tool calls; not the prompt, its thinking or the JSON reply
+  const mine = (stepsByTask.get(taskId.toString()) ?? [])
+    .filter(s => s.role !== 'user' && s.kind !== 'thinking' && s.text.trim() && !s.text.trim().startsWith('{'))
     .slice(-limit);
   if (!mine.length) return <p className="muted small">Starting up on the Factory computer…</p>;
   return (

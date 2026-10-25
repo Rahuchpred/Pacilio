@@ -1,15 +1,19 @@
 import { useState } from 'react';
-import { useProcedure, useTable } from 'spacetimedb/react';
+import { useProcedure } from 'spacetimedb/react';
 import { Button, Icon, Money, Source, Status } from '../../../design-system/src/components';
-import { procedures, tables } from '../module_bindings';
+import { procedures } from '../module_bindings';
 import type { InboundEvent, ReviewDetail, ReviewItem } from '../module_bindings/types';
 import { FarCard, Handles, type CardLevels } from '../canvas/levels';
 import { describeSchedule, useFollowUpSchedule } from './followUps';
-import { SOURCE_TITLES, dollars, jsonList, kindLabel, openItem, useOpenItems } from './live';
+import { SOURCE_TITLES, dollars, jsonList, kindLabel, openItem } from './live';
+import { useLive } from './store';
 
 // Needs you: the calls the agent isn't sure about, one question at a time.
 // The question sits on an orange band; the evidence and choices on white
 // below. A decision goes back to the agent on its next run.
+
+// The "Also waiting" list shows this many; the arrows reach the rest
+const ALSO_WAITING = 25;
 
 export const ACTION_LABEL: Record<string, string> = {
   void: 'Void it',
@@ -19,12 +23,7 @@ export const ACTION_LABEL: Record<string, string> = {
 };
 
 function useQueue() {
-  const open = useOpenItems();
-  const [details] = useTable(tables.reviewDetail);
-  const [events] = useTable(tables.inboundEvent);
-  const [items] = useTable(tables.reviewItem);
-  const detailBy = new Map(details.map(d => [d.itemId.toString(), d]));
-  const eventBy = new Map(events.map(e => [e.id.toString(), e]));
+  const { openItems: open, detailBy, eventBy, items } = useLive();
   const applying = items.filter(i => i.status === 'decided').length;
   return { open, detailBy, eventBy, applying };
 }
@@ -235,9 +234,9 @@ function makeLevel(full: boolean) {
         />
         {full && open.length > 1 && (
           <div className="stack">
-            <span className="section-label">Also waiting</span>
+            <span className="section-label">Also waiting ({open.length - 1})</span>
             <ul className="row-list nodrag nowheel">
-              {open.map((o, j) =>
+              {open.slice(0, ALSO_WAITING + 1).map((o, j) =>
                 j === i ? null : (
                   <li key={o.id.toString()}>
                     <button type="button" className="row-button" onClick={() => setIndex(j)}>
@@ -248,6 +247,9 @@ function makeLevel(full: boolean) {
                     </button>
                   </li>
                 )
+              )}
+              {open.length > ALSO_WAITING + 1 && (
+                <li className="muted small">+{open.length - ALSO_WAITING - 1} more; use the arrows to step through them</li>
               )}
             </ul>
           </div>
