@@ -541,3 +541,75 @@ button.ask-fact { cursor: pointer; }
 .fu-actions { display: flex; align-items: center; gap: var(--space-xs); flex-wrap: wrap; }
 .fu-spacer { flex: 1; }
 .email-links { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); }
+
+/* ---- Messages from Ask Settle to the agents ---- */
+
+.agent-msg {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  border-left: 2px solid var(--color-action-decide);
+  background: var(--color-bg-surface);
+  border-radius: 0 var(--radius-control) var(--radius-control) 0;
+  font-size: var(--type-small-size);
+  line-height: var(--type-small-line);
+}
+.agent-msg.is-done { border-left-color: var(--color-status-cleared); }
+.agent-msg.is-cancelled { border-left-color: var(--color-border-control); opacity: 0.7; }
+.agent-msg-head { display: flex; align-items: baseline; gap: var(--space-xs); }
+.agent-msg-head .icon { flex: none; translate: 0 2px; color: var(--color-text-secondary); }
+.agent-msg-head q { quotes: '“' '”'; }
+.agent-msg-foot { display: flex; align-items: center; gap: var(--space-sm); }
+.agent-msg-reply { margin: 0; color: var(--color-text-secondary); }
+.agent-inbox { gap: var(--space-xs); }
+.agent-inbox:empty { display: none; }
+.agent-steps-card:has(.agent-inbox:empty),
+.agent-steps-card:empty { display: none; }
+
+/* Overview numbers stay on one line (they shrink to fit; see FarCard) */
+.pipeline .far-big { white-space: nowrap; overflow: hidden; min-width: 0; }
+.pipeline .far-word,
+.pipeline .far-line { min-width: 0; overflow-wrap: anywhere; }
+/* Figures in count rows never push past their column */
+.counts dd { overflow-wrap: anywhere; min-width: 0; }
+
+/* Agent replies can be long runs with no spaces ("19,24,34,…"): break anywhere
+   rather than run past the card */
+.agent-msg { min-width: 0; }
+.agent-msg-head span,
+.agent-msg-reply,
+.ask-answer p,
+.ask-you { overflow-wrap: anywhere; min-width: 0; }
+.ask-answer > div { min-width: 0; }
+
+/* ---- Team charts in the show report ---- */
+
+.tc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: var(--space-md); }
+.tc {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
+  border: var(--border-hairline) solid var(--color-border-default);
+  border-radius: var(--radius-panel);
+  background: var(--color-bg-canvas);
+  min-width: 0;
+}
+.tc figcaption { display: flex; flex-direction: column; gap: var(--space-2xs); }
+.tc .link-button { align-self: flex-start; }
+.tc-bars { display: flex; flex-direction: column; gap: var(--space-xs); }
+.tc-bar-row { display: grid; grid-template-columns: minmax(0, 150px) minmax(0, 1fr) auto; align-items: center; gap: var(--space-sm); font-size: var(--type-small-size); }
+.tc-label { color: var(--color-text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
+.tc-track { height: 14px; }
+/* Thin bars anchored at the baseline, rounded only at the data end */
+.tc-bar { display: block; height: 100%; min-width: 2px; border-radius: 0 4px 4px 0; }
+.tc-value { font-variant-numeric: tabular-nums; color: var(--color-text-primary); }
+.tc-line { width: 100%; height: auto; overflow: visible; }
+.tc-line .tc-axis { stroke: var(--color-border-default); stroke-width: 1; }
+.tc-line .tc-tick { fill: var(--color-text-secondary); font-size: 11px; }
+.tc-line .tc-end { fill: var(--color-text-primary); font-size: 12px; font-variant-numeric: tabular-nums; }
+.tc-table { width: 100%; border-collapse: collapse; font-size: var(--type-small-size); font-variant-numeric: tabular-nums; }
+.tc-table td { padding: var(--space-2xs) 0; border-top: var(--border-hairline) solid var(--color-border-default); }
+.tc-table td.num { text-align: right; }

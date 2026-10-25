@@ -26,9 +26,18 @@ const REASONING_BY_KIND: Record<string, 'low' | 'medium' | 'high'> = { pipeline:
 
 // ─── Extension point ────────────────────────────────────────────────────────
 
-// Called in the same transaction that marks a task done or failed. Route on
-// `task.kind` here to feed results into the rest of the pipeline.
-function onTaskSettled(_ctx: Ctx, _task: Task): void {}
+// Called in the same transaction that marks a task done or failed. Other
+// modules register for their task kind (Ask Settle routes its messages here).
+type SettledHook = (ctx: Ctx, task: Task) => void;
+const settledHooks = new Map<string, SettledHook>();
+
+export function onTaskSettledOfKind(kind: string, hook: SettledHook) {
+  settledHooks.set(kind, hook);
+}
+
+function onTaskSettled(ctx: Ctx, task: Task): void {
+  settledHooks.get(task.kind)?.(ctx, task);
+}
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 

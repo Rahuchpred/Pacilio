@@ -138,6 +138,27 @@ export const reportDocument = table(
   }
 );
 
+// Charts the team asked the reports agent for (through Ask Settle). They stay
+// in the show report, and every report build refreshes their numbers, until
+// someone asks to remove one.
+export const reportChart = table(
+  { name: 'report_chart', public: true },
+  {
+    id: t.u64().primaryKey().autoInc(),
+    title: t.string(),
+    // 'bar' | 'line' | 'table'
+    kind: t.string(),
+    // 'usd' | 'count'
+    unit: t.string(),
+    // JSON [{label, value}]
+    rows: t.string(),
+    // What was asked for, so later builds know what to keep it showing
+    request: t.string(),
+    createdAt: t.timestamp(),
+    updatedAt: t.timestamp(),
+  }
+);
+
 // Reports agent bookkeeping (singleton, id 0).
 export const reportState = table(
   { name: 'report_state', public: true },
@@ -172,6 +193,7 @@ export const pipelineTables = {
   ledgerDocument,
   toolInstall,
   reportDocument,
+  reportChart,
   reportState,
   pipelineTickSchedule,
 };

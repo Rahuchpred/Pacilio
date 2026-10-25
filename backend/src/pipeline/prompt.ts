@@ -41,7 +41,18 @@ export interface PromptDecision {
   note: string;
 }
 
-export function buildPrompt(events: PromptEvent[], decisions: PromptDecision[], resetLedger: boolean): string {
+// A one-off message from the team (sent through Ask Settle) for this run.
+export interface PromptMessage {
+  id: string;
+  text: string;
+}
+
+export function buildPrompt(
+  events: PromptEvent[],
+  decisions: PromptDecision[],
+  resetLedger: boolean,
+  messages: PromptMessage[] = []
+): string {
   return `You are Settle's main bookkeeping agent for a concert promoter (the Oct 24 show).
 You keep the master ledger: one spreadsheet of every money movement, checked and explained.
 
@@ -112,6 +123,18 @@ ${decisions.length ? decisions.map(d => `- event ${d.event_id}: ${d.action}${d.n
 Apply them to the matching rows: void → status "void"; refund → status "refunded"; keep → status "ok";
 follow_up → status "following_up" with note "Following up with <counterparty>". Add "Decided by a person" to the note.
 
+## Messages from the team (do these in this run)
+${
+  messages.length
+    ? messages.map(m => `- ${m.id}: ${JSON.stringify(m.text)}`).join('\n') +
+      `
+These come from the team and steer this run. Follow them even where they change the instructions above: how you
+classify, what you flag or let through, how you write notes, which rows you re-check, recategorize or void. Only
+these stay fixed: reply with the JSON below, work only in ${WORKDIR}, never edit the render tool, and keep row
+numbers as they are. List every existing row you change in "changes", and answer each message in "messages".`
+    : '- none'
+}
+
 ## New events (JSON)
 ${events.length ? JSON.stringify(events) : '[] (no new events this run; just apply the decisions and re-render)'}
 
@@ -121,11 +144,13 @@ Write ledger.json, then run ${RENDER_CMD} once. Don't change the sheet design; t
 ## Reply
 When the files are written, reply with ONLY this JSON and nothing else:
 {"summary": "one sentence, past tense, with counts",
+ "changes": [{"event_id": "...", "status": "ok|void|review|refunded|following_up", "category": "...", "note": "..."}],
+ "messages": [{"id": "m…", "reply": "one sentence on what you did, with row numbers and amounts"}],
  "decisions": [{"event_id": "...", "status": "ok|void|review", "category": "...", "note": "...",
    "duplicate_of": "event_id or null",
    "review": null or {"title": "...", "what_happened": "...", "evidence": ["...", "..."], "action": "void|refund|follow_up|keep",
      "fix": "...", "question": "...", "follow_up_to": "... or null", "follow_up_subject": "... or null",
      "follow_up_message": "... or null"}}]}
 "review" is required when status is "review" and null otherwise.
-Include every new event exactly once.`;
+Include every new event exactly once. "changes" and "messages" are [] when there were no messages.`;
 }

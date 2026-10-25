@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState, type ComponentType, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ComponentType, type ReactNode } from 'react';
 import { Handle, Panel, type NodeProps } from '@xyflow/react';
 import { Icon, type IconName } from '../../../design-system/src/components';
 import { AskSettle } from '../ui/AskSettle';
-import { HANDLES } from './layout';
+import { HANDLES, NODE_IDS } from './layout';
 import { useExpanded, useFocus, useSetExpanded } from './view';
 
 // Two states per card. Overview: one word and one big number, readable from
@@ -48,14 +48,31 @@ export function Handles({ type }: { type: string }) {
 
 const CRAFT = { decide: 'craft-surface', accept: 'craft-surface is-accept', reject: 'craft-surface is-reject' };
 
+// The big number keeps to one line and shrinks to fit its card, so a wide
+// amount ($1,345,690.81) never runs past the edge.
+function useFitText<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.fontSize = '';
+    const over = el.scrollWidth / Math.max(1, el.clientWidth);
+    if (over > 1) el.style.fontSize = `${parseFloat(getComputedStyle(el).fontSize) / over}px`;
+  });
+  return ref;
+}
+
 export function FarCard({ type, width, ...v }: FarView & { type: string; width: string }) {
+  const big = useFitText<HTMLDivElement>();
   return (
     <div className={`pnode far-card ${width}${v.craft ? ' ' + CRAFT[v.craft] : ''}`}>
       <div className="far-word">
         <Icon name={v.icon} />
         <span>{v.word}</span>
       </div>
-      <div className="far-big">{v.big}</div>
+      <div className="far-big" ref={big}>
+        {v.big}
+      </div>
       {v.line && <div className="far-line">{v.line}</div>}
       <Handles type={type} />
     </div>
@@ -105,7 +122,8 @@ export function leveled(c: CardLevels) {
   };
 }
 
-// Bottom right: close every open card (for everyone), and Ask Settle.
+// Bottom right: close every open card, or open them all when none are (for
+// everyone), and Ask Settle.
 export function CanvasCorner() {
   const expanded = useExpanded();
   const setExpanded = useSetExpanded();
@@ -113,7 +131,7 @@ export function CanvasCorner() {
   return (
     <Panel position="bottom-right" className="lv-control">
       <div className="lv-row">
-        {expanded.size > 0 && (
+        {expanded.size > 0 ? (
           <button
             type="button"
             className="lv-close"
@@ -123,6 +141,17 @@ export function CanvasCorner() {
             }}
           >
             Close {expanded.size === 1 ? 'card' : `all ${expanded.size}`}
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="lv-close"
+            onClick={() => {
+              NODE_IDS.forEach(id => setExpanded(id, true));
+              fitAll();
+            }}
+          >
+            Open all
           </button>
         )}
         <AskSettle />

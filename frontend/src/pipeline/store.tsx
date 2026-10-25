@@ -38,7 +38,11 @@ function useLiveTables() {
   const [reportDocs] = useTable(tables.reportDocument);
   const [cards] = useTable(tables.pipelineCard);
   const [layout] = useTable(tables.pipelineLayout);
+  const [agentMessages] = useTable(tables.agentMessage);
+  const [reportCharts] = useTable(tables.reportChart);
   return {
+    reportCharts,
+    agentMessages,
     events,
     eventsReady,
     reviews,
@@ -119,6 +123,11 @@ function useDerived(t: ReturnType<typeof useLiveTables>) {
     for (const list of m.values()) list.sort((a, b) => (a.sentAt.microsSinceUnixEpoch < b.sentAt.microsSinceUnixEpoch ? -1 : 1));
     return m;
   }, [t.messages]);
+  // Messages Ask Settle sent, by the ask that sent them (oldest first)
+  const messagesByAsk = useMemo(
+    () => group([...t.agentMessages].sort(byId), m => m.askTaskId.toString()),
+    [t.agentMessages]
+  );
   const followUpSteps = useMemo(
     () => [...t.followUps].sort((a, b) => a.step - b.step).map(r => ({ delayMin: r.delayMin, message: r.message })),
     [t.followUps]
@@ -138,6 +147,7 @@ function useDerived(t: ReturnType<typeof useLiveTables>) {
     threadsSorted,
     messagesByThread,
     followUpSteps,
+    messagesByAsk,
   };
 }
 

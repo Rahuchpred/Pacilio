@@ -5,6 +5,7 @@ import { procedures, reducers } from '../module_bindings';
 import { logError } from '../throttle';
 import { FarCard, type CardLevels, type Look } from '../canvas/levels';
 import { Steps } from './Agent';
+import { TeamCharts } from './TeamCharts';
 import { Card } from './Card';
 import { clock, jsonList, totals, useRows } from './live';
 import { useLive } from './store';
@@ -181,6 +182,7 @@ function ReportFull() {
               </div>
             )}
           </div>
+          <TeamCharts />
           <div className="workbook report-frame nodrag nowheel">
             <iframe title="Show report" sandbox="" srcDoc={doc.html} />
           </div>

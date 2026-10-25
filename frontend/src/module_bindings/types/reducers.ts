@@ -8,6 +8,7 @@ import { type Infer as __Infer } from "spacetimedb";
 // Import all reducer arg schemas
 import AddEdgeReducer from "../add_edge_reducer";
 import AddNodeReducer from "../add_node_reducer";
+import CancelAgentMessageReducer from "../cancel_agent_message_reducer";
 import CancelAgentTaskReducer from "../cancel_agent_task_reducer";
 import CloseEmailThreadReducer from "../close_email_thread_reducer";
 import ConfigureInboundSourceReducer from "../configure_inbound_source_reducer";
@@ -39,6 +40,7 @@ import TidyPipelineLayoutReducer from "../tidy_pipeline_layout_reducer";
 
 export type AddEdgeParams = __Infer<typeof AddEdgeReducer>;
 export type AddNodeParams = __Infer<typeof AddNodeReducer>;
+export type CancelAgentMessageParams = __Infer<typeof CancelAgentMessageReducer>;
 export type CancelAgentTaskParams = __Infer<typeof CancelAgentTaskReducer>;
 export type CloseEmailThreadParams = __Infer<typeof CloseEmailThreadReducer>;
 export type ConfigureInboundSourceParams = __Infer<typeof ConfigureInboundSourceReducer>;

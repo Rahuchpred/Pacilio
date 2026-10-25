@@ -9,6 +9,8 @@ import { pipelineTables } from './pipeline/tables';
 import { pipeline } from './pipeline/pipeline';
 import { emailEnv, emailTables } from './email/tables';
 import { email, ensureFollowUpDefaults } from './email/email';
+import { settleTables } from './settle/tables';
+import { settle } from './settle/messages';
 
 // One row per identity that has ever connected. `color` drives avatar + cursor color.
 const user = table(
@@ -51,7 +53,7 @@ const edge = table(
 );
 
 const spacetimedb = schema(
-  { user, cursor, node, edge, ...droidTables, ...inboundTables, ...accountingTables, ...pipelineTables, ...emailTables },
+  { user, cursor, node, edge, ...droidTables, ...inboundTables, ...accountingTables, ...pipelineTables, ...emailTables, ...settleTables },
   { env: { ...droidEnv, ...inboundEnv, ...emailEnv } }
 );
 export default spacetimedb;
@@ -242,3 +244,7 @@ export const deleteEdge = spacetimedb.reducer(
     ctx.db.edge.id.delete(id);
   }
 );
+
+// ─── Ask Settle: messages to the agents ─────────────────────────────────────
+
+export const { cancelAgentMessage } = settle(spacetimedb);

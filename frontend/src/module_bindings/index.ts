@@ -36,6 +36,7 @@ import {
 // Import all reducer arg schemas
 import AddEdgeReducer from "./add_edge_reducer";
 import AddNodeReducer from "./add_node_reducer";
+import CancelAgentMessageReducer from "./cancel_agent_message_reducer";
 import CancelAgentTaskReducer from "./cancel_agent_task_reducer";
 import CloseEmailThreadReducer from "./close_email_thread_reducer";
 import ConfigureInboundSourceReducer from "./configure_inbound_source_reducer";
@@ -76,6 +77,7 @@ import * as SendEmailReplyProcedure from "./send_email_reply_procedure";
 import AccountingBillRow from "./accounting_bill_table";
 import AccountingInvoiceRow from "./accounting_invoice_table";
 import AccountingPaymentRow from "./accounting_payment_table";
+import AgentMessageRow from "./agent_message_table";
 import AgentRunRow from "./agent_run_table";
 import AgentStepRow from "./agent_step_table";
 import AgentTaskRow from "./agent_task_table";
@@ -93,6 +95,7 @@ import PipelineAgentRow from "./pipeline_agent_table";
 import PipelineCardRow from "./pipeline_card_table";
 import PipelineLayoutRow from "./pipeline_layout_table";
 import PipelineNodeSizeRow from "./pipeline_node_size_table";
+import ReportChartRow from "./report_chart_table";
 import ReportDocumentRow from "./report_document_table";
 import ReportStateRow from "./report_state_table";
 import ReviewDetailRow from "./review_detail_table";
@@ -137,6 +140,20 @@ const tablesSchema = __schema({
       { name: 'accounting_payment_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, AccountingPaymentRow),
+  agentMessage: __table({
+    name: 'agent_message',
+    indexes: [
+      { accessor: 'askTaskId', name: 'agent_message_ask_task_id_idx_btree', algorithm: 'btree', columns: [
+        'askTaskId',
+      ] },
+      { accessor: 'id', name: 'agent_message_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'agent_message_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, AgentMessageRow),
   agentRun: __table({
     name: 'agent_run',
     indexes: [
@@ -341,6 +358,17 @@ const tablesSchema = __schema({
       { name: 'pipeline_node_size_node_id_key', constraint: 'unique', columns: ['nodeId'] },
     ],
   }, PipelineNodeSizeRow),
+  reportChart: __table({
+    name: 'report_chart',
+    indexes: [
+      { accessor: 'id', name: 'report_chart_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'report_chart_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, ReportChartRow),
   reportDocument: __table({
     name: 'report_document',
     indexes: [
@@ -416,6 +444,7 @@ const tablesSchema = __schema({
 const reducersSchema = __reducers(
   __reducerSchema("add_edge", AddEdgeReducer),
   __reducerSchema("add_node", AddNodeReducer),
+  __reducerSchema("cancel_agent_message", CancelAgentMessageReducer),
   __reducerSchema("cancel_agent_task", CancelAgentTaskReducer),
   __reducerSchema("close_email_thread", CloseEmailThreadReducer),
   __reducerSchema("configure_inbound_source", ConfigureInboundSourceReducer),

@@ -3,21 +3,54 @@ import { useReducer, useSpacetimeDB, useTable } from 'spacetimedb/react';
 import { Icon } from '../../../design-system/src/components';
 import { reducers, tables } from '../module_bindings';
 import { logError } from '../throttle';
+import { MessageLine } from '../pipeline/AgentMessages';
+import { useLive } from '../pipeline/store';
 import './ask.css';
 
 // Ask Settle: a small button in the corner that opens a mini window above it.
-// A question goes to Droid on the Factory computer, which reads the ledger the
-// main agent keeps there and answers in a few sentences.
+// Droid reads the ledger the main agent keeps and answers. When the ask is
+// really for an agent ("move these to Catering", "make me a vendor report"),
+// it also sends that agent a one-off message, queued for its next run.
 
 const QUESTION_MARK = '\nQuestion: ';
 const WORKDIR = '/home/factory-user/settle';
 
 function askPrompt(question: string): string {
-  return `You are Settle's assistant for a concert promoter's Oct 24 show. Answer a teammate's question about this run.
+  return `You are Settle, the assistant for a concert promoter's Oct 24 show. A teammate wrote to you (below).
 Work quickly: don't look for AGENTS.md, skills or other context. Only read files; never write, edit or delete anything.
-The master ledger is ${WORKDIR}/ledger.json (every event with its status: ok, refunded, voided, review or following_up, its category and a note).
-${WORKDIR}/report.json has the show report figures if it exists.
-Reply in plain text, at most 4 short sentences, with exact amounts like $12,345.67. Say plainly if the files don't answer it.${QUESTION_MARK}${question}`;
+The master ledger is ${WORKDIR}/ledger.json (every event with its row number, status: ok, refunded, void, review or
+following_up, its category and a note). ${WORKDIR}/report.json has the show report figures if it exists.
+
+You work with two agents:
+- "main": the main bookkeeping agent. It keeps the ledger. Send it anything that should change the ledger or how it
+  handles rows on its next run: recategorize rows, void a duplicate, fix a note, re-check something.
+- "reports": the reports agent. Send it anything about the show report: a new analysis or breakdown, a new chart
+  (bar, line or table; it stays in the report and updates on every build), removing a chart, something to call out.
+Messages steer the agents: they follow them even where it changes how they normally work.
+If the teammate asks a question, answer it from the files. If they want something done, send it to the right agent as
+a clear instruction under 400 characters with the names, row numbers and amounts it needs (look them up in the
+ledger first). Say what you want, not how to do it. You may do both.
+
+Reply with ONLY this JSON:
+{"answer": "what you say back, at most 3 short sentences with exact amounts like $12,345.67. If you sent something, say so",
+ "send": [{"to": "main" or "reports", "message": "the instruction for that agent"}]}
+"send" is [] when nothing needs doing. At most 3 messages.${QUESTION_MARK}${question}`;
+}
+
+// The answer part of Settle's JSON reply (plain text replies pass through).
+function answerOf(result: string | undefined): string {
+  const raw = (result ?? '').trim();
+  const start = raw.indexOf('{');
+  const end = raw.lastIndexOf('}');
+  if (start >= 0 && end > start) {
+    try {
+      const parsed = JSON.parse(raw.slice(start, end + 1)) as { answer?: unknown };
+      if (typeof parsed.answer === 'string') return parsed.answer;
+    } catch {
+      // not JSON after all
+    }
+  }
+  return raw;
 }
 
 const questionOf = (prompt: string) => {
@@ -35,6 +68,7 @@ export function AskSettle() {
   const ask = useReducer(reducers.requestAgentTask);
   const { identity } = useSpacetimeDB();
   const [tasks] = useTable(tables.agentTask.where(r => r.kind.eq('ask')));
+  const { messagesByAsk } = useLive();
   // Your questions this session's identity asked, oldest first
   const mine = tasks
     .filter(t => identity && t.createdBy.isEqual(identity))
@@ -80,12 +114,15 @@ export function AskSettle() {
           <header className="ask-head">
             <Icon name="Sparkle" />
             <span className="strong">Ask Settle</span>
-            <span className="ask-sub">Reads the master ledger</span>
+            <span className="ask-sub">Reads the ledger, messages the agents</span>
             <kbd>Esc</kbd>
           </header>
           <div className="ask-thread" ref={thread}>
             {mine.length === 0 && (
-              <p className="ask-sub">Ask about this run, like "Which vendors are held?" or "What did we spend on catering?"</p>
+              <p className="ask-sub">
+                Ask about this run ("What did we spend on catering?"), or tell an agent what to do ("Move the Castro Coffee
+                rows to Catering", "Make me a vendor-by-vendor report").
+              </p>
             )}
             {mine.map(t => (
               <div key={t.id.toString()} className="ask-pair">
@@ -94,7 +131,12 @@ export function AskSettle() {
                   <Icon name="Sparkle" size={14} />
                   <div>
                     {t.status === 'done' ? (
-                      <p>{t.result ?? 'No answer came back.'}</p>
+                      <>
+                        {answerOf(t.result) && <p>{answerOf(t.result)}</p>}
+                        {(messagesByAsk.get(t.id.toString()) ?? []).map(m => (
+                          <MessageLine key={m.id.toString()} m={m} />
+                        ))}
+                      </>
                     ) : t.status === 'failed' || t.status === 'cancelled' ? (
                       <p className="ask-sub">{t.error ?? "Couldn't answer that one."}</p>
                     ) : (
@@ -110,7 +152,7 @@ export function AskSettle() {
               ref={input}
               value={draft}
               onChange={e => setDraft(e.target.value)}
-              placeholder={waiting ? 'Answering…' : 'Ask about this run'}
+              placeholder={waiting ? 'Answering…' : 'Ask, or tell an agent what to do'}
               aria-label="Ask about this run"
             />
             <button type="submit" className="ask-send" aria-label="Send" disabled={!draft.trim() || waiting}>

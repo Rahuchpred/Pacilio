@@ -1,8 +1,9 @@
-import { ScheduleAt, SenderError, t, type InferSchema, type ReducerCtx } from 'spacetimedb/server';
+import { SenderError, t, type InferSchema, type ReducerCtx } from 'spacetimedb/server';
 import type spacetimedb from '../index';
 import { enqueueAgentTask } from '../droid/agents';
 import { FactoryClient, FactoryError } from '../droid/factory';
 import { LEDGER_HTML, LEDGER_XLSX, buildPrompt, type PromptDecision, type PromptEvent } from './prompt';
+import { finishMessages, markSent, promptId, queuedFor, requeueMessages } from '../settle/messages';
 import { RENDER_PATH, RENDER_SCRIPT, RENDER_VERSION } from './renderScript';
 import { REPORT_PATH, REPORT_SCRIPT, REPORT_VERSION } from './reportScript';
 import { reports, reportsTick, resetReports } from './reports';
@@ -14,6 +15,7 @@ const TOOLS = [
   { path: REPORT_PATH, version: REPORT_VERSION, script: REPORT_SCRIPT },
 ];
 import { pipelineTickSchedule } from './tables';
+import { ensureTicking } from './ticking';
 import { startFollowUp } from '../email/email';
 
 type Schema = typeof spacetimedb;
@@ -22,7 +24,6 @@ type Run = NonNullable<ReturnType<Ctx['db']['agentRun']['id']['find']>>;
 type Task = NonNullable<ReturnType<Ctx['db']['agentTask']['id']['find']>>;
 type AgentState = NonNullable<ReturnType<Ctx['db']['pipelineAgent']['id']['find']>>;
 
-const TICK_INTERVAL_MICROS = 3_000_000n;
 // Each run has a fixed startup cost, so moderate batches keep up with the sources
 const BATCH_SIZE = 20;
 // Don't spend a run's startup cost on one or two events: wait for a batch,
@@ -66,10 +67,7 @@ function updateAgent(ctx: Ctx, patch: Partial<AgentState>) {
   ctx.db.pipelineAgent.id.update({ ...agentState(ctx), ...patch, updatedAt: ctx.timestamp });
 }
 
-export function ensureTicking(ctx: Ctx) {
-  for (const _ of ctx.db.pipelineTickSchedule.iter()) return;
-  ctx.db.pipelineTickSchedule.insert({ scheduledId: 0n, scheduledAt: ScheduleAt.interval(TICK_INTERVAL_MICROS) });
-}
+export { ensureTicking };
 
 function message(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
@@ -106,20 +104,23 @@ export function resetPipeline(ctx: Ctx) {
 // Hand the waiting events (and any human decisions) to Droid, if there are any.
 function startRun(ctx: Ctx): boolean {
   const agent = agentState(ctx);
-  if (!agent.enabled || agent.currentRunId !== undefined) return false;
+  if (agent.currentRunId !== undefined) return false;
+  // Messages from the team go out even while paused (just without new events)
+  const messages = queuedFor(ctx, 'main');
+  if (!agent.enabled && !messages.length) return false;
 
-  const waiting = [...ctx.db.inboundEvent.iter()]
+  const waiting = (agent.enabled ? [...ctx.db.inboundEvent.iter()] : [])
     .filter(e => !ctx.db.eventReview.eventId.find(e.id))
     .sort((a, b) => (a.id < b.id ? -1 : 1))
     .slice(0, BATCH_SIZE);
   const decided = [...ctx.db.reviewItem.iter()].filter(r => r.status === 'decided');
   // A pending reset rides along with the first real batch rather than holding
   // the agent in an empty run while new events pile up
-  if (!waiting.length && !decided.length) return false;
+  if (!waiting.length && !decided.length && !messages.length) return false;
   const oldestWaitedMicros = waiting.length
     ? ctx.timestamp.microsSinceUnixEpoch - waiting[0].receivedAt.microsSinceUnixEpoch
     : 0n;
-  if (!decided.length && waiting.length < MIN_BATCH && oldestWaitedMicros < MAX_WAIT_MICROS) return false;
+  if (!decided.length && !messages.length && waiting.length < MIN_BATCH && oldestWaitedMicros < MAX_WAIT_MICROS) return false;
 
   const events: PromptEvent[] = waiting.map(e => ({
     id: e.id.toString(),
@@ -141,7 +142,12 @@ function startRun(ctx: Ctx): boolean {
   // 'high': below that, Droid pauses for a person to approve risky steps (e.g. any
   // file delete), and over the REST API nobody can, so the run hangs. It works
   // alone on its own sandboxed computer, in /home/factory-user/settle.
-  const taskId = enqueueAgentTask(ctx, 'pipeline', buildPrompt(events, decisions, agent.resetLedger), 'high');
+  const taskId = enqueueAgentTask(
+    ctx,
+    'pipeline',
+    buildPrompt(events, decisions, agent.resetLedger, messages.map(m => ({ id: promptId(m), text: m.text }))),
+    'high'
+  );
   const run = ctx.db.agentRun.insert({
     id: 0n,
     taskId,
@@ -153,6 +159,7 @@ function startRun(ctx: Ctx): boolean {
     startedAt: ctx.timestamp,
     finishedAt: undefined,
   });
+  markSent(ctx, messages, run.id);
   for (const e of waiting) {
     ctx.db.eventReview.insert({
       eventId: e.id,
@@ -195,14 +202,29 @@ interface Decision {
 }
 
 // The reply should be pure JSON; tolerate a code fence or a stray sentence around it.
-function parseReply(text: string | undefined): { summary: string; decisions: Decision[] } {
+// An existing row a team message asked the agent to change
+interface Change {
+  event_id: string;
+  status?: string;
+  category?: string;
+  note?: string;
+}
+
+type Reply = { summary: string; decisions: Decision[]; changes: Change[]; messages: unknown };
+
+function parseReply(text: string | undefined): Reply {
   if (!text) throw new Error('Agent finished without a reply');
   const start = text.indexOf('{');
   const end = text.lastIndexOf('}');
   if (start < 0 || end <= start) throw new Error(`Agent reply was not JSON: ${text.slice(0, 200)}`);
-  const parsed = JSON.parse(text.slice(start, end + 1)) as { summary?: string; decisions?: Decision[] };
+  const parsed = JSON.parse(text.slice(start, end + 1)) as Partial<Reply>;
   if (!Array.isArray(parsed.decisions)) throw new Error('Agent reply had no decisions list');
-  return { summary: parsed.summary ?? '', decisions: parsed.decisions };
+  return {
+    summary: parsed.summary ?? '',
+    decisions: parsed.decisions,
+    changes: Array.isArray(parsed.changes) ? parsed.changes : [],
+    messages: parsed.messages,
+  };
 }
 
 function toId(value: string | null | undefined): bigint | undefined {
@@ -211,7 +233,29 @@ function toId(value: string | null | undefined): bigint | undefined {
 }
 
 // Check and apply Droid's decisions: our tables only take valid values.
-function applyDecisions(ctx: Ctx, run: Run, summary: string, decisions: Decision[]) {
+// Rows a team message changed. Only the review's outcome, category and note
+// move; a row that becomes "review" this way keeps any question it had.
+const CHANGE_OUTCOME: Record<string, string> = { ok: 'ok', void: 'void', review: 'review', refunded: 'ok', following_up: 'review' };
+
+function applyChanges(ctx: Ctx, changes: Change[]) {
+  for (const c of changes) {
+    const id = toId(String(c.event_id));
+    const review = id === undefined ? undefined : ctx.db.eventReview.eventId.find(id);
+    if (!review || review.status !== 'done') continue;
+    ctx.db.eventReview.eventId.update({
+      ...review,
+      outcome: (c.status && CHANGE_OUTCOME[c.status]) ?? review.outcome,
+      category: typeof c.category === 'string' && c.category ? clip(c.category, 120) : review.category,
+      note: typeof c.note === 'string' ? clip(c.note, 300) : review.note,
+      updatedAt: ctx.timestamp,
+    });
+  }
+}
+
+function applyDecisions(ctx: Ctx, run: Run, reply: Reply) {
+  const { summary, decisions } = reply;
+  applyChanges(ctx, reply.changes);
+  finishMessages(ctx, run.id, reply.messages);
   const inRun = new Set(run.eventIds.map(String));
   const seen = new Set<string>();
 
@@ -304,6 +348,7 @@ function applyDecisions(ctx: Ctx, run: Run, summary: string, decisions: Decision
 // The run didn't produce usable results: put its events back in the queue.
 function failRun(ctx: Ctx, run: Run, error: string) {
   for (const eventId of run.eventIds) ctx.db.eventReview.eventId.delete(eventId);
+  requeueMessages(ctx, run.id);
   ctx.db.agentRun.id.update({ ...run, status: 'failed', error, finishedAt: ctx.timestamp });
   updateAgent(ctx, { status: 'idle', currentRunId: undefined, lastError: error });
 }
@@ -344,7 +389,7 @@ export function pipeline(stdb: Schema) {
             ctx.withTx(tx => failRun(tx, run, message(err)));
             return {};
           }
-          ctx.withTx(tx => applyDecisions(tx, run, parsed.summary, parsed.decisions));
+          ctx.withTx(tx => applyDecisions(tx, run, parsed));
 
           // Bring the spreadsheet Droid rendered back for every browser to show
           try {
@@ -367,7 +412,7 @@ export function pipeline(stdb: Schema) {
 
       // Make sure the agent's tools are on the computer before handing it work
       const missing = ctx.withTx(tx =>
-        agentState(tx).enabled || tx.db.reportState.id.find(0)?.requested
+        agentState(tx).enabled || tx.db.reportState.id.find(0)?.requested || queuedFor(tx, 'main').length
           ? TOOLS.filter(tool => tx.db.toolInstall.path.find(tool.path)?.version !== tool.version)
           : []
       );

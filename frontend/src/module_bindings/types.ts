@@ -57,6 +57,20 @@ export const AccountingPayment = __t.object("AccountingPayment", {
 });
 export type AccountingPayment = __Infer<typeof AccountingPayment>;
 
+export const AgentMessage = __t.object("AgentMessage", {
+  id: __t.u64(),
+  askTaskId: __t.u64(),
+  target: __t.string(),
+  text: __t.string(),
+  status: __t.string(),
+  runRef: __t.option(__t.u64()),
+  reply: __t.option(__t.string()),
+  createdBy: __t.identity(),
+  createdAt: __t.timestamp(),
+  updatedAt: __t.timestamp(),
+});
+export type AgentMessage = __Infer<typeof AgentMessage>;
+
 export const AgentOutbox = __t.object("AgentOutbox", {
   id: __t.u64(),
   taskId: __t.u64(),
@@ -310,6 +324,18 @@ export const PipelineTickSchedule = __t.object("PipelineTickSchedule", {
   scheduledAt: __t.scheduleAt(),
 });
 export type PipelineTickSchedule = __Infer<typeof PipelineTickSchedule>;
+
+export const ReportChart = __t.object("ReportChart", {
+  id: __t.u64(),
+  title: __t.string(),
+  kind: __t.string(),
+  unit: __t.string(),
+  rows: __t.string(),
+  request: __t.string(),
+  createdAt: __t.timestamp(),
+  updatedAt: __t.timestamp(),
+});
+export type ReportChart = __Infer<typeof ReportChart>;
 
 export const ReportDocument = __t.object("ReportDocument", {
   id: __t.u32(),
