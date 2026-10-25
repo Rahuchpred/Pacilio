@@ -78,7 +78,8 @@ Amounts: positive = money in, negative = money out.
 ## Sources
 - nessie: the bank account (purchases, deposits, withdrawals, transfers, bill pay)
 - stripe: card payments for tickets (charges, refunds, chargebacks)
-- ledger: the accounting system (vendor bills, sponsor invoices, recorded payments). Typed by hand, so it has typos and double entries.
+- ledger: the accounting system, QuickBooks (vendor bills, sponsor invoices, recorded payments). Typed by hand, so it
+  has typos and double entries. In anything a person reads (notes, evidence, titles), call this source "QuickBooks".
 - cord: scanned receipts for small purchases
 
 ## For each new event

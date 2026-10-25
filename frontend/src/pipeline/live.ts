@@ -11,7 +11,8 @@ import { usePipelineActivity } from './activity';
 export const SOURCES = [
   { name: 'nessie', title: 'Nessie', provides: 'Bank: purchases, deposits, bills' },
   { name: 'stripe', title: 'Stripe', provides: 'Payments: charges, refunds, disputes' },
-  { name: 'ledger', title: 'Ledger', provides: 'Accounting: bills, invoices, payments' },
+  // Our stand-in for QuickBooks; the data keeps the internal name 'ledger'
+  { name: 'ledger', title: 'QuickBooks', provides: 'Accounting: bills, invoices, payments' },
   { name: 'cord', title: 'Receipts', provides: 'Scanned receipts (CORD)' },
 ] as const;
 

@@ -5,13 +5,13 @@
 // Kept ASCII-only (non-ASCII is written as \u escapes) so its byte size equals
 // its length for the upload. Avoid "$" followed by "{" (template literal).
 
-export const RENDER_VERSION = 'v5';
+export const RENDER_VERSION = 'v6';
 // Versioned name: Factory's upload won't overwrite an existing file, and an
 // older agent-written settle/render.py may still be on the computer
 export const RENDER_PATH = `settle/tools/render-${RENDER_VERSION}.py`;
 
-export const RENDER_SCRIPT = String.raw`# settle-render v5 -- provided by Settle. Do not edit.
-# Run: python3 /home/factory-user/settle/tools/render-v5.py /home/factory-user/settle
+export const RENDER_SCRIPT = String.raw`# settle-render v6 -- provided by Settle. Do not edit.
+# Run: python3 /home/factory-user/settle/tools/render-v6.py /home/factory-user/settle
 """Render settle/ledger.json into ledger.html (an Excel-style window) and ledger.xlsx."""
 import datetime
 import html
@@ -34,7 +34,7 @@ STATUS_LABEL = {
     "refunded": "\u21ba Refunded",
     "following_up": "\u2709 Following up",
 }
-SOURCE_LABEL = {"nessie": "Nessie", "stripe": "Stripe", "ledger": "Ledger", "cord": "Receipts"}
+SOURCE_LABEL = {"nessie": "Nessie", "stripe": "Stripe", "ledger": "QuickBooks", "cord": "Receipts"}
 FILLS = {
     "void": ("FFC7CE", "9C0006"),
     "review": ("FFEB9C", "9C5700"),
