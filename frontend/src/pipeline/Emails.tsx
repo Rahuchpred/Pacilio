@@ -12,12 +12,12 @@ import { clock, openItem } from './live';
 import { useLive } from './store';
 
 // Emails (AgentMail): one thread per item a person chose to follow up on.
-// Without a reply, Settle nudges on a schedule; a reply comes to the top with
+// Without a reply, Pacioli nudges on a schedule; a reply comes to the top with
 // a blue dot.
 
 // Matches the current signature and the older one with a leading dash.
 // Older emails ended with a signature; new ones are sent exactly as written
-const SIGNATURE = /\n\n(?:\u2014 Settle, bookkeeping for the|Settle\nBookkeeping for the|Settle Bookkeeping\nSettlement for the) Oct 2[45] show$/;
+const SIGNATURE = /\n\n(?:\u2014 Settle, bookkeeping for the|Settle\nBookkeeping for the|(?:Settle|Pacioli) Bookkeeping\nSettlement for the) Oct 2[45] show$/;
 
 const THREAD_STATUS: Record<string, { kind: StatusKind; label: string }> = {
   waiting: { kind: 'held', label: 'Waiting' },
@@ -130,7 +130,7 @@ function Conversation({ thread, messages }: { thread: EmailThread; messages: Ema
         {messages.map(m => (
           <li key={m.id.toString()} className={`msg ${m.direction === 'in' ? 'msg-them' : 'msg-agent'}`}>
             <div className="msg-line">
-              <span className="msg-who">{m.direction === 'in' ? m.fromAddress : 'Settle'}</span>
+              <span className="msg-who">{m.direction === 'in' ? m.fromAddress : 'Pacioli'}</span>
               <span className="tertiary small">
                 {KIND_LABEL[m.kind] ?? m.kind} · {clock(m.sentAt.toDate())}
               </span>
@@ -217,10 +217,10 @@ function Full() {
       {settings ? (
         <FollowUpSettings onDone={() => setSettings(false)} />
       ) : (
-        ready && <p className="muted small">Without a reply, Settle {describeSchedule(steps)}.</p>
+        ready && <p className="muted small">Without a reply, Pacioli {describeSchedule(steps)}.</p>
       )}
       {threads.length === 0 ? (
-        <p className="muted">Choose Email them on a question and Settle writes here.</p>
+        <p className="muted">Choose Email them on a question and Pacioli writes here.</p>
       ) : (
         <ul className="email-threads nodrag nowheel">
           {threads.map(thread => {

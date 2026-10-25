@@ -74,7 +74,7 @@ function clockOf(a: Audit): string {
 
 function buildLearnPrompt(patterns: Pattern[], deleted: Pattern[], actions: Audit[], newFrom: bigint): string {
   const owner = (p: Pattern) => (p.source === 'learned' ? 'learned' : 'set by a person; never change or remove');
-  return `You are Settle's pattern learner. Settle keeps a concert promoter's books for the Oct 25 show. Its Bookkeeper
+  return `You are Pacioli's pattern learner. Pacioli keeps a concert promoter's books for the Oct 25 show. Its Bookkeeper
 agent sorts every money movement into a category, posts it, and asks a person about anything that looks wrong.
 People then decide, or correct it. You turn what people do into short patterns the Bookkeeper follows from now on.
 Work quickly: everything you need is below. Don't look for files, don't run commands, don't use tools.

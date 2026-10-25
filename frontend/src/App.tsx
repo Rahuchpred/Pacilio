@@ -1,6 +1,7 @@
 import { ReactFlowProvider } from '@xyflow/react';
 import { useSpacetimeDB } from 'spacetimedb/react';
 import { Pipeline } from './Pipeline';
+import { Icon } from '../../design-system/src/components';
 import { TopBar } from './TopBar';
 import { PipelineActivityProvider } from './pipeline/activity';
 import { LiveProvider } from './pipeline/store';
@@ -19,10 +20,21 @@ function App() {
       <LiveProvider>
         <PipelineActivityProvider>
           <Pipeline />
+          <Brand />
           <TopBar />
         </PipelineActivityProvider>
       </LiveProvider>
     </ReactFlowProvider>
+  );
+}
+
+// Top left: the mark and the name, nothing else.
+function Brand() {
+  return (
+    <div className="brand" aria-label="Pacioli">
+      <Icon name="Pacioli" size={20} />
+      <span>Pacioli</span>
+    </div>
   );
 }
 

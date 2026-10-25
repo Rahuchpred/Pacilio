@@ -86,6 +86,15 @@ export const glaze = {
     "M96,92h64a8,8,0,0,1,0,16H96a8,8,0,0,1,0-16Z",
     "M96,124h64a8,8,0,0,1,0,16H96a8,8,0,0,1,0-16Z",
   ],
+  /* Pacioli's mark: a slanted sound wave dying down to one flat line, the
+     night settling. Straight edges, no radius. Filled, unlike the Phosphor set. */
+  Pacioli: [
+    "M78.48,20L106.48,20L28.72,236L0.72,236Z",
+    "M112.96,52L140.96,52L86.24,204L58.24,204Z",
+    "M148.88,80L176.88,80L142.32,176L114.32,176Z",
+    "M186.96,102L214.96,102L196.24,154L168.24,154Z",
+    "M227.2,118L255.2,118L248,138L220,138Z",
+  ],
 } as const;
 
 export type GlazeName = keyof typeof glaze;

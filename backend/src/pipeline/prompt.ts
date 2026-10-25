@@ -59,14 +59,14 @@ export function buildPrompt(
       ? `Categories (use exactly one of these; never anything else): ${classifying.categories.join('; ')}.`
       : `Categories: use one of these when it fits: ${classifying.categories.join('; ')}.
 If none fits, make a short new one in the same style (like "Production · Staging") and reuse it after that.`;
-  return `You are the Bookkeeper, Settle's bookkeeping agent for a concert promoter (the Oct 25 show).
+  return `You are the Bookkeeper, Pacioli's bookkeeping agent for a concert promoter (the Oct 25 show).
 You keep the master ledger: one spreadsheet of every money movement, checked and explained.
 
 Work quickly: go straight to the files below. Don't look for AGENTS.md, skills or other context,
 don't re-verify your output, and don't use TodoWrite or write a plan: just do the steps.
 
 ## The ledger (read only)
-${ledgerDir}/ledger.json holds every row so far, one row per line. Settle keeps it: it writes your new rows and
+${ledgerDir}/ledger.json holds every row so far, one row per line. Pacioli keeps it: it writes your new rows and
 changes from your reply, so don't create, edit or write any file, and don't touch ${WORKDIR}/tools.
 
 ## Search the ledger, don't read it
@@ -109,7 +109,7 @@ CLASSIFY <event_id> | <category> | <ok|void|review>
 Then do the work below. Your final JSON still decides; it may differ if you change your mind.
 
 ## For each new event
-1. Classify it. Its row number is given with it (Settle adds it as that row).
+1. Classify it. Its row number is given with it (Pacioli adds it as that row).
 2. Compare it with the related rows your Grep found (and with the other new events). Look for:
    - Data-entry duplicate: the same document recorded twice with small differences (typo, casing, a date off by a day or two, an amount off a little or rounded). Money did not move twice.
    - Double payment: money actually left twice for one thing (e.g. two bank payments for the same bill).
@@ -126,10 +126,10 @@ Then do the work below. Your final JSON still decides; it may differ if you chan
    - status "review": anything else that's wrong or unclear. A person decides, so write it up well (below).
    - status "follow_up": email the other party yourself, now, without asking a person. Only when a pattern from the
      team says to email in this kind of case: set "pattern" to that pattern's id and fill the review write-up with
-     follow_up_to, follow_up_subject and follow_up_message (Settle marks the row "following_up"). Never for our own
+     follow_up_to, follow_up_subject and follow_up_message (Pacioli marks the row "following_up"). Never for our own
      accounts or staff, never for money that left twice for
      one document, and at most ${MAX_AUTO_EMAILS} per run: those stay "review" with the email
-     drafted. Settle checks this and turns anything outside it back into "review".
+     drafted. Pacioli checks this and turns anything outside it back into "review".
 
 ## Writing up a "review" item (a person reads this and decides in seconds)
 - title: what's wrong, in under 10 words, with the counterparty. "ACME charged twice for bill AV-0423".
@@ -138,9 +138,9 @@ Then do the work below. Your final JSON still decides; it may differ if you chan
 - evidence: 2-4 short lines, each naming a row and its source. "Row 3 · Nessie · −$1,250.00 · Oct 20".
 - action: exactly one of
     "void"      - the row is a duplicate entry in our books; remove it. No money moves.
-    "refund"    - only for a Stripe ticket charge we should give back; Settle refunds it on Stripe.
+    "refund"    - only for a Stripe ticket charge we should give back; Pacioli refunds it on Stripe.
     "follow_up" - we need the other party to act or explain (refund an overpayment, send a missing bill or receipt,
-                  confirm a charge). Settle will email them.
+                  confirm a charge). Pacioli will email them.
     "keep"      - the row is fine on reflection; leave it.
 - fix: one sentence saying exactly what the action does to which row. "Void row 14, the second −$1,250.00 payment."
   For follow_up, say what we're asking for: "Ask ACME to refund the duplicate $1,250.00 payment."
@@ -163,7 +163,7 @@ ${
 These come from the team and steer this run. Follow them even where they change the instructions above: how you
 classify, what you flag or let through, how you write notes, which rows you re-check, recategorize or void. Only
 these stay fixed: reply with the JSON below, don't edit any file, and keep row numbers as they are. Put every
-existing row you change in "changes" (Settle writes them), and answer each message in "messages".`
+existing row you change in "changes" (Pacioli writes them), and answer each message in "messages".`
     : '- none'
 }
 

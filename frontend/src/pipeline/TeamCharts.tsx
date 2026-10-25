@@ -110,7 +110,7 @@ function TeamChart({ chart }: { chart: ReportChart }) {
       <figcaption>
         <span className="strong">{chart.title}</span>
         <span className="muted small" title={chart.request}>
-          Asked for through Settle
+          Asked for through Pacioli
         </span>
       </figcaption>
       {kind === 'line' ? <Line rows={rows} unit={chart.unit} /> : kind === 'table' ? <Table rows={rows} unit={chart.unit} /> : <Bars rows={rows} unit={chart.unit} />}

@@ -92,11 +92,11 @@ onTaskSettledOfKind('ask', (ctx, task: Task) => {
   const at = task.prompt.lastIndexOf(QUESTION_MARK);
   const question = at < 0 ? '' : task.prompt.slice(at + QUESTION_MARK.length).trim();
   if (!send.length) {
-    logAction(ctx, task.createdBy, 'ask', `Asked Settle: "${question.slice(0, 200)}"`);
+    logAction(ctx, task.createdBy, 'ask', `Asked Pacioli: "${question.slice(0, 200)}"`);
   }
   for (const s of send) {
     const to = s.to === 'main' ? 'the Bookkeeper' : 'the reports agent';
-    logAction(ctx, task.createdBy, 'settle', `Told ${to} (through Settle): "${s.message}"`, {
+    logAction(ctx, task.createdBy, 'settle', `Told ${to} (through Pacioli): "${s.message}"`, {
       // Corrections to the Bookkeeper are something to learn from
       learnable: s.to === 'main',
       details: { asked: question.slice(0, 300) },

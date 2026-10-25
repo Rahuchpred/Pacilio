@@ -176,6 +176,25 @@
   padding: 0;
 }
 
+/* Top left: the Pacioli mark in the decide orange and the name in ink. */
+.brand {
+  position: fixed;
+  top: var(--space-lg);
+  left: var(--space-lg);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: 40px;
+  font-family: var(--font-sans);
+  font-size: var(--type-subheading-size);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
+  pointer-events: none;
+}
+.brand .icon { color: var(--color-action-decide); }
+
 /* Top right, like Figma, Canva and Google Docs: who is here, then Share.
    Others overlap in a stack and you sit last; one primary action. */
 .topbar {

@@ -1,9 +1,10 @@
-# Stage log: Settle
+# Stage log: Pacioli
 
-Settle runs show settlement for concert promoters. Agents read invoices, check them and post them; a person only sees the calls the agents are unsure about.
+Pacioli runs show settlement for concert promoters. Agents read invoices, check them and post them; a person only sees the calls the agents are unsure about.
 
 - Figma file: https://www.figma.com/design/j5FmqSGsD6uUaGOeOq06GP (pages are numbered by stage)
 - Figma Slides: https://www.figma.com/slides/e4vwifUeeOymRiDCOY6APj (built by Claude Code through the Figma MCP from this log)
+- Name: we called it Settle until Saturday night, then renamed it Pacioli after the father of double-entry bookkeeping. The Figma file keeps the old name on purpose, as the record of how we got here; the logo is on page "7 Logo: Pacioli".
 - Repo: this one. Times come from git commits and Figma version history.
 - Team: rahuchpred (design system, Figma, front end), AnSingh1 (SpacetimeDB backend, live canvas, Droid client). Handles from git.
 

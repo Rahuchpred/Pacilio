@@ -248,7 +248,7 @@ export function ItemPanel() {
               {(messagesByThread.get(t.id.toString()) ?? []).map(m => (
                 <li key={m.id.toString()} className={`msg ${m.direction === 'in' ? 'msg-them' : 'msg-agent'}`}>
                   <div className="msg-line">
-                    <span className="msg-who">{m.direction === 'in' ? m.fromAddress : 'Settle'}</span>
+                    <span className="msg-who">{m.direction === 'in' ? m.fromAddress : 'Pacioli'}</span>
                     <span className="tertiary small">{clock(m.sentAt.toDate())}</span>
                   </div>
                   <p className="email-body">{m.body}</p>

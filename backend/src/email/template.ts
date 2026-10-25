@@ -9,7 +9,7 @@ const SANS = "Geist, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, A
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export const SHOW = 'Oct 25 show';
-export const SENDER = 'Settle Bookkeeping';
+export const SENDER = 'Pacioli Bookkeeping';
 
 export interface Detail {
   label: string;
@@ -108,7 +108,7 @@ function detailRows(details: Detail[]): string {
 }
 
 function mark(): string {
-  return `<span style="display:inline-block;width:22px;height:22px;line-height:22px;border-radius:6px;background:${C.primary};color:${C.card};text-align:center;font-family:${SANS};font-size:13px;font-weight:600;vertical-align:middle;">S</span>`;
+  return `<span style="display:inline-block;width:22px;height:22px;line-height:22px;border-radius:0;background:${C.primary};color:${C.card};text-align:center;font-family:${SANS};font-size:13px;font-weight:600;vertical-align:middle;">P</span>`;
 }
 
 function shell(c: EmailContent, inner: string): string {
@@ -138,7 +138,7 @@ ${inner}
 
 export function renderEmail(c: EmailContent): string {
   const k = C;
-  const head = `<p style="margin:0 0 20px;font-family:${SANS};font-size:15px;line-height:22px;color:${k.primary};text-align:center;">${mark()}<span style="font-weight:500;vertical-align:middle;margin-left:8px;">Settle</span></p>`;
+  const head = `<p style="margin:0 0 20px;font-family:${SANS};font-size:15px;line-height:22px;color:${k.primary};text-align:center;">${mark()}<span style="font-weight:500;vertical-align:middle;margin-left:8px;">Pacioli</span></p>`;
   const amount = c.amount
     ? `<p style="margin:0;font-family:${SANS};font-size:44px;line-height:48px;font-weight:300;letter-spacing:-0.02em;color:${k.primary};text-align:center;font-variant-numeric:tabular-nums;">${esc(c.amount)}</p>`
     : '';

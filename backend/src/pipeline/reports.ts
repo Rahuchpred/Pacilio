@@ -53,7 +53,7 @@ const chartId = (c: Chart) => `c${c.id}`;
 function buildReportPrompt(requests: Message[], charts: Chart[], dir: string): string {
   const WORKDIR = dir;
   const REPORT_CMD = `python3 /home/factory-user/${REPORT_PATH} ${dir}`;
-  return `You are Settle's reports agent for a concert promoter's Oct 25 show.
+  return `You are Pacioli's reports agent for a concert promoter's Oct 25 show.
 Work quickly: don't look for AGENTS.md, skills or other context.
 
 1. Run: ${REPORT_CMD}

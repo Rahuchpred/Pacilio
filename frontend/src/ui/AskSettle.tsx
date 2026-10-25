@@ -7,7 +7,7 @@ import { MessageLine } from '../pipeline/AgentMessages';
 import { useLive } from '../pipeline/store';
 import './ask.css';
 
-// Ask Settle: a small button in the corner that opens a mini window above it.
+// Ask Pacioli: a small button in the corner that opens a mini window above it.
 // Droid reads the ledger the Bookkeeper keeps and answers. When the ask is
 // really for an agent ("move these to Catering", "make me a vendor report"),
 // it also sends that agent a one-off message, queued for its next run.
@@ -18,7 +18,7 @@ const QUESTION_MARK = '\nQuestion: ';
 const WORKDIR = '/home/factory-user/settle';
 
 function askPrompt(question: string, ledgerDir = WORKDIR, reportDir = WORKDIR): string {
-  return `You are Settle, the assistant for a concert promoter's Oct 25 show. A teammate wrote to you (below).
+  return `You are Pacioli, the assistant for a concert promoter's Oct 25 show. A teammate wrote to you (below).
 Work quickly: don't look for AGENTS.md, skills or other context. Only read files; never write, edit or delete anything.
 The master ledger is ${ledgerDir}/ledger.json (every event with its row number, status: ok, refunded, void, review or
 following_up, its category and a note; one row per line, so Grep it rather than reading it whole).
@@ -40,7 +40,7 @@ Reply with ONLY this JSON:
 "send" is [] when nothing needs doing. At most 3 messages.${QUESTION_MARK}${question}`;
 }
 
-// The answer part of Settle's JSON reply (plain text replies pass through).
+// The answer part of Pacioli's JSON reply (plain text replies pass through).
 function answerOf(result: string | undefined): string {
   const raw = (result ?? '').trim();
   const start = raw.indexOf('{');
@@ -114,10 +114,10 @@ export function AskSettle() {
   return (
     <div className="ask">
       {open && (
-        <div className={`ask-window${instant ? ' is-instant' : ''}`} role="dialog" aria-label="Ask Settle">
+        <div className={`ask-window${instant ? ' is-instant' : ''}`} role="dialog" aria-label="Ask Pacioli">
           <header className="ask-head">
-            <Icon name="Settle" />
-            <span className="strong">Ask Settle</span>
+            <Icon name="Pacioli" />
+            <span className="strong">Ask Pacioli</span>
             <span className="ask-sub ask-head-sub">Talks to your agents</span>
             <kbd>Esc</kbd>
           </header>
@@ -132,7 +132,7 @@ export function AskSettle() {
               <div key={t.id.toString()} className="ask-pair">
                 <p className="ask-you">{questionOf(t.prompt)}</p>
                 <div className="ask-answer">
-                  <Icon name="Settle" size={14} />
+                  <Icon name="Pacioli" size={14} />
                   <div>
                     {t.status === 'done' ? (
                       <>
@@ -174,8 +174,8 @@ export function AskSettle() {
           setOpen(o => !o);
         }}
       >
-        <Icon name="Settle" />
-        <span>Ask Settle</span>
+        <Icon name="Pacioli" />
+        <span>Ask Pacioli</span>
         <kbd>⌘K</kbd>
       </button>
     </div>
