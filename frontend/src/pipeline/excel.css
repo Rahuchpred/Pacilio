@@ -1,0 +1,160 @@
+/* The master ledger drawn like Excel: Excel's own greys, green and status
+   fills (the same ones the agent's .xlsx uses), not the Settle palette. */
+
+.xl {
+  display: flex;
+  flex-direction: column;
+  height: 620px;
+  border: 1px solid #d4d4d4;
+  border-radius: var(--radius-control);
+  overflow: hidden;
+  background: #fff;
+  color: #1f1f1f;
+  font: 12px Aptos, Calibri, 'Segoe UI', system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  cursor: default;
+}
+
+.xl-fx {
+  height: 28px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #d4d4d4;
+}
+.xl-name {
+  width: 84px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  border-right: 1px solid #d4d4d4;
+}
+.xl-f {
+  width: 36px;
+  text-align: center;
+  font-style: italic;
+  color: #666;
+  border-right: 1px solid #d4d4d4;
+}
+.xl-formula {
+  flex: 1;
+  min-width: 0;
+  padding: 0 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.xl-grid {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  outline: none;
+}
+.xl table {
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+.xl th,
+.xl td {
+  height: 21px;
+  padding: 0 6px;
+  border-right: 1px solid #e1e1e1;
+  border-bottom: 1px solid #e1e1e1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: none;
+}
+.xl td.num { text-align: right; }
+.xl thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  height: 20px;
+  background: #f3f3f3;
+  color: #444;
+  font-weight: 400;
+  font-size: 11px;
+  text-align: center;
+  border-color: #d4d4d4;
+  cursor: s-resize;
+}
+.xl .xl-rn {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  width: 40px;
+  background: #f3f3f3;
+  color: #444;
+  font-weight: 400;
+  font-size: 11px;
+  text-align: right;
+  border-color: #d4d4d4;
+}
+.xl thead .xl-corner { left: 0; z-index: 3; cursor: default; }
+.xl thead th.is-on { background: #d3f0e0; color: #107c41; border-bottom: 2px solid #107c41; }
+.xl .xl-rn.is-on { background: #d3f0e0; color: #107c41; border-right: 2px solid #107c41; }
+
+.xl tr.xl-hdr td { font-weight: 700; background: #fff; }
+.xl td.is-sel { outline: 2px solid #107c41; outline-offset: -2px; }
+.xl td.is-col { background-color: #e8f4ec !important; }
+
+/* Status fills, as in the workbook */
+.xl tr.is-void td { background: #ffc7ce; color: #9c0006; }
+.xl tr.is-void td.num { text-decoration: line-through; }
+.xl tr.is-review td { background: #ffeb9c; color: #9c5700; }
+.xl tr.is-refunded td { background: #ededed; color: #404040; }
+.xl tr.is-following_up td { background: #ddebf7; color: #1f4e78; }
+.xl tr.is-total td { font-weight: 700; border-top: 3px double #444; }
+.xl td.xl-empty { color: #666; }
+
+/* A row that just arrived or changed flashes, then settles to its fill */
+.xl tr.is-fresh td { animation: xl-flash 1.6s ease-out; }
+@keyframes xl-flash { from { background-color: #fff2b3; } }
+
+.xl-tabs {
+  height: 28px;
+  flex: none;
+  display: flex;
+  align-items: stretch;
+  padding-left: 44px;
+  background: #f3f3f3;
+  border-top: 1px solid #d4d4d4;
+}
+.xl-tabs button {
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  border: 0;
+  border-right: 1px solid #d4d4d4;
+  background: transparent;
+  font: inherit;
+  color: #444;
+  cursor: pointer;
+}
+.xl-tabs button[aria-selected='true'] {
+  background: #fff;
+  color: #107c41;
+  font-weight: 700;
+  box-shadow: inset 0 -2px 0 #107c41;
+}
+
+.xl-status {
+  height: 22px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  background: #107c41;
+  color: #fff;
+  font-size: 11px;
+}
+.xl-status span + span { margin-left: 16px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .xl tr.is-fresh td { animation: none; }
+}
