@@ -40,8 +40,8 @@ export class AgentMail {
     return this.request<{ inboxes?: { inbox_id: string; email?: string }[] }>('GET', '/inboxes?limit=10').inboxes ?? [];
   }
 
-  createInbox(displayName: string): { inbox_id: string; email: string } {
-    return this.request('POST', '/inboxes', { display_name: displayName });
+  createInbox(displayName: string, username: string): { inbox_id: string; email: string } {
+    return this.request('POST', '/inboxes', { display_name: displayName, username });
   }
 
   // `text` is the plain fallback; `html` is what most inboxes show
@@ -49,12 +49,13 @@ export class AgentMail {
     return this.request('POST', `/inboxes/${encodeURIComponent(inboxId)}/messages/send`, { to: [to], subject, text, html });
   }
 
-  // Answer a message in its thread
-  reply(inboxId: string, messageId: string, text: string, html?: string): { message_id: string; thread_id: string } {
+  // Answer a message in its thread. Without `to`, AgentMail replies to that
+  // message's sender, which is us when the message is our own last email.
+  reply(inboxId: string, messageId: string, to: string, text: string, html?: string): { message_id: string; thread_id: string } {
     return this.request(
       'POST',
       `/inboxes/${encodeURIComponent(inboxId)}/messages/${encodeURIComponent(messageId)}/reply`,
-      { text, html }
+      { to: [to], text, html }
     );
   }
 

@@ -27,6 +27,7 @@ const MAX_MESSAGE = 1000;
 const TICK_INTERVAL_MICROS = 30_000_000n;
 const MINUTE_MICROS = 60_000_000n;
 const INBOX_NAME = SENDER;
+const INBOX_ADDRESS = 'pacioli@agentmail.to';
 
 // No em or en dashes in anything we email: number ranges get a hyphen, any
 // other dash becomes a comma.
@@ -88,14 +89,18 @@ function client(ctx: PCtx): AgentMail {
   return new AgentMail(ctx.http, key);
 }
 
-// Our inbox: the account's existing one (e.g. ledgr@agentmail.to), or a new one.
+// Our inbox, pacioli@agentmail.to: found in the account, or created. A cached
+// row for another inbox (the old ledgr@agentmail.to) is replaced.
 function inbox(ctx: PCtx, mail: AgentMail): { inboxId: string; address: string } {
   const existing = ctx.withTx(tx => tx.db.emailInbox.id.find(0));
-  if (existing) return existing;
-  const found = mail.listInboxes()[0] ?? mail.createInbox(INBOX_NAME);
+  if (existing?.address === INBOX_ADDRESS) return existing;
+  const found =
+    mail.listInboxes().find(i => (i.email ?? i.inbox_id) === INBOX_ADDRESS) ??
+    mail.createInbox(INBOX_NAME, INBOX_ADDRESS.split('@')[0]);
   const row = { id: 0, inboxId: found.inbox_id, address: found.email ?? found.inbox_id };
   ctx.withTx(tx => {
-    if (!tx.db.emailInbox.id.find(0)) tx.db.emailInbox.insert(row);
+    if (tx.db.emailInbox.id.find(0)) tx.db.emailInbox.id.update(row);
+    else tx.db.emailInbox.insert(row);
   });
   return row;
 }
@@ -209,7 +214,7 @@ function sendInThread(ctx: PCtx, thread: Thread, raw: string, kind: 'follow_up' 
     message,
     replyTo: box.address,
   });
-  const sent = mail.reply(box.inboxId, thread.lastMessageId, text, html);
+  const sent = mail.reply(box.inboxId, thread.lastMessageId, thread.toAddress, text, html);
   ctx.withTx(tx => {
     tx.db.emailMessage.insert({
       id: 0n,
@@ -236,8 +241,9 @@ function sendInThread(ctx: PCtx, thread: Thread, raw: string, kind: 'follow_up' 
 function collectReplies(ctx: PCtx, mail: AgentMail, inboxId: string, ourAddress: string, thread: Thread) {
   if (!thread.agentmailThreadId) return;
   const messages = mail.threadMessages(inboxId, thread.agentmailThreadId);
-  const isFromThem = (m: AgentMailMessage) =>
-    m.labels?.includes('received') || (!m.labels?.includes('sent') && !m.from.includes(ourAddress));
+  // By sender, not label: a message we sent to ourselves is labeled both
+  // 'sent' and 'received', and must never count as their reply
+  const isFromThem = (m: AgentMailMessage) => !m.labels?.includes('sent') && !m.from.includes(ourAddress);
   const replies = messages.filter(isFromThem).sort((a, b) => a.timestamp.localeCompare(b.timestamp));
   if (!replies.length) return;
   ctx.withTx(tx => {
