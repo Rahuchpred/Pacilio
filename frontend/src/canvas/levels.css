@@ -266,16 +266,13 @@
   .pipeline .lv-short .ask-sources summary .icon { transition: none; }
 }
 
-/* Card states: a working card stays plain and only its tag breathes; green
-   when finished or fixed, red while an issue is still open. Orange belongs
-   to the question alone. Colors ease over 200ms. */
+/* Card states: a working card stays plain and only its tag breathes. A
+   finished card stays plain too, with its green tag and a thin green ring;
+   red fills only while an issue is still open. Orange belongs to the
+   question alone. Colors ease over 200ms. */
 .pipeline .lv-check .pnode {
   position: relative;
   transition: background 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
-}
-.pipeline .lv-check.is-done .pnode:not(.far-card) {
-  background: var(--color-status-cleared-soft);
-  border-color: color-mix(in srgb, var(--color-status-cleared) 45%, transparent);
 }
 .pipeline .lv-check.is-issue .pnode:not(.far-card) {
   background: var(--color-status-disputed-soft);
@@ -331,11 +328,11 @@
 }
 
 /* On a wash, grey lines and grey chips disappear. Dividers and neutral tags
-   take the card's own color instead. */
-.pipeline .lv-check:is(.is-done, .is-issue) .pnode:not(.far-card) .pnode-foot {
+   take the card's own color instead. Only issue cards have a wash. */
+.pipeline .lv-check.is-issue .pnode:not(.far-card) .pnode-foot {
   border-color: color-mix(in srgb, var(--tint) 28%, transparent);
 }
-.pipeline .lv-check:is(.is-done, .is-issue) .pnode:not(.far-card) .status-agent {
+.pipeline .lv-check.is-issue .pnode:not(.far-card) .status-agent {
   background: rgb(255 255 255 / 0.65);
   box-shadow: inset 0 0 0 var(--border-hairline) color-mix(in srgb, var(--tint) 35%, transparent);
 }

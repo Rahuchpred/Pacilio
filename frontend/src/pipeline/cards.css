@@ -124,6 +124,26 @@
   align-items: start;
 }
 
+/* Report takeaways in two boxes: the summary on paper, the things to check
+   on a soft orange wash with an orange marker, since they ask for attention. */
+.report-boxes { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-md); align-items: stretch; }
+.report-box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border-radius: var(--radius-panel);
+  background: var(--color-bg-surface);
+  box-shadow: inset 0 0 0 var(--border-hairline) var(--color-border-default);
+}
+.report-box.is-watch {
+  background: var(--color-action-decide-soft);
+  box-shadow: inset 0 0 0 var(--border-hairline) color-mix(in srgb, var(--color-action-decide) 30%, transparent);
+}
+.report-box.is-watch .section-label { display: inline-flex; align-items: center; gap: var(--space-xs); color: var(--color-text-primary); }
+.report-box.is-watch .section-label::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--color-action-decide); }
+.report-box.is-watch .takeaways li::marker { color: var(--color-action-decide); }
+
 .chip-row { display: flex; flex-wrap: wrap; gap: var(--space-xs); }
 .mini-chip {
   height: 26px;
@@ -786,15 +806,15 @@ button.ask-fact { cursor: pointer; }
 .tc figcaption { display: flex; flex-direction: column; gap: var(--space-2xs); }
 .tc-title { display: flex; align-items: center; gap: var(--space-xs); flex-wrap: wrap; }
 .tc-by { display: inline-flex; align-items: center; gap: var(--space-2xs); color: var(--color-text-secondary); font-size: var(--type-small-size); }
-/* New from the agent: an ink tag and a stronger edge, no hue (color is for decisions) */
+/* New from the agent: an orange tag and a stronger edge */
 .tc.is-new { border-color: var(--color-border-strong); }
 .tc-new {
   padding: 0 var(--space-xs);
   border-radius: var(--radius-control);
-  background: var(--color-text-primary);
-  color: var(--color-text-inverse);
+  background: var(--color-action-decide);
+  color: var(--color-text-on-decide);
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600;
   line-height: 18px;
 }
 /* Arrived here from a reply in Ask Pacioli: a ring that fades out */
@@ -812,10 +832,10 @@ button.ask-fact { cursor: pointer; }
 .tc-label { color: var(--color-text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
 .tc-track { height: 14px; }
 /* Thin bars anchored at the baseline, rounded only at the data end */
-.tc-bar { display: block; height: 100%; min-width: 2px; border-radius: 0 4px 4px 0; background: var(--color-text-primary); }
-.tc-bar.is-negative { background: var(--color-border-strong); }
-.tc-line .tc-series { stroke: var(--color-text-primary); }
-.tc-line .tc-point { fill: var(--color-text-primary); stroke: var(--color-bg-canvas); }
+.tc-bar { display: block; height: 100%; min-width: 2px; border-radius: 0 4px 4px 0; background: var(--color-action-decide); }
+.tc-bar.is-negative { background: color-mix(in srgb, var(--color-action-decide) 40%, var(--color-bg-canvas)); }
+.tc-line .tc-series { stroke: var(--color-action-decide); }
+.tc-line .tc-point { fill: var(--color-action-decide); stroke: var(--color-bg-canvas); }
 .tc-value { font-variant-numeric: tabular-nums; color: var(--color-text-primary); }
 .tc-line { width: 100%; height: auto; overflow: visible; }
 .tc-line .tc-axis { stroke: var(--color-border-default); stroke-width: 1; }

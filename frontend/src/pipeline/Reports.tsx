@@ -265,14 +265,17 @@ function ReportFull() {
       {doc ? (
         <>
           {doc.headline && <p className="lede">{doc.headline}</p>}
-          <div className="split-cols">
-            <ul className="takeaways">
-              {commentary.map(line => (
-                <li key={line}>{line}</li>
-              ))}
-            </ul>
+          <div className="split-cols report-boxes">
+            <div className="report-box">
+              <span className="section-label">Summary</span>
+              <ul className="takeaways">
+                {commentary.map(line => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            </div>
             {watch.length > 0 && (
-              <div className="stack">
+              <div className="report-box is-watch">
                 <span className="section-label">Worth a look</span>
                 <ul className="takeaways">
                   {watch.map(line => (
