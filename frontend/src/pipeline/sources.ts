@@ -15,6 +15,8 @@ export const AGENT_NODE_ID = 'pipeline:agent';
 export const LEDGER_NODE_ID = 'pipeline:master-ledger';
 export const FOLLOWUPS_NODE_ID = 'pipeline:followups';
 export const EMAILS_NODE_ID = 'pipeline:emails';
+export const REPORTS_NODE_ID = 'pipeline:reports';
+export const REPORT_AGENT_NODE_ID = 'pipeline:report-agent';
 export const agentHandleId = (source: string) => `in:${source}`;
 export const sourceNodeId = (name: string) => `pipeline:${name}`;
 export const isPipelineId = (id: string) => id.startsWith('pipeline:');
@@ -38,6 +40,12 @@ export const LEDGER_X = EMAILS_X + EMAILS_WIDTH + 60;
 export const LEDGER_Y = FOLLOWUPS_Y;
 export const LEDGER_WIDTH = 1400;
 export const LEDGER_HEIGHT = 820;
+// Ledger → Reports agent → Show report, left to right
+const REPORT_AGENT_X = LEDGER_X + LEDGER_WIDTH + 60;
+const REPORT_AGENT_WIDTH = 320;
+const REPORTS_X = REPORT_AGENT_X + REPORT_AGENT_WIDTH + 60;
+export const REPORTS_WIDTH = 1240;
+export const REPORTS_HEIGHT = 1200;
 
 export const AGENT_WIDTH = 340;
 export const AGENT_HEIGHT = 170;
@@ -65,11 +73,21 @@ export const PIPELINE_NODES: Node[] = [
     height: LEDGER_HEIGHT,
     ...fixed,
   },
+  { id: REPORT_AGENT_NODE_ID, type: 'reportAgent', position: { x: REPORT_AGENT_X, y: LEDGER_Y }, data: {}, ...fixed },
+  {
+    id: REPORTS_NODE_ID,
+    type: 'reports',
+    position: { x: REPORTS_X, y: LEDGER_Y },
+    data: {},
+    width: REPORTS_WIDTH,
+    height: REPORTS_HEIGHT,
+    ...fixed,
+  },
 ];
 
 // One wire per source into the agent (events travel along it as packets),
 // and one from the agent to the ledger it writes.
-export function pipelineEdges(running: Set<string>, agentWorking: boolean): Edge[] {
+export function pipelineEdges(running: Set<string>, agentWorking: boolean, reportBuilding = false): Edge[] {
   const outEdge = (id: string, target: string): Edge => ({
     id,
     source: AGENT_NODE_ID,
@@ -83,6 +101,23 @@ export function pipelineEdges(running: Set<string>, agentWorking: boolean): Edge
   return [
     outEdge('pipeline:edge:master-ledger', LEDGER_NODE_ID),
     outEdge('pipeline:edge:followups', FOLLOWUPS_NODE_ID),
+    {
+      id: 'pipeline:edge:report-agent',
+      source: LEDGER_NODE_ID,
+      target: REPORT_AGENT_NODE_ID,
+      deletable: false,
+      selectable: false,
+      className: reportBuilding ? 'pipeline-edge is-running' : 'pipeline-edge',
+    },
+    {
+      id: 'pipeline:edge:reports',
+      source: REPORT_AGENT_NODE_ID,
+      target: REPORTS_NODE_ID,
+      deletable: false,
+      selectable: false,
+      animated: reportBuilding,
+      className: reportBuilding ? 'pipeline-edge is-running' : 'pipeline-edge',
+    },
     {
       id: 'pipeline:edge:emails',
       source: FOLLOWUPS_NODE_ID,

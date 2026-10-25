@@ -6,6 +6,7 @@ import type { InboundEvent, InboundSourceStatus } from '../module_bindings/types
 import { usePipelineActivity } from './activity';
 import { FollowUpsNode } from './FollowUps';
 import { EmailsNode } from './Emails';
+import { ReportAgentNode, ReportsNode } from './Reports';
 import { Money } from './Money';
 import type { ChipState } from './chipStates';
 import {
@@ -185,6 +186,7 @@ export function LedgerNode() {
         handleClassName="ledger-resize-handle"
       />
       <Handle type="target" position={Position.Top} isConnectable={false} />
+      <Handle type="source" position={Position.Right} isConnectable={false} />
       <div className="node-head">
         <h3>Master ledger.xlsx</h3>
         <div className="ledger-actions">
@@ -241,5 +243,7 @@ export const pipelineNodeTypes = {
   ledger: LedgerNode,
   followups: FollowUpsNode,
   emails: EmailsNode,
+  reports: ReportsNode,
+  reportAgent: ReportAgentNode,
   event: EventNode,
 };

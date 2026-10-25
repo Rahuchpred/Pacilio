@@ -4,6 +4,15 @@ import { enqueueAgentTask } from '../droid/agents';
 import { FactoryClient, FactoryError } from '../droid/factory';
 import { LEDGER_HTML, LEDGER_XLSX, buildPrompt, type PromptDecision, type PromptEvent } from './prompt';
 import { RENDER_PATH, RENDER_SCRIPT, RENDER_VERSION } from './renderScript';
+import { REPORT_PATH, REPORT_SCRIPT, REPORT_VERSION } from './reportScript';
+import { reports, reportsTick, resetReports } from './reports';
+
+// Fixed tools the agents run on the Factory computer; installed (or upgraded)
+// before the agent's next run whenever a version changes
+const TOOLS = [
+  { path: RENDER_PATH, version: RENDER_VERSION, script: RENDER_SCRIPT },
+  { path: REPORT_PATH, version: REPORT_VERSION, script: REPORT_SCRIPT },
+];
 import { pipelineTickSchedule } from './tables';
 import { startFollowUp } from '../email/email';
 
@@ -57,7 +66,7 @@ function updateAgent(ctx: Ctx, patch: Partial<AgentState>) {
   ctx.db.pipelineAgent.id.update({ ...agentState(ctx), ...patch, updatedAt: ctx.timestamp });
 }
 
-function ensureTicking(ctx: Ctx) {
+export function ensureTicking(ctx: Ctx) {
   for (const _ of ctx.db.pipelineTickSchedule.iter()) return;
   ctx.db.pipelineTickSchedule.insert({ scheduledId: 0n, scheduledAt: ScheduleAt.interval(TICK_INTERVAL_MICROS) });
 }
@@ -89,6 +98,7 @@ export function resetPipeline(ctx: Ctx) {
   for (const r of [...ctx.db.reviewDetail.iter()]) ctx.db.reviewDetail.itemId.delete(r.itemId);
   for (const r of [...ctx.db.ledgerDocument.iter()]) ctx.db.ledgerDocument.id.delete(r.id);
   updateAgent(ctx, { status: 'idle', currentRunId: undefined, lastError: undefined, resetLedger: true });
+  resetReports(ctx);
 }
 
 // ─── Runs ───────────────────────────────────────────────────────────────────
@@ -306,6 +316,13 @@ export function pipeline(stdb: Schema) {
     { arg: pipelineTickSchedule.rowType },
     t.unit(),
     ctx => {
+      // The reports agent runs alongside the main one
+      try {
+        reportsTick(ctx);
+      } catch (err) {
+        console.warn(`reports: ${message(err)}`);
+      }
+
       const snap = ctx.withTx(tx => {
         const agent = agentState(tx);
         const run = agent.currentRunId === undefined ? undefined : tx.db.agentRun.id.find(agent.currentRunId);
@@ -349,36 +366,44 @@ export function pipeline(stdb: Schema) {
       }
 
       // Make sure the agent's tools are on the computer before handing it work
-      const needsInstall = ctx.withTx(
-        tx => agentState(tx).enabled && tx.db.toolInstall.path.find(RENDER_PATH)?.version !== RENDER_VERSION
+      const missing = ctx.withTx(tx =>
+        agentState(tx).enabled || tx.db.reportState.id.find(0)?.requested
+          ? TOOLS.filter(tool => tx.db.toolInstall.path.find(tool.path)?.version !== tool.version)
+          : []
       );
-      if (needsInstall) {
+      if (missing.length) {
         try {
           const factory = new FactoryClient(ctx.http, ctx.env.FACTORY_API_KEY);
           const computerId = ctx.env.FACTORY_COMPUTER_ID;
           factory.wakeComputer(computerId);
           const sessionId = factory.createSession(computerId, { autonomyLevel: 'off' });
-          try {
-            factory.uploadTextFile(computerId, sessionId, RENDER_PATH, RENDER_SCRIPT);
-          } catch (err) {
-            // The name carries the version, so an existing file is this version
-            if (!(err instanceof FactoryError && err.status === 409)) throw err;
+          for (const tool of missing) {
+            try {
+              factory.uploadTextFile(computerId, sessionId, tool.path, tool.script);
+            } catch (err) {
+              // The name carries the version, so an existing file is this version
+              if (!(err instanceof FactoryError && err.status === 409)) throw err;
+            }
+            ctx.withTx(tx => {
+              const row = { path: tool.path, version: tool.version, installedAt: tx.timestamp };
+              if (tx.db.toolInstall.path.find(tool.path)) tx.db.toolInstall.path.update(row);
+              else tx.db.toolInstall.insert(row);
+            });
           }
-          ctx.withTx(tx => {
-            const row = { path: RENDER_PATH, version: RENDER_VERSION, installedAt: tx.timestamp };
-            if (tx.db.toolInstall.path.find(RENDER_PATH)) tx.db.toolInstall.path.update(row);
-            else tx.db.toolInstall.insert(row);
-            updateAgent(tx, { lastError: undefined });
-          });
+          ctx.withTx(tx => updateAgent(tx, { lastError: undefined }));
         } catch (err) {
           // Retried on the next tick; a fresh session can briefly 404
-          ctx.withTx(tx => updateAgent(tx, { lastError: `Installing ${RENDER_PATH}: ${message(err)}` }));
+          ctx.withTx(tx => updateAgent(tx, { lastError: `Installing tools: ${message(err)}` }));
         }
         return {};
       }
 
       const started = ctx.withTx(tx => startRun(tx));
-      if (!started && !snap.agent.enabled) {
+      const reportRunning = ctx.withTx(tx => {
+        const report = tx.db.reportState.id.find(0);
+        return report?.status === 'running' || !!report?.requested;
+      });
+      if (!started && !snap.agent.enabled && !reportRunning) {
         ctx.withTx(tx => {
           for (const row of [...tx.db.pipelineTickSchedule.iter()]) {
             tx.db.pipelineTickSchedule.scheduledId.delete(row.scheduledId);
@@ -463,5 +488,5 @@ export function pipeline(stdb: Schema) {
     return factory.downloadUrl(ctx.env.FACTORY_COMPUTER_ID, sessionId, LEDGER_XLSX);
   });
 
-  return { pipelineTick, resolveReviewItem, ledgerXlsxUrl };
+  return { pipelineTick, resolveReviewItem, ledgerXlsxUrl, ...reports(stdb, ensureTicking) };
 }

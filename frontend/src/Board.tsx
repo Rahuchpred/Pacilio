@@ -41,6 +41,7 @@ export function Board() {
   const [layoutRows] = useTable(tables.pipelineLayout);
   const [sizeRows] = useTable(tables.pipelineNodeSize);
   const [agentRows] = useTable(tables.pipelineAgent);
+  const [reportRows] = useTable(tables.reportState);
 
   const moveNode = useReducer(reducers.moveNode);
   const renameNode = useReducer(reducers.renameNode);
@@ -69,8 +70,9 @@ export function Board() {
   const allEdges = useMemo(() => {
     const running = new Set(sourceStatuses.filter(s => s.enabled).map(s => s.name));
     const agentWorking = agentRows[0]?.status === 'running';
-    return [...pipelineEdges(running, agentWorking), ...chipThreads(chips), ...edges];
-  }, [sourceStatuses, agentRows, chips, edges]);
+    const reportBuilding = reportRows[0]?.status === 'running' || !!reportRows[0]?.requested;
+    return [...pipelineEdges(running, agentWorking, reportBuilding), ...chipThreads(chips), ...edges];
+  }, [sourceStatuses, agentRows, reportRows, chips, edges]);
 
   // Forget drag positions of chips that are gone
   useEffect(() => {

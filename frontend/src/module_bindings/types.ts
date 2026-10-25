@@ -292,6 +292,28 @@ export const PipelineTickSchedule = __t.object("PipelineTickSchedule", {
 });
 export type PipelineTickSchedule = __Infer<typeof PipelineTickSchedule>;
 
+export const ReportDocument = __t.object("ReportDocument", {
+  id: __t.u32(),
+  html: __t.string(),
+  headline: __t.string(),
+  commentary: __t.string(),
+  watch: __t.string(),
+  taskId: __t.u64(),
+  updatedAt: __t.timestamp(),
+});
+export type ReportDocument = __Infer<typeof ReportDocument>;
+
+export const ReportState = __t.object("ReportState", {
+  id: __t.u32(),
+  status: __t.string(),
+  taskId: __t.option(__t.u64()),
+  requested: __t.bool(),
+  ledgerRunId: __t.u64(),
+  lastStartedAt: __t.option(__t.timestamp()),
+  lastError: __t.option(__t.string()),
+});
+export type ReportState = __Infer<typeof ReportState>;
+
 export const ReviewDetail = __t.object("ReviewDetail", {
   itemId: __t.u64(),
   title: __t.string(),

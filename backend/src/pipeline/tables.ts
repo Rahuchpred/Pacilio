@@ -121,6 +121,40 @@ export const toolInstall = table(
   }
 );
 
+// The latest show report (singleton, id 0): the dashboard the reports agent
+// rendered, plus its written takeaways.
+export const reportDocument = table(
+  { name: 'report_document', public: true },
+  {
+    id: t.u32().primaryKey(),
+    html: t.string(),
+    headline: t.string(),
+    // JSON array of short sentences
+    commentary: t.string(),
+    // JSON array of things to keep an eye on
+    watch: t.string(),
+    taskId: t.u64(),
+    updatedAt: t.timestamp(),
+  }
+);
+
+// Reports agent bookkeeping (singleton, id 0).
+export const reportState = table(
+  { name: 'report_state', public: true },
+  {
+    id: t.u32().primaryKey(),
+    // 'idle' | 'running'
+    status: t.string(),
+    taskId: t.u64().optional(),
+    // Someone pressed Refresh
+    requested: t.bool(),
+    // Ledger version (its run id) the last report was built from
+    ledgerRunId: t.u64(),
+    lastStartedAt: t.timestamp().optional(),
+    lastError: t.string().optional(),
+  }
+);
+
 export const pipelineTickSchedule = table(
   { name: 'pipeline_tick_schedule' },
   {
@@ -137,5 +171,7 @@ export const pipelineTables = {
   reviewDetail,
   ledgerDocument,
   toolInstall,
+  reportDocument,
+  reportState,
   pipelineTickSchedule,
 };

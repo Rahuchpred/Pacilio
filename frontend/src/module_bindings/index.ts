@@ -51,6 +51,7 @@ import PauseInboundReducer from "./pause_inbound_reducer";
 import RecordPaymentReducer from "./record_payment_reducer";
 import RenameNodeReducer from "./rename_node_reducer";
 import RequestAgentTaskReducer from "./request_agent_task_reducer";
+import RequestReportReducer from "./request_report_reducer";
 import ResetInboundSourceReducer from "./reset_inbound_source_reducer";
 import ResizePipelineNodeReducer from "./resize_pipeline_node_reducer";
 import RestartInboundReducer from "./restart_inbound_reducer";
@@ -63,6 +64,7 @@ import TidyPipelineLayoutReducer from "./tidy_pipeline_layout_reducer";
 // Import all procedure arg schemas
 import * as AgentFileUrlProcedure from "./agent_file_url_procedure";
 import * as LedgerXlsxUrlProcedure from "./ledger_xlsx_url_procedure";
+import * as ReportXlsxUrlProcedure from "./report_xlsx_url_procedure";
 import * as ResolveReviewItemProcedure from "./resolve_review_item_procedure";
 import * as SendEmailReplyProcedure from "./send_email_reply_procedure";
 
@@ -85,6 +87,8 @@ import NodeRow from "./node_table";
 import PipelineAgentRow from "./pipeline_agent_table";
 import PipelineLayoutRow from "./pipeline_layout_table";
 import PipelineNodeSizeRow from "./pipeline_node_size_table";
+import ReportDocumentRow from "./report_document_table";
+import ReportStateRow from "./report_state_table";
 import ReviewDetailRow from "./review_detail_table";
 import ReviewItemRow from "./review_item_table";
 import ToolInstallRow from "./tool_install_table";
@@ -309,6 +313,28 @@ const tablesSchema = __schema({
       { name: 'pipeline_node_size_node_id_key', constraint: 'unique', columns: ['nodeId'] },
     ],
   }, PipelineNodeSizeRow),
+  reportDocument: __table({
+    name: 'report_document',
+    indexes: [
+      { accessor: 'id', name: 'report_document_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'report_document_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, ReportDocumentRow),
+  reportState: __table({
+    name: 'report_state',
+    indexes: [
+      { accessor: 'id', name: 'report_state_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'report_state_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, ReportStateRow),
   reviewDetail: __table({
     name: 'review_detail',
     indexes: [
@@ -377,6 +403,7 @@ const reducersSchema = __reducers(
   __reducerSchema("record_payment", RecordPaymentReducer),
   __reducerSchema("rename_node", RenameNodeReducer),
   __reducerSchema("request_agent_task", RequestAgentTaskReducer),
+  __reducerSchema("request_report", RequestReportReducer),
   __reducerSchema("reset_inbound_source", ResetInboundSourceReducer),
   __reducerSchema("resize_pipeline_node", ResizePipelineNodeReducer),
   __reducerSchema("restart_inbound", RestartInboundReducer),
@@ -391,6 +418,7 @@ const reducersSchema = __reducers(
 const proceduresSchema = __procedures(
   __procedureSchema("agent_file_url", AgentFileUrlProcedure.params, AgentFileUrlProcedure.returnType),
   __procedureSchema("ledger_xlsx_url", LedgerXlsxUrlProcedure.params, LedgerXlsxUrlProcedure.returnType),
+  __procedureSchema("report_xlsx_url", ReportXlsxUrlProcedure.params, ReportXlsxUrlProcedure.returnType),
   __procedureSchema("resolve_review_item", ResolveReviewItemProcedure.params, ResolveReviewItemProcedure.returnType),
   __procedureSchema("send_email_reply", SendEmailReplyProcedure.params, SendEmailReplyProcedure.returnType),
 );
