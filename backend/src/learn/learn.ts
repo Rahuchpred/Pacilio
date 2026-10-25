@@ -94,10 +94,13 @@ Find what people keep doing the same way and write it as a pattern the Bookkeepe
   "Mark Mission Corner Cafe receipts under $50 as Catering and don't ask about them."
 - Only from at least 2 actions that agree, unless a person stated a rule outright ("from now on ...").
 - When a person overruled the Bookkeeper, learn what they chose instead, not what it suggested.
+- A pattern may let the Bookkeeper email the other party itself in a kind of case ("Email Golden Gate Catering
+  when a payment has no bill, asking for the bill"). Write one only when people chose Email them for that kind of
+  case at least twice, or said so outright. Name who and when clearly.
 - Update an existing learned pattern (same id) rather than adding a near-copy. Remove a learned pattern when newer
   actions contradict it. Never change or remove one set by a person.
-- Never weaken these: money that left twice for one document, and anything over $5,000, still go to a person.
-  They always apply, so don't repeat them inside a pattern. Keep each pattern to the one thing it's about.
+- Never weaken this: money that left twice for one document still goes to a person.
+  It always applies, so don't repeat it inside a pattern. Keep each pattern to the one thing it's about.
 - At most ${MAX_PATTERNS} patterns in total. Returning no changes is fine.
 
 Reply with ONLY this JSON:

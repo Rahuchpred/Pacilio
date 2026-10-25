@@ -14,13 +14,14 @@ export function logAction(
   who: Identity,
   kind: AuditKind,
   summary: string,
-  opts: { eventId?: bigint; details?: Record<string, unknown>; learnable?: boolean } = {}
+  // whoName: for actions an agent took on its own ("Bookkeeper")
+  opts: { eventId?: bigint; details?: Record<string, unknown>; learnable?: boolean; whoName?: string } = {}
 ) {
   ctx.db.auditLog.insert({
     id: 0n,
     at: ctx.timestamp,
     who,
-    whoName: ctx.db.user.identity.find(who)?.name ?? 'Someone',
+    whoName: opts.whoName ?? ctx.db.user.identity.find(who)?.name ?? 'Someone',
     kind,
     summary: summary.slice(0, 500),
     eventId: opts.eventId,

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useProcedure, useReducer } from 'spacetimedb/react';
-import { Button, Status, type StatusKind } from '../../../design-system/src/components';
+import { Button, Icon, Status, type StatusKind } from '../../../design-system/src/components';
 import { procedures, reducers } from '../module_bindings';
 import type { EmailMessage, EmailThread } from '../module_bindings/types';
 import { logError } from '../throttle';
@@ -185,6 +185,12 @@ function Full() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [settings, setSettings] = useState(false);
   const { steps, ready } = useFollowUpSchedule();
+  const { items } = useLive();
+  // An email nobody chose: the Bookkeeper sent it because a pattern said to
+  const byBookkeeper = (itemId: bigint) => {
+    const item = items.find(i => i.id === itemId);
+    return !!item && item.decision === 'follow_up' && item.decidedBy === undefined;
+  };
   const now = useNow();
 
   const toggle = (thread: EmailThread) => {
@@ -226,6 +232,11 @@ function Full() {
                     <span className="strong">{thread.counterparty}</span>
                     <span className="muted small">{thread.subject}</span>
                     <span className="tertiary small">{statusLine(thread, now, steps.length)}</span>
+                    {byBookkeeper(thread.reviewItemId) && (
+                      <span className="sent-by-agent small">
+                        <Icon name="agent" size={12} /> Sent by the Bookkeeper (a pattern allowed it)
+                      </span>
+                    )}
                   </span>
                   <ThreadTag thread={thread} />
                 </button>

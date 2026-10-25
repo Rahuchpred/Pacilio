@@ -2,7 +2,7 @@ import { SenderError, t, type InferSchema, type ReducerCtx } from 'spacetimedb/s
 import type spacetimedb from '../index';
 import { enqueueAgentTask } from '../droid/agents';
 import { FactoryClient, FactoryError } from '../droid/factory';
-import { LEDGER_HTML, LEDGER_XLSX, buildPrompt, type PromptDecision, type PromptEvent } from './prompt';
+import { LEDGER_HTML, LEDGER_XLSX, MAX_AUTO_EMAILS, buildPrompt, type PromptDecision, type PromptEvent } from './prompt';
 import { finishMessages, markSent, promptId, queuedFor, requeueMessages } from '../settle/messages';
 import { currentClassifying } from '../classify/classify';
 import { learnTick, patternsForPrompt, recordPatternUses } from '../learn/learn';
@@ -201,7 +201,10 @@ interface ReviewWriteUp {
 
 interface Decision {
   event_id: string;
+  // 'ok' | 'void' | 'review' | 'follow_up' (email them now; only when a pattern allows it)
   status: string;
+  // The pattern that allowed a follow_up, like "p3"
+  pattern?: string | null;
   category?: string;
   note?: string;
   duplicate_of?: string | null;
@@ -264,8 +267,23 @@ function applyChanges(ctx: Ctx, changes: Change[]) {
   }
 }
 
-function applyDecisions(ctx: Ctx, run: Run, reply: Reply) {
+// The Bookkeeper may email a vendor itself, but only when an active pattern
+// says to, for an outside party, not for money that left twice, and a few per
+// run. Anything else goes to a person instead.
+function emailAllowed(ctx: Ctx, d: Decision): string | null {
+  const r = d.review ?? {};
+  const m = typeof d.pattern === 'string' ? /^p(\d+)$/.exec(d.pattern) : null;
+  const pattern = m ? ctx.db.pattern.id.find(BigInt(m[1])) : undefined;
+  if (!pattern || pattern.status !== 'active') return null;
+  if (!clip(r.follow_up_to, 120) || !clip(r.follow_up_message, 2000)) return null;
+  if (toId(d.duplicate_of) !== undefined) return null;
+  return pattern.text;
+}
+
+// Returns the review items the Bookkeeper decided to email about, to send after this transaction.
+function applyDecisions(ctx: Ctx, run: Run, reply: Reply): bigint[] {
   const { summary, decisions } = reply;
+  const autoEmails: bigint[] = [];
   applyChanges(ctx, reply.changes);
   finishMessages(ctx, run.id, reply.messages);
   recordPatternUses(ctx, reply.patterns_used);
@@ -276,6 +294,10 @@ function applyDecisions(ctx: Ctx, run: Run, reply: Reply) {
     const id = String(d.event_id);
     if (!inRun.has(id) || seen.has(id)) continue;
     seen.add(id);
+    // An email the Bookkeeper wants to send itself, if a pattern allows it
+    const emailBecause = d.status === 'follow_up' && autoEmails.length < MAX_AUTO_EMAILS ? emailAllowed(ctx, d) : null;
+    // Either way the write-up is an email (sent now, or drafted for a person to send)
+    if (d.status === 'follow_up') d.review = { ...(d.review ?? {}), action: 'follow_up' };
     const outcome = (OUTCOMES as readonly string[]).includes(d.status) ? d.status : 'review';
     const review = ctx.db.eventReview.eventId.find(BigInt(id));
     if (review) {
@@ -302,13 +324,15 @@ function applyDecisions(ctx: Ctx, run: Run, reply: Reply) {
         // Not shown to people; kept for the table shape
         confidence: 0,
         duplicateOf: toId(d.duplicate_of),
-        status: 'open',
-        decision: undefined,
+        // Emailed by the Bookkeeper: already decided (it wrote the row as following up)
+        status: emailBecause ? 'applied' : 'open',
+        decision: emailBecause ? 'follow_up' : undefined,
         decidedBy: undefined,
-        decidedAt: undefined,
-        resultNote: undefined,
+        decidedAt: emailBecause ? ctx.timestamp : undefined,
+        resultNote: emailBecause ? `Emailed by the Bookkeeper, following the pattern "${clip(emailBecause, 200)}"` : undefined,
         createdAt: ctx.timestamp,
       });
+      if (emailBecause) autoEmails.push(item.id);
       const evidence = Array.isArray(r.evidence) ? r.evidence.map(e => clip(e, 200)).filter(Boolean).slice(0, 6) : [];
       const isFollowUp = action === 'follow_up';
       ctx.db.reviewDetail.insert({
@@ -356,6 +380,7 @@ function applyDecisions(ctx: Ctx, run: Run, reply: Reply) {
 
   ctx.db.agentRun.id.update({ ...run, status: 'done', summary, finishedAt: ctx.timestamp });
   updateAgent(ctx, { status: 'idle', currentRunId: undefined, resetLedger: false });
+  return autoEmails;
 }
 
 // While a run works, its "CLASSIFY <id> | <category> | <status>" lines show up
@@ -431,7 +456,27 @@ export function pipeline(stdb: Schema) {
             ctx.withTx(tx => failRun(tx, run, message(err)));
             return {};
           }
-          ctx.withTx(tx => applyDecisions(tx, run, parsed));
+          const autoEmails = ctx.withTx(tx => applyDecisions(tx, run, parsed));
+          // Send the emails the Bookkeeper decided on (allowed by a pattern), and log them
+          for (const itemId of autoEmails) {
+            try {
+              startFollowUp(ctx, itemId);
+              ctx.withTx(tx => {
+                const item = tx.db.reviewItem.id.find(itemId);
+                const detail = tx.db.reviewDetail.itemId.find(itemId);
+                if (!item) return;
+                logAction(
+                  tx,
+                  ctx.sender,
+                  'email',
+                  `Emailed ${detail?.followUpTo ?? 'the vendor'} about "${detail?.title ?? item.question}" (${item.resultNote ?? 'a pattern allowed it'})`,
+                  { eventId: item.eventId, whoName: 'Bookkeeper' }
+                );
+              });
+            } catch (err) {
+              console.warn(`auto email ${itemId}: ${message(err)}`);
+            }
+          }
 
           // Bring the spreadsheet Droid rendered back for every browser to show
           try {

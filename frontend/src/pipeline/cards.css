@@ -1294,3 +1294,6 @@ button.audit-entry { cursor: pointer; }
 /* The time column never gets clipped by the scrolling list */
 .audit-entry { box-sizing: border-box; max-width: 100%; }
 .audit-log { overflow-x: hidden; padding-right: var(--space-xs); }
+
+/* An email the Bookkeeper sent on its own */
+.sent-by-agent { display: inline-flex; align-items: center; gap: var(--space-2xs); color: var(--color-text-decide); }

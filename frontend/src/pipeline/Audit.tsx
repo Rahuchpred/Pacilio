@@ -55,7 +55,7 @@ function LogEntry({ a }: { a: AuditLog }) {
   const time = clock(a.at.toDate());
   const body = (
     <>
-      <Icon name={KIND_ICON[a.kind] ?? 'person'} size={14} />
+      <Icon name={a.whoName === 'Bookkeeper' ? 'agent' : (KIND_ICON[a.kind] ?? 'person')} size={14} />
       <span className="audit-text">
         <span className="strong">{a.whoName}</span> {a.summary}
       </span>

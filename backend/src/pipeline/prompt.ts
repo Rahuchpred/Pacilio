@@ -29,6 +29,9 @@ export interface PromptDecision {
 }
 
 // A one-off message from the team (sent through Ask Settle) for this run.
+// Emails the Bookkeeper may send on its own in one run (pipeline.ts enforces it)
+export const MAX_AUTO_EMAILS = 3;
+
 export interface PromptMessage {
   id: string;
   text: string;
@@ -80,7 +83,7 @@ Amounts: positive = money in, negative = money out.
 ${
   patterns.length
     ? `Learned from how people decided and corrected your past work. Follow them; they win over the defaults above
-(but money that left twice for one document, and anything over $5,000, still goes to a person).
+(but money that left twice for one document still goes to a person).
 ${patterns.map(p => `- ${p.id}: ${p.text}`).join('\n')}
 List the ids of the patterns you applied this run in "patterns_used".`
     : '- none yet ("patterns_used" is [])'
@@ -108,6 +111,12 @@ Then do the work below. Your final JSON still decides; it may differ if you chan
    - status "ok": nothing wrong. Put a short match in "note" if there is one, e.g. "Pays bill AV-0423".
    - status "void": an obvious data-entry duplicate (same counterparty, same document, tiny differences). Set duplicate_of.
    - status "review": anything else that's wrong or unclear. A person decides, so write it up well (below).
+   - status "follow_up": email the other party yourself, now, without asking a person. Only when a pattern from the
+     team says to email in this kind of case: set "pattern" to that pattern's id and fill the review write-up with
+     follow_up_to, follow_up_subject and follow_up_message. Write the ledger row as "following_up" with note
+     "Following up with <counterparty>". Never for our own accounts or staff, never for money that left twice for
+     one document, and at most ${MAX_AUTO_EMAILS} per run: those stay "review" with the email
+     drafted. Settle checks this and turns anything outside it back into "review".
 
 ## Writing up a "review" item (a person reads this and decides in seconds)
 - title: what's wrong, in under 10 words, with the counterparty. "ACME charged twice for bill AV-0423".
@@ -159,11 +168,11 @@ When the files are written, reply with ONLY this JSON and nothing else:
  "changes": [{"event_id": "...", "status": "ok|void|review|refunded|following_up", "category": "...", "note": "..."}],
  "messages": [{"id": "m…", "reply": "one sentence on what you did, with row numbers and amounts"}],
  "patterns_used": ["p…"],
- "decisions": [{"event_id": "...", "status": "ok|void|review", "category": "...", "note": "...",
-   "duplicate_of": "event_id or null",
+ "decisions": [{"event_id": "...", "status": "ok|void|review|follow_up", "category": "...", "note": "...",
+   "duplicate_of": "event_id or null", "pattern": "p… (follow_up only) or null",
    "review": null or {"title": "...", "what_happened": "...", "evidence": ["...", "..."], "action": "void|refund|follow_up|keep",
      "fix": "...", "question": "...", "follow_up_to": "... or null", "follow_up_subject": "... or null",
      "follow_up_message": "... or null"}}]}
-"review" is required when status is "review" and null otherwise.
+"review" is required when status is "review" or "follow_up", and null otherwise.
 Include every new event exactly once. "changes" and "messages" are [] when there were no messages.`;
 }
