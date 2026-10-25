@@ -12,23 +12,36 @@ import { TXN_SLOTS } from '../pipeline/live';
 
 export const txnId = (i: number) => `txn-${i}`;
 
+// Gaps leave room for each card at its tallest middle size (the question,
+// the ledger's last rows) plus the line labels between them.
+const COL_GAP = 120;
 const TXN_W = 220;
-const TXN_GAP = 16;
-const MAIN_X = 440;
+const TXN_GAP = 40;
+const INBOX_W = 340;
+const MAIN_X = INBOX_W + COL_GAP;
 const MAIN_W = 440;
+const LEDGER_X = MAIN_X + MAIN_W + COL_GAP;
+const LEDGER_W = 480;
+const RAGENT_X = LEDGER_X + LEDGER_W + COL_GAP;
+const RAGENT_W = 320;
+const REPORT_X = RAGENT_X + RAGENT_W + COL_GAP;
+// Above the row: the question card is up to ~560 tall in the middle level
+const TOP_Y = -780;
+// Below the row: clear of the ledger's six rows and total
+const TXN_Y = 660;
 const TXN_ROW_W = TXN_SLOTS * TXN_W + (TXN_SLOTS - 1) * TXN_GAP;
 const TXN_X = MAIN_X + MAIN_W / 2 - TXN_ROW_W / 2;
 
 export const LAYOUT: Record<string, { type: string; x: number; y: number }> = {
   inbox: { type: 'inbox', x: 0, y: 20 },
   main: { type: 'main', x: MAIN_X, y: 0 },
-  flagged: { type: 'flagged', x: MAIN_X, y: -700 },
-  ledger: { type: 'ledger', x: 1000, y: 0 },
-  emails: { type: 'emails', x: 1580, y: -700 },
-  reportAgent: { type: 'reportAgent', x: 1580, y: 20 },
-  report: { type: 'report', x: 1980, y: 0 },
+  flagged: { type: 'flagged', x: MAIN_X, y: TOP_Y },
+  ledger: { type: 'ledger', x: LEDGER_X, y: 0 },
+  emails: { type: 'emails', x: RAGENT_X, y: TOP_Y },
+  reportAgent: { type: 'reportAgent', x: RAGENT_X, y: 20 },
+  report: { type: 'report', x: REPORT_X, y: 0 },
   ...Object.fromEntries(
-    Array.from({ length: TXN_SLOTS }, (_, i) => [txnId(i), { type: 'txn', x: TXN_X + i * (TXN_W + TXN_GAP), y: 470 }])
+    Array.from({ length: TXN_SLOTS }, (_, i) => [txnId(i), { type: 'txn', x: TXN_X + i * (TXN_W + TXN_GAP), y: TXN_Y }])
   ),
 };
 

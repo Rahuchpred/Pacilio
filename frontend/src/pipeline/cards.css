@@ -494,3 +494,7 @@ button.ask-fact { cursor: pointer; }
 .sheet-row > .status,
 .panel-row .status { justify-self: start; align-self: center; width: max-content; }
 .panel-row .stack.end .status { align-self: flex-end; }
+
+/* Widths include padding and border, so a card fills exactly its slot. */
+.pipeline .pnode,
+.pipeline .pnode-bare { box-sizing: border-box; }
