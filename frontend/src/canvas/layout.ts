@@ -5,8 +5,9 @@ import { LANE_SOURCES as LANES } from '../pipeline/activity';
 // Where every card sits. Positions are fixed and the same for everyone, spaced
 // for the cards at their middle size so opening one never moves the others.
 //
-//                 Needs you ─────────────── Emails
-//                     │   └──────┐
+// Audit log ──── Needs you ─────────────── Emails
+//  & patterns        │   └──────┐
+//        └─ patterns into the Bookkeeper
 // Sources ──── Bookkeeper ──── Ledger ──── Reports agent ──── Show report
 //                  │
 //      transactions the agent is checking, rows of five
@@ -24,6 +25,7 @@ const TXN_ROW_H = 170;
 // A long run from the inbox to the Bookkeeper, so what travels it can be read
 const INBOX_GAP = 360;
 const INBOX_W = 340;
+const AUDIT_W = 440;
 const MAIN_X = INBOX_W + COL_GAP;
 const MAIN_W = 440;
 // A long run from the agent to the ledger: decisions ride it fast and often
@@ -44,6 +46,8 @@ export const LAYOUT: Record<string, { type: string; x: number; y: number }> = {
   inbox: { type: 'inbox', x: MAIN_X - INBOX_GAP - INBOX_W, y: 20 },
   main: { type: 'main', x: MAIN_X, y: 0 },
   flagged: { type: 'flagged', x: MAIN_X, y: TOP_Y },
+  // Left of the question it learns from, above the sources
+  audit: { type: 'audit', x: MAIN_X - INBOX_GAP - AUDIT_W, y: TOP_Y },
   ledger: { type: 'ledger', x: LEDGER_X, y: 0 },
   emails: { type: 'emails', x: RAGENT_X, y: TOP_Y },
   reportAgent: { type: 'reportAgent', x: RAGENT_X, y: 20 },
@@ -69,6 +73,7 @@ export const OVERVIEW: Record<string, { width: number; height: number }> = {
   emails: { width: 360, height: 190 },
   reportAgent: { width: RAGENT_W, height: 190 },
   report: { width: 420, height: 190 },
+  audit: { width: AUDIT_W, height: 190 },
 };
 
 export type HandleSpec = { type: 'source' | 'target'; position: Position; id?: string; left?: string; top?: string };
@@ -82,6 +87,8 @@ export const HANDLES: Record<string, HandleSpec[]> = {
     { type: 'source', position: Position.Right, id: 'out' },
     { type: 'source', position: Position.Top, id: 'flag' },
     { type: 'source', position: Position.Bottom, id: 'txn' },
+    // Patterns from the audit log come in from the upper left
+    { type: 'target', position: Position.Top, id: 'patterns', left: '18%' },
   ],
   txn: [{ type: 'target', position: Position.Top, id: 'in' }],
   // Two lines leave the question on their own dots, so they never share a
@@ -90,6 +97,8 @@ export const HANDLES: Record<string, HandleSpec[]> = {
     { type: 'target', position: Position.Bottom, id: 'in' },
     { type: 'source', position: Position.Right, id: 'out', top: '30%' },
     { type: 'source', position: Position.Right, id: 'ok', top: '75%' },
+    // Your calls on its questions go to the audit log
+    { type: 'source', position: Position.Left, id: 'calls' },
   ],
   ledger: [
     { type: 'target', position: Position.Left, id: 'in' },
@@ -102,4 +111,8 @@ export const HANDLES: Record<string, HandleSpec[]> = {
     { type: 'source', position: Position.Right, id: 'out' },
   ],
   report: [{ type: 'target', position: Position.Left, id: 'in' }],
+  audit: [
+    { type: 'target', position: Position.Right, id: 'calls' },
+    { type: 'source', position: Position.Bottom, id: 'patterns' },
+  ],
 };

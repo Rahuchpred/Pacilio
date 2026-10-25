@@ -36,6 +36,7 @@ import {
 // Import all reducer arg schemas
 import AddEdgeReducer from "./add_edge_reducer";
 import AddNodeReducer from "./add_node_reducer";
+import AddPatternReducer from "./add_pattern_reducer";
 import CancelAgentMessageReducer from "./cancel_agent_message_reducer";
 import CancelAgentTaskReducer from "./cancel_agent_task_reducer";
 import CloseEmailThreadReducer from "./close_email_thread_reducer";
@@ -44,6 +45,8 @@ import CreateBillReducer from "./create_bill_reducer";
 import CreateInvoiceReducer from "./create_invoice_reducer";
 import DeleteEdgeReducer from "./delete_edge_reducer";
 import DeleteNodeReducer from "./delete_node_reducer";
+import DeletePatternReducer from "./delete_pattern_reducer";
+import EditPatternReducer from "./edit_pattern_reducer";
 import MarkEmailThreadReadReducer from "./mark_email_thread_read_reducer";
 import MoveCursorReducer from "./move_cursor_reducer";
 import MoveNodeReducer from "./move_node_reducer";
@@ -84,6 +87,7 @@ import AgentMessageRow from "./agent_message_table";
 import AgentRunRow from "./agent_run_table";
 import AgentStepRow from "./agent_step_table";
 import AgentTaskRow from "./agent_task_table";
+import AuditLogRow from "./audit_log_table";
 import ClassificationRow from "./classification_table";
 import ClassificationModeRow from "./classification_mode_table";
 import CursorRow from "./cursor_table";
@@ -96,6 +100,8 @@ import InboundEventRow from "./inbound_event_table";
 import InboundSourceStatusRow from "./inbound_source_status_table";
 import LedgerDocumentRow from "./ledger_document_table";
 import NodeRow from "./node_table";
+import PatternRow from "./pattern_table";
+import PatternStateRow from "./pattern_state_table";
 import PipelineAgentRow from "./pipeline_agent_table";
 import PipelineCardRow from "./pipeline_card_table";
 import PipelineLayoutRow from "./pipeline_layout_table";
@@ -195,6 +201,17 @@ const tablesSchema = __schema({
       { name: 'agent_task_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, AgentTaskRow),
+  auditLog: __table({
+    name: 'audit_log',
+    indexes: [
+      { accessor: 'id', name: 'audit_log_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'audit_log_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, AuditLogRow),
   classification: __table({
     name: 'classification',
     indexes: [
@@ -341,6 +358,28 @@ const tablesSchema = __schema({
       { name: 'node_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, NodeRow),
+  pattern: __table({
+    name: 'pattern',
+    indexes: [
+      { accessor: 'id', name: 'pattern_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'pattern_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, PatternRow),
+  patternState: __table({
+    name: 'pattern_state',
+    indexes: [
+      { accessor: 'id', name: 'pattern_state_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'pattern_state_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, PatternStateRow),
   pipelineAgent: __table({
     name: 'pipeline_agent',
     indexes: [
@@ -471,6 +510,7 @@ const tablesSchema = __schema({
 const reducersSchema = __reducers(
   __reducerSchema("add_edge", AddEdgeReducer),
   __reducerSchema("add_node", AddNodeReducer),
+  __reducerSchema("add_pattern", AddPatternReducer),
   __reducerSchema("cancel_agent_message", CancelAgentMessageReducer),
   __reducerSchema("cancel_agent_task", CancelAgentTaskReducer),
   __reducerSchema("close_email_thread", CloseEmailThreadReducer),
@@ -479,6 +519,8 @@ const reducersSchema = __reducers(
   __reducerSchema("create_invoice", CreateInvoiceReducer),
   __reducerSchema("delete_edge", DeleteEdgeReducer),
   __reducerSchema("delete_node", DeleteNodeReducer),
+  __reducerSchema("delete_pattern", DeletePatternReducer),
+  __reducerSchema("edit_pattern", EditPatternReducer),
   __reducerSchema("mark_email_thread_read", MarkEmailThreadReadReducer),
   __reducerSchema("move_cursor", MoveCursorReducer),
   __reducerSchema("move_node", MoveNodeReducer),

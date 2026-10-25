@@ -39,7 +39,8 @@ export function buildPrompt(
   decisions: PromptDecision[],
   resetLedger: boolean,
   messages: PromptMessage[] = [],
-  classifying: Classifying = { mode: 'auto', categories: DEFAULT_CATEGORIES }
+  classifying: Classifying = { mode: 'auto', categories: DEFAULT_CATEGORIES },
+  patterns: { id: string; text: string }[] = []
 ): string {
   const categories =
     classifying.mode === 'manual'
@@ -74,6 +75,16 @@ Amounts: positive = money in, negative = money out.
 - ledger: the accounting system, QuickBooks (vendor bills, sponsor invoices, recorded payments). Typed by hand, so it
   has typos and double entries. In anything a person reads (notes, evidence, titles), call this source "QuickBooks".
 - cord: scanned receipts for small purchases
+
+## Patterns from the team
+${
+  patterns.length
+    ? `Learned from how people decided and corrected your past work. Follow them; they win over the defaults above
+(but money that left twice for one document, and anything over $5,000, still goes to a person).
+${patterns.map(p => `- ${p.id}: ${p.text}`).join('\n')}
+List the ids of the patterns you applied this run in "patterns_used".`
+    : '- none yet ("patterns_used" is [])'
+}
 
 ## Classify first, out loud
 Before you touch any file, send one plain-text message (not a tool call) with a line per new event, so people can
@@ -147,6 +158,7 @@ When the files are written, reply with ONLY this JSON and nothing else:
 {"summary": "one sentence, past tense, with counts",
  "changes": [{"event_id": "...", "status": "ok|void|review|refunded|following_up", "category": "...", "note": "..."}],
  "messages": [{"id": "m…", "reply": "one sentence on what you did, with row numbers and amounts"}],
+ "patterns_used": ["p…"],
  "decisions": [{"event_id": "...", "status": "ok|void|review", "category": "...", "note": "...",
    "duplicate_of": "event_id or null",
    "review": null or {"title": "...", "what_happened": "...", "evidence": ["...", "..."], "action": "void|refund|follow_up|keep",

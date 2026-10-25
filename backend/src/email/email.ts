@@ -3,6 +3,7 @@ import { Timestamp } from 'spacetimedb';
 import type spacetimedb from '../index';
 import { AgentMail, type AgentMailMessage } from './agentmail';
 import { emailTickSchedule } from './tables';
+import { logAction } from '../learn/audit';
 
 type Schema = typeof spacetimedb;
 type Ctx = ReducerCtx<InferSchema<Schema>>;
@@ -295,7 +296,10 @@ export function email(stdb: Schema) {
       } catch (err) {
         throw new SenderError(message(err));
       }
-      ctx.withTx(tx => updateThread(tx, threadId, { unread: false }));
+      ctx.withTx(tx => {
+        updateThread(tx, threadId, { unread: false });
+        logAction(tx, ctx.sender, 'email', `Replied to ${thread.counterparty}: "${body.slice(0, 160)}"`, { eventId: thread.eventId });
+      });
       return `Sent to ${thread.counterparty}`;
     }
   );
@@ -308,6 +312,8 @@ export function email(stdb: Schema) {
   // Done with it: stop nudging.
   const closeEmailThread = stdb.reducer({ threadId: t.u64() }, (ctx, { threadId }) => {
     updateThread(ctx, threadId, { status: 'closed', nextFollowUpAt: undefined, unread: false });
+    const closed = ctx.db.emailThread.id.find(threadId);
+    if (closed) logAction(ctx, ctx.sender, 'email', `Closed the email thread with ${closed.counterparty}`, { eventId: closed.eventId });
   });
 
   // Back to an open thread: waiting on them again (nudging from the first
@@ -327,6 +333,7 @@ export function email(stdb: Schema) {
       lastActivityAt: ctx.timestamp,
       error: undefined,
     });
+    logAction(ctx, ctx.sender, 'email', `Reopened the email thread with ${thread.counterparty}`, { eventId: thread.eventId });
     ensureTicking(ctx);
   });
 
@@ -344,6 +351,7 @@ export function email(stdb: Schema) {
         return { delayMin: s.delayMin, message };
       });
       writeSteps(ctx, clean);
+      logAction(ctx, ctx.sender, 'email', `Set the follow-ups to ${clean.length ? clean.map(s => `${s.delayMin} min`).join(', ') : 'none'}`);
       for (const thread of [...ctx.db.emailThread.iter()]) {
         if (thread.status !== 'waiting' && thread.status !== 'gave_up') continue;
         updateThread(ctx, thread.id, nextWait(ctx, thread.followUps, thread.lastActivityAt));
@@ -355,6 +363,7 @@ export function email(stdb: Schema) {
   // Back to the default schedule.
   const resetEmailFollowUps = stdb.reducer(ctx => {
     writeSteps(ctx, DEFAULT_FOLLOW_UPS);
+    logAction(ctx, ctx.sender, 'email', 'Reset the follow-ups to the default schedule');
     for (const thread of [...ctx.db.emailThread.iter()]) {
       if (thread.status !== 'waiting' && thread.status !== 'gave_up') continue;
       updateThread(ctx, thread.id, nextWait(ctx, thread.followUps, thread.lastActivityAt));

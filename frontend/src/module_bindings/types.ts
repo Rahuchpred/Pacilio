@@ -133,6 +133,19 @@ export const AgentTickSchedule = __t.object("AgentTickSchedule", {
 });
 export type AgentTickSchedule = __Infer<typeof AgentTickSchedule>;
 
+export const AuditLog = __t.object("AuditLog", {
+  id: __t.u64(),
+  at: __t.timestamp(),
+  who: __t.identity(),
+  whoName: __t.string(),
+  kind: __t.string(),
+  summary: __t.string(),
+  eventId: __t.option(__t.u64()),
+  details: __t.string(),
+  learnable: __t.bool(),
+});
+export type AuditLog = __Infer<typeof AuditLog>;
+
 export const Classification = __t.object("Classification", {
   name: __t.string(),
   position: __t.u32(),
@@ -299,6 +312,29 @@ export const Node = __t.object("Node", {
   label: __t.string(),
 });
 export type Node = __Infer<typeof Node>;
+
+export const Pattern = __t.object("Pattern", {
+  id: __t.u64(),
+  text: __t.string(),
+  because: __t.string(),
+  evidence: __t.string(),
+  source: __t.string(),
+  status: __t.string(),
+  uses: __t.u32(),
+  createdAt: __t.timestamp(),
+  updatedAt: __t.timestamp(),
+});
+export type Pattern = __Infer<typeof Pattern>;
+
+export const PatternState = __t.object("PatternState", {
+  id: __t.u32(),
+  learnedThrough: __t.u64(),
+  taskId: __t.option(__t.u64()),
+  pendingThrough: __t.u64(),
+  lastRunAt: __t.option(__t.timestamp()),
+  lastError: __t.option(__t.string()),
+});
+export type PatternState = __Infer<typeof PatternState>;
 
 export const PipelineAgent = __t.object("PipelineAgent", {
   id: __t.u32(),

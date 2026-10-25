@@ -5,6 +5,8 @@ import { FactoryClient, FactoryError } from '../droid/factory';
 import { LEDGER_HTML, LEDGER_XLSX, buildPrompt, type PromptDecision, type PromptEvent } from './prompt';
 import { finishMessages, markSent, promptId, queuedFor, requeueMessages } from '../settle/messages';
 import { currentClassifying } from '../classify/classify';
+import { learnTick, patternsForPrompt, recordPatternUses } from '../learn/learn';
+import { logAction } from '../learn/audit';
 import { RENDER_PATH, RENDER_SCRIPT, RENDER_VERSION } from './renderScript';
 import { REPORT_PATH, REPORT_SCRIPT, REPORT_VERSION } from './reportScript';
 import { reports, reportsTick, resetReports } from './reports';
@@ -38,6 +40,7 @@ const ACTIONS = ['void', 'refund', 'follow_up', 'keep'] as const;
 // What a person can choose in the queue (follow-up emails are sent later; for
 // now choosing it marks the row as being followed up)
 const HUMAN_ACTIONS = ACTIONS;
+const DECISION_LABEL: Record<string, string> = { void: 'Void', refund: 'Refund', follow_up: 'Email them', keep: 'Keep as is' };
 
 function normalizeAction(value: string | null | undefined): string {
   const v = (value ?? '').toLowerCase().replace(/[\s-]+/g, '_');
@@ -151,7 +154,8 @@ function startRun(ctx: Ctx): boolean {
       decisions,
       agent.resetLedger,
       messages.map(m => ({ id: promptId(m), text: m.text })),
-      currentClassifying(ctx)
+      currentClassifying(ctx),
+      patternsForPrompt(ctx)
     ),
     'high'
   );
@@ -217,7 +221,7 @@ interface Change {
   note?: string;
 }
 
-type Reply = { summary: string; decisions: Decision[]; changes: Change[]; messages: unknown };
+type Reply = { summary: string; decisions: Decision[]; changes: Change[]; messages: unknown; patterns_used?: unknown };
 
 function parseReply(text: string | undefined): Reply {
   if (!text) throw new Error('Agent finished without a reply');
@@ -231,6 +235,7 @@ function parseReply(text: string | undefined): Reply {
     decisions: parsed.decisions,
     changes: Array.isArray(parsed.changes) ? parsed.changes : [],
     messages: parsed.messages,
+    patterns_used: parsed.patterns_used,
   };
 }
 
@@ -263,6 +268,7 @@ function applyDecisions(ctx: Ctx, run: Run, reply: Reply) {
   const { summary, decisions } = reply;
   applyChanges(ctx, reply.changes);
   finishMessages(ctx, run.id, reply.messages);
+  recordPatternUses(ctx, reply.patterns_used);
   const inRun = new Set(run.eventIds.map(String));
   const seen = new Set<string>();
 
@@ -387,11 +393,18 @@ export function pipeline(stdb: Schema) {
     { arg: pipelineTickSchedule.rowType },
     t.unit(),
     ctx => {
-      // The reports agent runs alongside the main one
+      // The reports agent runs alongside the Bookkeeper
       try {
         reportsTick(ctx);
       } catch (err) {
         console.warn(`reports: ${message(err)}`);
+      }
+      // So does the pattern learner
+      let learning = false;
+      try {
+        learning = learnTick(ctx);
+      } catch (err) {
+        console.warn(`learn: ${message(err)}`);
       }
 
       const snap = ctx.withTx(tx => {
@@ -477,7 +490,7 @@ export function pipeline(stdb: Schema) {
         const report = tx.db.reportState.id.find(0);
         return report?.status === 'running' || !!report?.requested;
       });
-      if (!started && !snap.agent.enabled && !reportRunning) {
+      if (!started && !snap.agent.enabled && !reportRunning && !learning) {
         ctx.withTx(tx => {
           for (const row of [...tx.db.pipelineTickSchedule.iter()]) {
             tx.db.pipelineTickSchedule.scheduledId.delete(row.scheduledId);
@@ -534,6 +547,29 @@ export function pipeline(stdb: Schema) {
           decidedAt: tx.timestamp,
           resultNote: resultNote || undefined,
         });
+        // The audit log: what was chosen against what the Bookkeeper suggested
+        const detail = tx.db.reviewDetail.itemId.find(itemId);
+        const review = tx.db.eventReview.eventId.find(current.eventId);
+        const title = detail?.title ?? current.question;
+        const agreed = action === current.recommendation;
+        logAction(
+          tx,
+          ctx.sender,
+          'decision',
+          `Chose ${DECISION_LABEL[action] ?? action} on "${title}"${agreed ? ' (as the Bookkeeper suggested)' : ` (the Bookkeeper suggested ${DECISION_LABEL[current.recommendation] ?? current.recommendation})`}`,
+          {
+            eventId: current.eventId,
+            learnable: true,
+            details: {
+              chosen: action,
+              suggested: current.recommendation,
+              counterparty: event?.counterparty,
+              amount: event ? Number(event.amountMinor) / 100 : undefined,
+              source: event?.source,
+              category: review?.category,
+            },
+          }
+        );
         ensureTicking(tx);
       });
 

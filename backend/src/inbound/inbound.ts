@@ -12,6 +12,7 @@ import { InboundHub } from './hub';
 import { inboundTickSchedule } from './tables';
 import { resetPipeline, setPipelineEnabled } from '../pipeline/pipeline';
 import type { InboundEventDraft, Source, SourceContext } from './types';
+import { logAction } from '../learn/audit';
 
 type Schema = typeof spacetimedb;
 type Ctx = ReducerCtx<InferSchema<Schema>>;
@@ -175,6 +176,7 @@ export function inbound(stdb: Schema) {
 
   // Snap every pipeline node back to the default layout, size and overview, for everyone.
   const tidyPipelineLayout = stdb.reducer(ctx => {
+    logAction(ctx, ctx.sender, 'pipeline', 'Tidied the board');
     for (const row of [...ctx.db.pipelineLayout.iter()]) ctx.db.pipelineLayout.nodeId.delete(row.nodeId);
     for (const row of [...ctx.db.pipelineNodeSize.iter()]) ctx.db.pipelineNodeSize.nodeId.delete(row.nodeId);
     for (const row of [...ctx.db.pipelineCard.iter()]) ctx.db.pipelineCard.nodeId.delete(row.nodeId);
@@ -199,13 +201,20 @@ export function inbound(stdb: Schema) {
     setPipelineEnabled(ctx, enabled);
   }
 
-  const runInbound = stdb.reducer(ctx => setAll(ctx, true));
+  const runInbound = stdb.reducer(ctx => {
+    setAll(ctx, true);
+    logAction(ctx, ctx.sender, 'pipeline', 'Pressed Run');
+  });
 
-  const pauseInbound = stdb.reducer(ctx => setAll(ctx, false));
+  const pauseInbound = stdb.reducer(ctx => {
+    setAll(ctx, false);
+    logAction(ctx, ctx.sender, 'pipeline', 'Pressed Pause');
+  });
 
   // Start over: drop every stored event and label, rewind every source to its
   // beginning, then run. Sources replay with fresh corruption.
   const restartInbound = stdb.reducer(ctx => {
+    logAction(ctx, ctx.sender, 'pipeline', 'Pressed Restart (cleared the events, ledger and report)');
     for (const event of [...ctx.db.inboundEvent.iter()]) ctx.db.inboundEvent.id.delete(event.id);
     for (const label of [...ctx.db.inboundLabel.iter()]) ctx.db.inboundLabel.eventId.delete(label.eventId);
     for (const source of InboundHub.sources) {

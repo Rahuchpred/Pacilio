@@ -26,6 +26,7 @@ import { Dock } from './ui/Dock';
 import { mainAgent } from './pipeline/Agent';
 import { emails } from './pipeline/Emails';
 import { inbox } from './pipeline/Inbox';
+import { audit } from './pipeline/Audit';
 import { ItemPanel } from './pipeline/ItemPanel';
 import { ledger } from './pipeline/Ledger';
 import { needsYou } from './pipeline/NeedsYou';
@@ -58,6 +59,7 @@ const nodeTypes = {
   emails: leveled(emails),
   reportAgent: leveled(reportAgent),
   report: leveled(report),
+  audit: leveled(audit),
 };
 
 const typeOf = (id: string) => LAYOUT[id].type;
@@ -138,6 +140,16 @@ function useEdges(): Edge[] {
         data: { path: 'smoothstep' },
       }),
       e({ id: 'e-main-ledger', source: 'main', sourceHandle: 'out', target: 'ledger', targetHandle: 'in', label: 'Posts', className: 'edge-money', markerEnd: moneyArrow }),
+      e({ id: 'e-flagged-audit', source: 'flagged', sourceHandle: 'calls', target: 'audit', targetHandle: 'calls', label: 'Your calls' }),
+      e({
+        id: 'e-audit-main',
+        source: 'audit',
+        sourceHandle: 'patterns',
+        target: 'main',
+        targetHandle: 'patterns',
+        label: 'Patterns',
+        data: { path: 'smoothstep' },
+      }),
       e({ id: 'e-ledger-ragent', source: 'ledger', sourceHandle: 'out', target: 'reportAgent', targetHandle: 'in', animated: building }),
       e({ id: 'e-ragent-report', source: 'reportAgent', sourceHandle: 'out', target: 'report', targetHandle: 'in', animated: building }),
     ];

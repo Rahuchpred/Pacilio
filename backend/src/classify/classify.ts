@@ -1,5 +1,6 @@
 import { SenderError, t, type InferSchema, type ReducerCtx } from 'spacetimedb/server';
 import type spacetimedb from '../index';
+import { logAction } from '../learn/audit';
 
 // Classification settings: the category list and auto/manual mode, shared by
 // everyone and read by the Bookkeeper's prompt on every run.
@@ -67,6 +68,7 @@ export function classify(stdb: Schema) {
       if (extra.length) writeList(ctx, [...list, ...extra].slice(0, MAX_CATEGORIES));
     }
     setMode(ctx, mode);
+    logAction(ctx, ctx.sender, 'classification', `Switched classifications to ${mode === 'auto' ? 'Auto' : 'Manual'}`, { learnable: true });
   });
 
   // The edited list (manual mode). Rows already in the ledger keep their category.
@@ -80,12 +82,23 @@ export function classify(stdb: Schema) {
     }
     if (!clean.length) throw new SenderError('Keep at least one category');
     if (clean.length > MAX_CATEGORIES) throw new SenderError(`At most ${MAX_CATEGORIES} categories`);
+    const before = currentClassifying(ctx).categories;
     writeList(ctx, clean);
+    const added = clean.filter(c => !before.includes(c));
+    const removed = before.filter(c => !clean.includes(c));
+    const what = [added.length ? `added ${added.join(', ')}` : '', removed.length ? `removed ${removed.join(', ')}` : '']
+      .filter(Boolean)
+      .join('; ');
+    logAction(ctx, ctx.sender, 'classification', `Edited the categories${what ? `: ${what}` : ''}`, {
+      learnable: true,
+      details: { added, removed },
+    });
   });
 
   const resetClassifications = stdb.reducer(ctx => {
     writeList(ctx, DEFAULT_CATEGORIES);
     setMode(ctx, 'auto');
+    logAction(ctx, ctx.sender, 'classification', 'Reset the categories to the default list (Auto)', { learnable: true });
   });
 
   return { setClassificationMode, setClassifications, resetClassifications };

@@ -22,7 +22,7 @@ const TICK_INTERVAL_MICROS = 2_000_000n;
 const AUTONOMY_LEVELS: AutonomyLevel[] = ['off', 'low', 'medium', 'high'];
 
 // Task kinds that should think less and finish faster
-const REASONING_BY_KIND: Record<string, 'low' | 'medium' | 'high'> = { pipeline: 'low', report: 'low', ask: 'low' };
+const REASONING_BY_KIND: Record<string, 'low' | 'medium' | 'high'> = { pipeline: 'low', report: 'low', ask: 'low', learn: 'low' };
 
 // ─── Extension point ────────────────────────────────────────────────────────
 

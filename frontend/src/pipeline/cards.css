@@ -1221,3 +1221,76 @@ button.ask-fact:active,
 /* The decision for a whole kind sits under the single one, plainer. */
 .triage-bulk { display: flex; align-items: center; flex-wrap: nowrap; gap: var(--space-sm); min-height: 40px; box-sizing: border-box; padding-top: var(--space-sm); border-top: var(--border-hairline) dashed var(--color-border-default); }
 .triage-bulk.is-running { font-size: var(--type-small-size); }
+
+/* ---- Audit log & patterns ---- */
+
+.pipeline .w-audit,
+.pipeline .far-card.w-audit { width: 440px; }
+.pipeline .w-audit-full { width: 980px; }
+.audit-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-xl); align-items: start; }
+.audit-col { display: flex; flex-direction: column; gap: var(--space-sm); min-width: 0; }
+.audit-col h4 { margin: 0; }
+.audit-log { list-style: none; margin: 0; padding: 0; max-height: 560px; overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-2xs); }
+.audit-entry {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  gap: var(--space-sm);
+  align-items: baseline;
+  width: 100%;
+  padding: var(--space-xs) var(--space-sm);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  font: inherit;
+  font-size: var(--type-small-size);
+  line-height: var(--type-small-line);
+  color: inherit;
+  text-align: left;
+}
+button.audit-entry { cursor: pointer; }
+@media (hover: hover) and (pointer: fine) {
+  button.audit-entry:hover { background: var(--color-bg-sunken); }
+}
+/* What the learner learns from: a soft mark on the left */
+.audit-entry.is-learnable { box-shadow: inset 2px 0 0 var(--color-action-decide); }
+.audit-entry .icon { translate: 0 2px; color: var(--color-text-secondary); }
+.audit-text { min-width: 0; overflow-wrap: anywhere; }
+.audit-time { color: var(--color-text-tertiary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.patterns { list-style: none; margin: 0; padding: 0; max-height: 480px; overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-sm); }
+.pattern {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-md);
+  border-radius: var(--radius-panel);
+  background: var(--color-bg-surface);
+  border-left: 3px solid var(--color-action-decide);
+}
+.pattern.is-edited,
+.pattern.is-person { border-left-color: var(--color-text-primary); }
+.pattern-text { margin: 0; font-size: var(--type-body-size); line-height: var(--type-body-line); overflow-wrap: anywhere; }
+.pattern-why { margin: 0; color: var(--color-text-secondary); font-size: var(--type-small-size); overflow-wrap: anywhere; }
+.pattern-meta { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-sm); }
+.pattern-tag {
+  padding: 1px var(--space-sm);
+  border-radius: var(--radius-control);
+  background: var(--color-bg-canvas);
+  font-size: var(--type-label-size);
+  color: var(--color-text-secondary);
+}
+.pattern-actions { margin-left: auto; display: flex; gap: var(--space-2xs); }
+.pattern-edit,
+.pattern-add textarea {
+  font: inherit;
+  font-size: var(--type-body-size);
+  padding: var(--space-xs) var(--space-sm);
+  border: var(--border-hairline) solid var(--color-border-control);
+  border-radius: var(--radius-control);
+  background: var(--color-bg-canvas);
+  color: var(--color-text-primary);
+  resize: vertical;
+}
+.pattern-add { display: flex; flex-direction: column; gap: var(--space-sm); }
+/* The time column never gets clipped by the scrolling list */
+.audit-entry { box-sizing: border-box; max-width: 100%; }
+.audit-log { overflow-x: hidden; padding-right: var(--space-xs); }

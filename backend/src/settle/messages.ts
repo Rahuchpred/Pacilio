@@ -2,6 +2,7 @@ import { SenderError, t, type InferSchema, type ReducerCtx } from 'spacetimedb/s
 import type spacetimedb from '../index';
 import { onTaskSettledOfKind } from '../droid/agents';
 import { ensureTicking } from '../pipeline/ticking';
+import { logAction } from '../learn/audit';
 
 // Ask Settle as a dispatcher. A person asks in plain words; Settle answers,
 // and when the ask is really for an agent ("put these under Catering", "make
@@ -16,6 +17,8 @@ export type Message = NonNullable<ReturnType<Ctx['db']['agentMessage']['id']['fi
 export type Target = 'main' | 'reports';
 
 const TARGETS: Target[] = ['main', 'reports'];
+// Ask Settle puts the person's words after this marker in its prompt
+const QUESTION_MARK = '\nQuestion: ';
 const MAX_PER_ASK = 3;
 const MAX_TEXT = 800;
 const MAX_REPLY = 600;
@@ -85,6 +88,20 @@ onTaskSettledOfKind('ask', (ctx, task: Task) => {
     });
   }
   for (const target of new Set(send.map(s => s.to))) wake(ctx, target);
+  // The audit log: what was asked, and what Settle passed on
+  const at = task.prompt.lastIndexOf(QUESTION_MARK);
+  const question = at < 0 ? '' : task.prompt.slice(at + QUESTION_MARK.length).trim();
+  if (!send.length) {
+    logAction(ctx, task.createdBy, 'ask', `Asked Settle: "${question.slice(0, 200)}"`);
+  }
+  for (const s of send) {
+    const to = s.to === 'main' ? 'the Bookkeeper' : 'the reports agent';
+    logAction(ctx, task.createdBy, 'settle', `Told ${to} (through Settle): "${s.message}"`, {
+      // Corrections to the Bookkeeper are something to learn from
+      learnable: s.to === 'main',
+      details: { asked: question.slice(0, 300) },
+    });
+  }
 });
 
 // ─── For the agents' runs ───────────────────────────────────────────────────
@@ -140,6 +157,7 @@ export function settle(stdb: Schema) {
     if (!m) throw new SenderError('Message not found');
     if (m.status !== 'queued') throw new SenderError('The agent already has this message');
     ctx.db.agentMessage.id.update({ ...m, status: 'cancelled', updatedAt: ctx.timestamp });
+    logAction(ctx, ctx.sender, 'settle', `Cancelled a message to ${m.target === 'main' ? 'the Bookkeeper' : 'the reports agent'}: "${m.text}"`);
   });
 
   return { cancelAgentMessage };

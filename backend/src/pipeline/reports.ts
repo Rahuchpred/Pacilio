@@ -4,6 +4,7 @@ import { enqueueAgentTask } from '../droid/agents';
 import { FactoryClient } from '../droid/factory';
 import { REPORT_PATH, REPORT_VERSION } from './reportScript';
 import { finishMessages, markSent, promptId, queuedFor, requeueMessages, type Message } from '../settle/messages';
+import { logAction } from '../learn/audit';
 
 // The reports agent: every REPORT_EVERY_MICROS while the pipeline runs (and
 // only if the ledger changed), or when someone presses Refresh, Droid runs the
@@ -250,6 +251,7 @@ export function reports(stdb: Schema, ensurePipelineTicking: (ctx: Ctx) => void)
   // The Refresh button: build a report on the next tick
   const requestReport = stdb.reducer(ctx => {
     update(ctx, { requested: true });
+    logAction(ctx, ctx.sender, 'report', 'Asked for a new show report');
     ensurePipelineTicking(ctx);
   });
 

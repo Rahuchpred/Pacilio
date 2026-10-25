@@ -41,8 +41,14 @@ function useLiveTables() {
   const [agentMessages] = useTable(tables.agentMessage);
   const [reportCharts] = useTable(tables.reportChart);
   const [classifications] = useTable(tables.classification);
+  const [auditLog] = useTable(tables.auditLog);
+  const [patterns] = useTable(tables.pattern);
+  const [patternStates] = useTable(tables.patternState);
   const [classificationModes] = useTable(tables.classificationMode);
   return {
+    auditLog,
+    patterns,
+    patternStates,
     classifications,
     classificationModes,
     reportCharts,

@@ -11,6 +11,8 @@ import { emailEnv, emailTables } from './email/tables';
 import { email, ensureFollowUpDefaults } from './email/email';
 import { settleTables } from './settle/tables';
 import { classifyTables } from './classify/tables';
+import { learnTables } from './learn/tables';
+import { learn } from './learn/learn';
 import { classify, ensureClassificationDefaults } from './classify/classify';
 import { settle } from './settle/messages';
 
@@ -55,7 +57,7 @@ const edge = table(
 );
 
 const spacetimedb = schema(
-  { user, cursor, node, edge, ...droidTables, ...inboundTables, ...accountingTables, ...pipelineTables, ...emailTables, ...settleTables, ...classifyTables },
+  { user, cursor, node, edge, ...droidTables, ...inboundTables, ...accountingTables, ...pipelineTables, ...emailTables, ...settleTables, ...classifyTables, ...learnTables },
   { env: { ...droidEnv, ...inboundEnv, ...emailEnv } }
 );
 export default spacetimedb;
@@ -255,3 +257,7 @@ export const { cancelAgentMessage } = settle(spacetimedb);
 // ─── Classification settings ────────────────────────────────────────────────
 
 export const { setClassificationMode, setClassifications, resetClassifications } = classify(spacetimedb);
+
+// ─── Audit log & patterns ───────────────────────────────────────────────────
+
+export const { editPattern, deletePattern, addPattern } = learn(spacetimedb);
