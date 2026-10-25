@@ -36,16 +36,19 @@ Our real path was not a straight line. We started the design system in Figma, bu
 - Synced the Status component to the code: 4px rectangle, icon first, hairline in its own color (it was still the old round pill).
 - Rebuilt the app's three views as 1440x900 frames from our components and variables, not screenshots: Overview, Cards (real size, scrolls like the canvas, controls pinned) and "Needs you, open".
 - Wired a clickable prototype: the Detail filter switches Overview and Cards, clicking "Needs you" opens the card, Close card or Esc goes back.
-**Friction:** the MCP has no capture-a-web-page tool in our setup, so frames were rebuilt from components. Hidden layers inside instances could not be found by search; we had to reset overrides. Saving a named version is blocked through the MCP, so a person saves the checkpoints. One script bound a radius variable where a color belonged and failed; Figma rolled it back cleanly.
+**Into the project:** those frames are the prototype on page 4, and the components they use carried into every later check.
+**Friction:** our MCP setup has no page-capture tool, so we rebuilt frames from components. Search missed hidden layers inside instances; we reset overrides. Named versions can't be saved through the MCP, so we save checkpoints by hand. One script bound a radius variable where a color belonged and failed; Figma rolled it back cleanly.
 
 ## 4. Code generation
 
-**Tools:** Claude Code writing React with the Settle agent skill (`skills/settle-design/SKILL.md`), plus the Figma and Mobbin MCPs.
-**Why:** the skill holds the design rules, so generated code follows the system without us repeating them.
+**Tools:** Claude Code writing React with our Settle skill (`skills/settle-design/SKILL.md`), plus the Figma and Mobbin MCPs.
+**Why:** the skill holds the design rules, so generated code follows the system.
 **Time:** Friday 20:38 to Saturday 21:49 (git). **Rating:** 4/5.
-**Loop 1, Saturday ~11:30, 15 min:** Figma frames, exported through the MCP, sat next to the running app. 4 differences, all where code had moved ahead; we fixed Figma.
-**Loop 2, Saturday 15:30, 10 min:** code moved first. The agent pushed the card glow to Figma as effect styles and pulled five question-card patterns from Mobbin; we kept Band.
-**Loop 3, Saturday 18:40 to 22:07:** a teammate's merge broke the system in six places. The agent logged each on Figma page "6 Merge check" with file and line; we fixed them in code (78a08e0). Recheck: five fixed, one back, because a chart file added four minutes earlier reused the raw blue. The agent then rebuilt the triage view in Figma from our components.
+**Into the project:** each loop ended with a fix on whichever side was wrong. The merge fixes shipped in 78a08e0.
+**Loop 1, Saturday ~11:30, 15 min:** frames next to the running app showed 4 differences, all where code had moved ahead; we fixed Figma.
+**Loop 2, Saturday 15:30, 10 min:** code moved first. The card glow went back to Figma as effect styles, and we kept Band out of five Mobbin patterns.
+**Loop 3, Saturday 17:28 to 22:07:** a merge broke six design rules. Claude Code logged each on Figma page 6 with file and line; we fixed them in one commit. The recheck caught one coming back. Then we rebuilt the triage view in Figma.
+**Before and after:** Figma once drifted for a day before we noticed. By Saturday night, a broken merge was logged in 72 minutes.
 
 | Figma frame | Running app |
 |---|---|
@@ -55,7 +58,7 @@ Our real path was not a straight line. We started the design system in Figma, bu
 | ![Figma needs you glow](stage-log/figma-needs-you-glow.png) | ![App needs you glow](stage-log/app-needs-you-glow.png) |
 | ![Figma triage](stage-log/figma-triage.png) | ![App triage](stage-log/app-triage.png) |
 
-**Friction:** a variable-bound fill ignored its opacity; new auto-layout frames hid the band under a default white fill. A fix only covers the files it touched.
+**Friction:** a variable-bound fill ignored its opacity; new auto-layout frames hid the band under a white fill.
 
 ## Run this yourself
 
