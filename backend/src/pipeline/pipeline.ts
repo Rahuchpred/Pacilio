@@ -1,6 +1,6 @@
 import { SenderError, t, type InferSchema, type ProcedureCtx, type ReducerCtx } from 'spacetimedb/server';
 import type spacetimedb from '../index';
-import { closeSession, enqueueAgentTask, shutDownAgents } from '../droid/agents';
+import { closeSession, enqueueAgentTask, liveSession, shutDownAgents } from '../droid/agents';
 import { FactoryClient, FactoryError } from '../droid/factory';
 import { LEDGER_HTML, LEDGER_XLSX, MAX_AUTO_EMAILS, buildPrompt, buildRenderPrompt, type PromptDecision, type PromptEvent } from './prompt';
 import { finishMessages, markSent, promptId, queuedFor, requeueMessages } from '../settle/messages';
@@ -856,10 +856,11 @@ export function pipeline(stdb: Schema) {
   // A fresh download link for the .xlsx workbook the agent last wrote.
   // A fresh link to the last built workbook
   const ledgerXlsxUrl = stdb.procedure(t.string(), ctx => {
-    const { sessionId, dir } = ctx.withTx(tx => ({
-      sessionId: tx.db.ledgerRender.id.find(0)?.sessionId,
-      dir: latestFiles(tx)?.renderDir,
-    }));
+    const { sessionId, dir } = ctx.withTx(tx => {
+      // Built at least once; fetched through any open session
+      const wrote = tx.db.ledgerRender.id.find(0)?.sessionId;
+      return { sessionId: wrote ? liveSession(tx, wrote) : undefined, dir: latestFiles(tx)?.renderDir };
+    });
     if (!sessionId) throw new SenderError('The workbook has not been built yet');
     const factory = new FactoryClient(ctx.http, ctx.env.FACTORY_API_KEY);
     return factory.downloadUrl(ctx.env.FACTORY_COMPUTER_ID, sessionId, dir ? relative(dir, 'ledger.xlsx') : LEDGER_XLSX);

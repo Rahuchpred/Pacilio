@@ -72,6 +72,15 @@ export const AccountingPayment = __t.object("AccountingPayment", {
 });
 export type AccountingPayment = __Infer<typeof AccountingPayment>;
 
+export const AgentLane = __t.object("AgentLane", {
+  key: __t.string(),
+  sessionId: __t.string(),
+  turns: __t.u32(),
+  busyTaskId: __t.option(__t.u64()),
+  startSeq: __t.u64(),
+});
+export type AgentLane = __Infer<typeof AgentLane>;
+
 export const AgentMessage = __t.object("AgentMessage", {
   id: __t.u64(),
   askTaskId: __t.u64(),
@@ -172,6 +181,11 @@ export const ClassificationMode = __t.object("ClassificationMode", {
   mode: __t.string(),
 });
 export type ClassificationMode = __Infer<typeof ClassificationMode>;
+
+export const ComputerReboot = __t.object("ComputerReboot", {
+  id: __t.u32(),
+});
+export type ComputerReboot = __Infer<typeof ComputerReboot>;
 
 export const Cursor = __t.object("Cursor", {
   identity: __t.identity(),

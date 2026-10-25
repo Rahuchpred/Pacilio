@@ -105,6 +105,12 @@ export class FactoryClient {
     this.request('POST', `/sessions/${sessionId}/interrupt`, {});
   }
 
+  // Cold-boot the computer: stops every process (and frees every session
+  // slot). Returns once the daemon is back, about 10s.
+  rebootComputer(computerId: string): void {
+    this.request('POST', `/computers/${computerId}/restart`, { mode: 'reboot' });
+  }
+
   // Ends a session for good (Factory keeps it restorable for a while)
   deleteSession(sessionId: string): void {
     this.request('DELETE', `/sessions/${sessionId}`);

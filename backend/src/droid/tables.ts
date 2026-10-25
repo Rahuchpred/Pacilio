@@ -85,7 +85,35 @@ export const sessionCleanup = table(
   }
 );
 
-export const droidTables = { agentTask, agentStep, agentOutbox, agentTickSchedule, sessionCleanup };
+// One reused Factory session per kind of task (private). The computer allows
+// about 15 sessions at once and holds each one's slot for minutes after it's
+// used, so a kind's tasks take turns in one session, and every few tasks it
+// starts a fresh one so the context stays short.
+export const agentLane = table(
+  { name: 'agent_lane' },
+  {
+    // `${kind}:${autonomy}`
+    key: t.string().primaryKey(),
+    sessionId: t.string(),
+    // Tasks this session has run
+    turns: t.u32(),
+    // The task running in it now, and the session's newest message seq when
+    // that task started (its reply comes after this)
+    busyTaskId: t.u64().optional(),
+    startSeq: t.u64(),
+  }
+);
+
+// Set by Restart: reboot the computer once its sessions are closed, before any
+// task starts (private, singleton id 0).
+export const computerReboot = table(
+  { name: 'computer_reboot' },
+  {
+    id: t.u32().primaryKey(),
+  }
+);
+
+export const droidTables = { agentTask, agentStep, agentOutbox, agentTickSchedule, sessionCleanup, agentLane, computerReboot };
 
 // Set at publish time from the shell (see backend/package.json).
 export const droidEnv = {

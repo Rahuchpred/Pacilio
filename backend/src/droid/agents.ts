@@ -20,6 +20,10 @@ type Ctx = ReducerCtx<InferSchema<Schema>>;
 type Task = NonNullable<ReturnType<Ctx['db']['agentTask']['id']['find']>>;
 
 const TICK_INTERVAL_MICROS = 2_000_000n;
+// Tasks per session before a kind starts a fresh one (keeps the context short)
+const LANE_TURNS = 8;
+// Put in front of a prompt that goes to a session that already ran other tasks
+const NEXT_TASK = 'New task. Earlier messages in this conversation were other tasks: leave them aside and use only what is below.\n\n';
 const AUTONOMY_LEVELS: AutonomyLevel[] = ['off', 'low', 'medium', 'high'];
 
 // Task kinds that should think less and finish faster
@@ -50,11 +54,19 @@ function ensureTicking(ctx: Ctx) {
   });
 }
 
+const laneKey = (task: Task) => `${task.kind}:${task.autonomy}`;
+const FINISHED = ['done', 'failed', 'cancelled'];
+
 function updateTask(ctx: Ctx, id: bigint, patch: Partial<Task>): Task | undefined {
   const task = ctx.db.agentTask.id.find(id);
   if (!task) return undefined;
   const next = { ...task, ...patch, updatedAt: ctx.timestamp };
   ctx.db.agentTask.id.update(next);
+  // A finished task frees its kind's session for the next one
+  if (FINISHED.includes(next.status)) {
+    const lane = ctx.db.agentLane.key.find(laneKey(next));
+    if (lane?.busyTaskId === id) ctx.db.agentLane.key.update({ ...lane, busyTaskId: undefined });
+  }
   if (
     (next.status === 'done' || next.status === 'failed') &&
     next.status !== task.status
@@ -96,10 +108,25 @@ export function closeSession(ctx: Ctx, sessionId: string | undefined) {
   ensureTicking(ctx);
 }
 
-// Stop every agent this database runs and close all of its sessions (Restart
-// and scenario swaps). Unfinished tasks are cancelled; finished ones lose
-// their session, so old download links stop working.
+// A session that's still open, for downloads: any session can fetch any file
+// on the computer, and the one that wrote a file may have been closed since.
+export function liveSession(ctx: Ctx, wrote?: string): string | undefined {
+  const lanes = [...ctx.db.agentLane.iter()];
+  if (wrote && lanes.some(l => l.sessionId === wrote)) return wrote;
+  return lanes[0]?.sessionId ?? ctx.db.ledgerFiles.id.find(0)?.uploadSessionId ?? wrote;
+}
+
+// Stop every agent this database runs, close all of its sessions and reboot
+// the computer (Restart and scenario swaps), so the next tasks start on a
+// clean machine with no context. Unfinished tasks are cancelled; finished
+// ones lose their session, so old download links stop working.
 export function shutDownAgents(ctx: Ctx) {
+  for (const lane of [...ctx.db.agentLane.iter()]) {
+    closeSession(ctx, lane.sessionId);
+    ctx.db.agentLane.key.delete(lane.key);
+  }
+  if (!ctx.db.computerReboot.id.find(0)) ctx.db.computerReboot.insert({ id: 0 });
+  ensureTicking(ctx);
   for (const o of [...ctx.db.agentOutbox.iter()]) ctx.db.agentOutbox.id.delete(o.id);
   for (const task of [...ctx.db.agentTask.iter()]) {
     const open = !['done', 'failed', 'cancelled'].includes(task.status);
@@ -157,10 +184,13 @@ export function droidAgents(stdb: Schema) {
     { taskId: t.u64(), filePath: t.string() },
     t.string(),
     (ctx, { taskId, filePath }) => {
-      const task = ctx.withTx(tx => tx.db.agentTask.id.find(taskId));
-      if (!task?.sessionId) throw new SenderError('Task has no session yet');
+      const sessionId = ctx.withTx(tx => {
+        const task = tx.db.agentTask.id.find(taskId);
+        return task?.sessionId && liveSession(tx, task.sessionId);
+      });
+      if (!sessionId) throw new SenderError('Task has no session yet');
       const factory = new FactoryClient(ctx.http, ctx.env.FACTORY_API_KEY);
-      return factory.downloadUrl(ctx.env.FACTORY_COMPUTER_ID, task.sessionId, filePath);
+      return factory.downloadUrl(ctx.env.FACTORY_COMPUTER_ID, sessionId, filePath);
     }
   );
 
@@ -172,20 +202,32 @@ export function droidAgents(stdb: Schema) {
     { arg: agentTickSchedule.rowType },
     t.unit(),
     ctx => {
-      // Claim pending tasks atomically so an overlapping tick can't start them twice.
+      // Claim pending tasks atomically so an overlapping tick can't start them
+      // twice: one per kind, and only when that kind's session is free. Nothing
+      // starts while the computer waits for a reboot.
       const work = ctx.withTx(tx => {
-        const tasks = [...tx.db.agentTask.iter()];
-        const pending = tasks.filter(task => task.status === 'pending');
-        for (const task of pending) updateTask(tx, task.id, { status: 'starting' });
+        const tasks = [...tx.db.agentTask.iter()].sort((a, b) => (a.id < b.id ? -1 : 1));
+        const rebooting = !!tx.db.computerReboot.id.find(0);
+        const busy = new Set(tasks.filter(task => task.status === 'starting' || task.status === 'running').map(laneKey));
+        const pending: Task[] = [];
+        for (const task of tasks) {
+          if (task.status !== 'pending' || rebooting || busy.has(laneKey(task))) continue;
+          busy.add(laneKey(task));
+          pending.push(task);
+          updateTask(tx, task.id, { status: 'starting' });
+        }
         return {
           pending,
+          waiting: tasks.some(task => task.status === 'pending'),
           running: tasks.filter(task => task.status === 'running' && task.sessionId),
           outbox: [...tx.db.agentOutbox.iter()],
           cleanup: [...tx.db.sessionCleanup.iter()].map(r => r.sessionId),
+          rebooting,
+          lanes: [...tx.db.agentLane.iter()],
         };
       });
 
-      if (!work.pending.length && !work.running.length && !work.outbox.length && !work.cleanup.length) {
+      if (!work.waiting && !work.running.length && !work.outbox.length && !work.cleanup.length && !work.rebooting) {
         ctx.withTx(tx => {
           for (const row of [...tx.db.agentTickSchedule.iter()]) {
             tx.db.agentTickSchedule.scheduledId.delete(row.scheduledId);
@@ -209,8 +251,8 @@ export function droidAgents(stdb: Schema) {
       }
       const factory = new FactoryClient(ctx.http, apiKey);
 
-      // 0. Stop and delete sessions that are no longer wanted (a few a tick)
-      for (const sessionId of work.cleanup.slice(0, 10)) {
+      // 0. Stop and delete sessions that are no longer wanted, then reboot if asked
+      for (const sessionId of work.cleanup.slice(0, 20)) {
         try {
           try {
             factory.interrupt(sessionId);
@@ -226,6 +268,16 @@ export function droidAgents(stdb: Schema) {
         }
         ctx.withTx(tx => tx.db.sessionCleanup.sessionId.delete(sessionId));
       }
+      if (work.rebooting && work.cleanup.length <= 20) {
+        try {
+          factory.rebootComputer(computerId);
+        } catch (err) {
+          // Booting anyway or unreachable: carry on rather than hold every task
+          console.warn(`reboot failed: ${message(err)}`);
+        }
+        ctx.withTx(tx => tx.db.computerReboot.id.delete(0));
+        return {};
+      }
 
       // 1. Start pending tasks
       if (work.pending.length) {
@@ -236,29 +288,55 @@ export function droidAgents(stdb: Schema) {
         }
       }
       for (const task of work.pending) {
+        const lane = work.lanes.find(l => l.key === laneKey(task));
         try {
-          const sessionId = factory.createSession(computerId, {
-            autonomyLevel: task.autonomy as AutonomyLevel,
-            reasoningEffort: REASONING_BY_KIND[task.kind],
-          });
+          // Reuse the kind's session while it's young; its reply will come
+          // after the newest message there now
+          let reused: { sessionId: string; startSeq: bigint } | undefined;
+          if (lane && lane.turns < LANE_TURNS) {
+            try {
+              const [newest] = factory.recentMessages(lane.sessionId, 1);
+              reused = { sessionId: lane.sessionId, startSeq: BigInt(newest?.seq ?? 0) };
+            } catch {
+              // gone (deleted or rebooted away): start a fresh one
+            }
+          }
+          const sessionId =
+            reused?.sessionId ??
+            factory.createSession(computerId, {
+              autonomyLevel: task.autonomy as AutonomyLevel,
+              reasoningEffort: REASONING_BY_KIND[task.kind],
+            });
+          const startSeq = reused?.startSeq ?? 0n;
           ctx.withTx(tx => {
+            const current = tx.db.agentLane.key.find(laneKey(task));
             // Cancelled while we were starting it
             if (tx.db.agentTask.id.find(task.id)?.status !== 'starting') {
-              closeSession(tx, sessionId);
+              if (!reused) closeSession(tx, sessionId);
               return;
             }
-            updateTask(tx, task.id, { status: 'running', sessionId });
+            if (!reused && current) closeSession(tx, current.sessionId);
+            const row = { key: laneKey(task), sessionId, turns: reused && current ? current.turns + 1 : 1, busyTaskId: task.id, startSeq };
+            if (current) tx.db.agentLane.key.update(row);
+            else tx.db.agentLane.insert(row);
+            updateTask(tx, task.id, { status: 'running', sessionId, lastSeq: startSeq });
             // A new session briefly 404s on messages, so the prompt goes out on
             // the next tick through the outbox, which retries until it lands.
             tx.db.agentOutbox.insert({
               id: 0n,
               taskId: task.id,
-              text: task.prompt,
+              text: reused ? NEXT_TASK + task.prompt : task.prompt,
               interrupt: false,
             });
           });
         } catch (err) {
-          ctx.withTx(tx => updateTask(tx, task.id, { status: 'failed', error: message(err) }));
+          // The computer is at its session limit: wait for a slot and try again
+          const full = err instanceof FactoryError && err.status === 429;
+          if (full) console.warn(`task ${task.id} waits for a session slot`);
+          ctx.withTx(tx => {
+            if (tx.db.agentTask.id.find(task.id)?.status !== 'starting') return;
+            updateTask(tx, task.id, full ? { status: 'pending' } : { status: 'failed', error: message(err) });
+          });
         }
       }
 
@@ -288,7 +366,9 @@ export function droidAgents(stdb: Schema) {
       for (const task of work.running) {
         try {
           const status = factory.getSessionStatus(task.sessionId!);
-          const messages = factory.recentMessages(task.sessionId!);
+          // In a reused session, only what came after this task started
+          const since = work.lanes.find(l => l.busyTaskId === task.id)?.startSeq ?? 0n;
+          const messages = factory.recentMessages(task.sessionId!).filter(m => BigInt(m.seq) > since);
           // While running, the newest message may still be streaming in
           const settled = status === 'idle' ? messages : messages.slice(0, -1);
           const reply = status === 'idle' ? finalReply(messages) : undefined;
@@ -346,6 +426,16 @@ export function droidAgents(stdb: Schema) {
           });
         } catch (err) {
           console.warn(`poll task ${task.id} failed: ${message(err)}`);
+          // Its session is gone (deleted, or lost in a reboot): give up on it so
+          // whatever waits for it can move on. A brand-new one can 404 briefly.
+          const stale = ctx.timestamp.microsSinceUnixEpoch - task.updatedAt.microsSinceUnixEpoch > 60_000_000n;
+          if (err instanceof FactoryError && err.status === 404 && stale) {
+            ctx.withTx(tx => {
+              if (tx.db.agentTask.id.find(task.id)?.status === 'running') {
+                updateTask(tx, task.id, { status: 'failed', error: 'Its Factory session no longer exists' });
+              }
+            });
+          }
         }
       }
 

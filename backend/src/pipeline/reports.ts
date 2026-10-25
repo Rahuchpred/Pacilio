@@ -1,6 +1,6 @@
 import { SenderError, t, type InferSchema, type ProcedureCtx, type ReducerCtx } from 'spacetimedb/server';
 import type spacetimedb from '../index';
-import { enqueueAgentTask } from '../droid/agents';
+import { enqueueAgentTask, liveSession } from '../droid/agents';
 import { FactoryClient } from '../droid/factory';
 import { REPORT_PATH, REPORT_VERSION } from './reportScript';
 import { activeScenario } from '../inbound/simulation';
@@ -267,7 +267,8 @@ export function reports(stdb: Schema, ensurePipelineTicking: (ctx: Ctx) => void)
   const reportXlsxUrl = stdb.procedure(t.string(), ctx => {
     const sessionId = ctx.withTx(tx => {
       const doc = tx.db.reportDocument.id.find(0);
-      return (doc && tx.db.agentTask.id.find(doc.taskId)?.sessionId) ?? undefined;
+      const wrote = doc && tx.db.agentTask.id.find(doc.taskId)?.sessionId;
+      return wrote ? liveSession(tx, wrote) : undefined;
     });
     if (!sessionId) throw new SenderError('No report has been built yet');
     const factory = new FactoryClient(ctx.http, ctx.env.FACTORY_API_KEY);
