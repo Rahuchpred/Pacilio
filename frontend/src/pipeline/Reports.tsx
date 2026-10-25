@@ -164,8 +164,8 @@ function ReportFar() {
   );
 }
 
-// The report at full size: the agent's conclusions on the left, the whole
-// dashboard on the right, over the canvas. Esc or Close returns.
+// The report at full size: the agent's conclusions on the left, the charts
+// the team asked for and the whole dashboard on the right, over the canvas. Esc or Close returns.
 function ReportViewer({ onClose, onDownload }: { onClose: () => void; onDownload: () => void }) {
   const { doc } = useReport();
   const commentary = jsonList(doc?.commentary);
@@ -216,7 +216,10 @@ function ReportViewer({ onClose, onDownload }: { onClose: () => void; onDownload
               </section>
             )}
           </aside>
-          <iframe className="viewer-frame" title={`${title}, full size`} sandbox="" srcDoc={doc.html} />
+          <div className="viewer-main">
+            <TeamCharts beforeAsk={onClose} />
+            <iframe className="viewer-frame" title={`${title}, full size`} sandbox="" srcDoc={doc.html} />
+          </div>
         </div>
       </div>
     </div>,
@@ -286,7 +289,10 @@ function ReportFull() {
           <p className="muted small">Built {clock(doc.updatedAt.toDate())} from settled rows. The workbook has P&amp;L, cash flow, costs, vendors and {scenario.sales.title.toLowerCase()}.</p>
         </>
       ) : (
-        <p className="muted">Built from settled ledger rows every 10 minutes while the pipeline runs, or now from the reports agent.</p>
+        <>
+          <p className="muted">Built from settled ledger rows every 10 minutes while the pipeline runs, or now from the reports agent.</p>
+          <TeamCharts />
+        </>
       )}
       {viewing && <ReportViewer onClose={() => setViewing(false)} onDownload={download} />}
     </Card>

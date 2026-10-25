@@ -705,19 +705,47 @@ button.ask-fact { cursor: pointer; }
   flex-direction: column;
   gap: var(--space-xs);
   padding: var(--space-sm) var(--space-md);
-  border-left: 2px solid var(--color-action-decide);
+  border-left: 2px solid var(--color-border-strong);
   background: var(--color-bg-surface);
   border-radius: 0 var(--radius-control) var(--radius-control) 0;
   font-size: var(--type-small-size);
   line-height: var(--type-small-line);
 }
-.agent-msg.is-done { border-left-color: var(--color-status-cleared); }
+.agent-msg.is-done { border-left-color: var(--color-text-primary); }
 .agent-msg.is-cancelled { border-left-color: var(--color-border-control); opacity: 0.7; }
 .agent-msg-head { display: flex; align-items: baseline; gap: var(--space-xs); }
 .agent-msg-head .icon { flex: none; translate: 0 2px; color: var(--color-text-secondary); }
 .agent-msg-head q { quotes: '“' '”'; }
 .agent-msg-foot { display: flex; align-items: center; gap: var(--space-sm); }
-.agent-msg-reply { margin: 0; color: var(--color-text-secondary); }
+.agent-msg-reply {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2xs);
+  padding-top: var(--space-xs);
+  border-top: var(--border-hairline) solid var(--color-border-default);
+}
+.agent-msg-reply p { margin: 0; color: var(--color-text-primary); }
+.agent-msg-by { display: inline-flex; align-items: center; gap: var(--space-2xs); color: var(--color-text-secondary); font-weight: 500; }
+.agent-msg-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  margin-top: var(--space-2xs);
+  padding: var(--space-2xs) var(--space-sm);
+  border: var(--border-hairline) solid var(--color-border-control);
+  border-radius: var(--radius-control);
+  background: var(--color-bg-canvas);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--motion-fast) var(--motion-ease-out), border-color var(--motion-fast) var(--motion-ease-out);
+}
+.agent-msg-link:hover { background: var(--color-bg-sunken); border-color: var(--color-border-strong); }
+.agent-msg-link:active { transform: scale(0.98); }
+.agent-msg-link .icon { flex: none; }
 .agent-inbox { gap: var(--space-xs); }
 .agent-inbox:empty { display: none; }
 .agent-steps-card:has(.agent-inbox:empty),
@@ -741,6 +769,8 @@ button.ask-fact { cursor: pointer; }
 
 /* ---- Team charts in the show report ---- */
 
+.tc-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); }
+.tc-head .section-label { margin: 0; }
 .tc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: var(--space-md); }
 .tc {
   margin: 0;
@@ -754,13 +784,38 @@ button.ask-fact { cursor: pointer; }
   min-width: 0;
 }
 .tc figcaption { display: flex; flex-direction: column; gap: var(--space-2xs); }
+.tc-title { display: flex; align-items: center; gap: var(--space-xs); flex-wrap: wrap; }
+.tc-by { display: inline-flex; align-items: center; gap: var(--space-2xs); color: var(--color-text-secondary); font-size: var(--type-small-size); }
+/* New from the agent: an ink tag and a stronger edge, no hue (color is for decisions) */
+.tc.is-new { border-color: var(--color-border-strong); }
+.tc-new {
+  padding: 0 var(--space-xs);
+  border-radius: var(--radius-control);
+  background: var(--color-text-primary);
+  color: var(--color-text-inverse);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 18px;
+}
+/* Arrived here from a reply in Ask Pacioli: a ring that fades out */
+.tc.is-pointed { animation: tc-pointed 1600ms var(--motion-ease-out); }
+@keyframes tc-pointed {
+  0%, 35% { box-shadow: 0 0 0 3px var(--color-text-primary); }
+  100% { box-shadow: 0 0 0 3px transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tc.is-pointed { animation-duration: 1ms; animation-delay: 1200ms; box-shadow: 0 0 0 3px var(--color-text-primary); }
+}
 .tc .link-button { align-self: flex-start; }
 .tc-bars { display: flex; flex-direction: column; gap: var(--space-xs); }
 .tc-bar-row { display: grid; grid-template-columns: minmax(0, 150px) minmax(0, 1fr) auto; align-items: center; gap: var(--space-sm); font-size: var(--type-small-size); }
 .tc-label { color: var(--color-text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
 .tc-track { height: 14px; }
 /* Thin bars anchored at the baseline, rounded only at the data end */
-.tc-bar { display: block; height: 100%; min-width: 2px; border-radius: 0 4px 4px 0; }
+.tc-bar { display: block; height: 100%; min-width: 2px; border-radius: 0 4px 4px 0; background: var(--color-text-primary); }
+.tc-bar.is-negative { background: var(--color-border-strong); }
+.tc-line .tc-series { stroke: var(--color-text-primary); }
+.tc-line .tc-point { fill: var(--color-text-primary); stroke: var(--color-bg-canvas); }
 .tc-value { font-variant-numeric: tabular-nums; color: var(--color-text-primary); }
 .tc-line { width: 100%; height: auto; overflow: visible; }
 .tc-line .tc-axis { stroke: var(--color-border-default); stroke-width: 1; }
@@ -814,7 +869,10 @@ button.ask-fact { cursor: pointer; }
   background: var(--color-bg-surface);
 }
 .viewer-side h4 { margin: 0; }
+.viewer-main { min-height: 0; overflow: auto; display: flex; flex-direction: column; background: var(--color-bg-surface); }
+.viewer-main > .stack { padding: var(--space-lg) var(--space-lg) 0; }
 .viewer-frame { width: 100%; height: 100%; border: 0; display: block; }
+.viewer-main .viewer-frame { flex: none; height: calc(100vh - 160px); }
 
 /* Full-screen sheet: the Excel view fills the viewer. */
 .viewer-sheet { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: var(--space-md); }

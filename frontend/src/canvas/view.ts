@@ -70,6 +70,36 @@ export function useFocus() {
     requestAnimationFrame(wait);
   };
 
+  // Open a card, wait for it to grow, then centre one thing inside it (found
+  // by selector) and mark it so it can flash. Falls back to the whole card.
+  const focusInside = (id: string, selector: string) => {
+    const size = () => {
+      const m = rf.getInternalNode(id)?.measured;
+      return `${m?.width ?? 0}x${m?.height ?? 0}`;
+    };
+    const before = size();
+    let frames = 0;
+    const land = () => {
+      const el = document.querySelector<HTMLElement>(selector);
+      if (!el) return focus(id);
+      const r = el.getBoundingClientRect();
+      const { width, height } = store.getState();
+      const now = rf.getViewport().zoom;
+      const zoom = Math.min(1.3, (width - SIDE * 2) / Math.max(r.width / now, 1), (height - TOP - BOTTOM) / Math.max(r.height / now, 1));
+      const c = rf.screenToFlowPosition({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
+      const band = (TOP + height - BOTTOM) / 2;
+      rf.setCenter(c.x, c.y + (height / 2 - band) / zoom, { zoom, ...camera() });
+      el.classList.remove('is-pointed');
+      void el.offsetWidth;
+      el.classList.add('is-pointed');
+    };
+    const wait = () => {
+      if (size() !== before || frames++ > 30) window.setTimeout(land, 80);
+      else requestAnimationFrame(wait);
+    };
+    requestAnimationFrame(wait);
+  };
+
   const fitAll = () =>
     window.setTimeout(
       () =>
@@ -80,5 +110,5 @@ export function useFocus() {
       60
     );
 
-  return { focus, focusWhenGrown, fitAll };
+  return { focus, focusWhenGrown, focusInside, fitAll };
 }

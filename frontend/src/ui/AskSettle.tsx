@@ -58,6 +58,13 @@ function answerOf(result: string | undefined): string {
   return raw;
 }
 
+// Open Ask Pacioli from anywhere on the page. "chart" starts a chart request
+// and offers a few ideas, so nobody has to work out what to ask for.
+const OPEN = 'pacioli:ask';
+export const openAsk = (mode: 'chart' | 'ask' = 'ask') => window.dispatchEvent(new CustomEvent(OPEN, { detail: mode }));
+
+const CHART_START = 'Make a chart of ';
+
 const questionOf = (prompt: string) => {
   const at = prompt.lastIndexOf(QUESTION_MARK);
   return at < 0 ? prompt : prompt.slice(at + QUESTION_MARK.length);
@@ -68,6 +75,7 @@ export function AskSettle() {
   // Opened from the keyboard: no animation (it is used often and should feel instant).
   const [instant, setInstant] = useState(false);
   const [draft, setDraft] = useState('');
+  const [ideas, setIdeas] = useState(false);
   const input = useRef<HTMLInputElement>(null);
   const thread = useRef<HTMLDivElement>(null);
   const ask = useReducer(reducers.requestAgentTask);
@@ -98,7 +106,21 @@ export function AskSettle() {
   }, [open]);
 
   useEffect(() => {
+    const onOpen = (e: Event) => {
+      const chart = (e as CustomEvent<string>).detail === 'chart';
+      setInstant(false);
+      setOpen(true);
+      setIdeas(chart);
+      if (chart) setDraft(d => (d.trim() ? d : CHART_START));
+      requestAnimationFrame(() => input.current?.focus());
+    };
+    window.addEventListener(OPEN, onOpen);
+    return () => window.removeEventListener(OPEN, onOpen);
+  }, []);
+
+  useEffect(() => {
     if (open) input.current?.focus();
+    else setIdeas(false);
   }, [open]);
 
   useEffect(() => {
@@ -108,8 +130,9 @@ export function AskSettle() {
   const send = (e: React.FormEvent) => {
     e.preventDefault();
     const q = draft.trim();
-    if (!q || waiting) return;
+    if (!q || q === CHART_START.trim() || waiting) return;
     setDraft('');
+    setIdeas(false);
     ask({ kind: 'ask', prompt: askPrompt(q, scenario, files?.latestDir || undefined, files?.reportDir || undefined), autonomy: 'high' }).catch(logError);
   };
 
@@ -121,7 +144,9 @@ export function AskSettle() {
             <Icon name="Pacioli" />
             <span className="strong">Ask Pacioli</span>
             <span className="ask-sub ask-head-sub">Talks to your agents</span>
-            <kbd>Esc</kbd>
+            <button type="button" className="ask-close" aria-label="Close (Esc)" title="Close (Esc)" onClick={() => setOpen(false)}>
+              <Icon name="Close" size={14} />
+            </button>
           </header>
           <div className="ask-thread" ref={thread}>
             {mine.length === 0 && (
@@ -153,6 +178,26 @@ export function AskSettle() {
               </div>
             ))}
           </div>
+          {ideas && (
+            <div className="ask-ideas" aria-label="Chart ideas">
+              <span className="ask-sub">Not sure what to chart? Try one</span>
+              <div className="ask-chips">
+                {scenario.chartIdeas.map(idea => (
+                  <button
+                    key={idea}
+                    type="button"
+                    className="ask-chip"
+                    onClick={() => {
+                      setDraft(CHART_START + idea.charAt(0).toLowerCase() + idea.slice(1));
+                      input.current?.focus();
+                    }}
+                  >
+                    {idea}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <form className="ask-compose" onSubmit={send}>
             <input
               ref={input}

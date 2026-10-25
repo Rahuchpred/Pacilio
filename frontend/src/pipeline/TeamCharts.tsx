@@ -1,5 +1,8 @@
 import { useState } from 'react';
-import type { ReportChart } from '../module_bindings/types';
+import { Button, Icon } from '../../../design-system/src/components';
+import { openAsk } from '../ui/AskSettle';
+import type { AgentMessage, ReportChart } from '../module_bindings/types';
+import { clock } from './live';
 import { useLive } from './store';
 
 // Charts the team asked the reports agent for. The agent sends the numbers
@@ -9,10 +12,21 @@ import { useLive } from './store';
 
 type Point = { label: string; value: number };
 
-// The report's data colors: slot 1 blue for the series, slot 2 orange for
-// negatives (the validated pair the show report uses)
-const SERIES = '#2a78d6';
-const NEGATIVE = '#eb6834';
+// Ink and paper, like the report the agent builds: the series in ink,
+// negatives in the warm grey money-out uses. Colors live in cards.css.
+
+// A chart counts as new for this long after the agent added it
+const NEW_MIN = 30;
+const isNew = (c: ReportChart) => Date.now() - c.createdAt.toDate().getTime() < NEW_MIN * 60_000;
+
+// The chart an Ask Pacioli message to the reports agent made: its request
+// text is kept with the chart it added.
+export function chartFor(m: AgentMessage, charts: readonly ReportChart[]): ReportChart | undefined {
+  if (m.target !== 'reports' || m.status !== 'done') return undefined;
+  return charts.find(c => c.request.includes(m.text));
+}
+
+export const chartSelector = (id: bigint) => `.react-flow [data-chart="${id}"]`;
 
 const WHOLE = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 function format(v: number, unit: string): string {
@@ -38,10 +52,7 @@ function Bars({ rows, unit }: { rows: Point[]; unit: string }) {
         <div key={r.label} className="tc-bar-row" title={`${r.label}: ${format(r.value, unit)}`}>
           <span className="tc-label">{r.label}</span>
           <span className="tc-track">
-            <span
-              className="tc-bar"
-              style={{ width: `${(Math.abs(r.value) / max) * 100}%`, background: r.value < 0 ? NEGATIVE : SERIES }}
-            />
+            <span className={`tc-bar${r.value < 0 ? ' is-negative' : ''}`} style={{ width: `${(Math.abs(r.value) / max) * 100}%` }} />
           </span>
           <span className="tc-value">{format(r.value, unit)}</span>
         </div>
@@ -67,9 +78,9 @@ function Line({ rows, unit }: { rows: Point[]; unit: string }) {
   return (
     <svg className="tc-line" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Line chart">
       <line x1={PAD.left} x2={W - PAD.right} y1={y(lo)} y2={y(lo)} className="tc-axis" />
-      <path d={path} fill="none" stroke={SERIES} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+      <path d={path} className="tc-series" fill="none" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
       {rows.map((r, i) => (
-        <circle key={i} cx={x(i)} cy={y(r.value)} r={i === rows.length - 1 ? 4 : 3} fill={SERIES} stroke="#fff" strokeWidth={2}>
+        <circle key={i} cx={x(i)} cy={y(r.value)} r={i === rows.length - 1 ? 4 : 3} className="tc-point" strokeWidth={2}>
           <title>{`${r.label}: ${format(r.value, unit)}`}</title>
         </circle>
       ))}
@@ -105,15 +116,25 @@ function TeamChart({ chart }: { chart: ReportChart }) {
   const rows = points(chart);
   if (!rows.length) return null;
   const kind = asTable ? 'table' : chart.kind;
+  const fresh = isNew(chart);
   return (
-    <figure className="tc">
+    <figure className={`tc${fresh ? ' is-new' : ''}`} data-chart={chart.id.toString()}>
       <figcaption>
-        <span className="strong">{chart.title}</span>
-        <span className="muted small" title={chart.request}>
-          Asked for through Pacioli
+        <span className="tc-title">
+          <span className="strong">{chart.title}</span>
+          {fresh && <span className="tc-new">New</span>}
+        </span>
+        <span className="tc-by" title={`Asked through Pacioli: ${chart.request}`}>
+          <Icon name="agent" size={12} /> Added by the reports agent at {clock(chart.createdAt.toDate())}
         </span>
       </figcaption>
-      {kind === 'line' ? <Line rows={rows} unit={chart.unit} /> : kind === 'table' ? <Table rows={rows} unit={chart.unit} /> : <Bars rows={rows} unit={chart.unit} />}
+      {kind === 'line' ? (
+        <Line rows={rows} unit={chart.unit} />
+      ) : kind === 'table' ? (
+        <Table rows={rows} unit={chart.unit} />
+      ) : (
+        <Bars rows={rows} unit={chart.unit} />
+      )}
       {chart.kind !== 'table' && (
         <button type="button" className="link-button nodrag" onClick={() => setAsTable(t => !t)}>
           {asTable ? 'Show chart' : 'Show table'}
@@ -123,16 +144,31 @@ function TeamChart({ chart }: { chart: ReportChart }) {
   );
 }
 
-export function TeamCharts() {
+// beforeAsk lets the full-screen viewer close first, so Ask Pacioli is in view
+export function TeamCharts({ beforeAsk }: { beforeAsk?: () => void }) {
   const charts = useLive().reportCharts;
-  if (!charts.length) return null;
+  const ask = () => {
+    beforeAsk?.();
+    openAsk('chart');
+  };
+  // Newest first, so a chart the agent just added is the first thing you see
   return (
-    <div className="tc-grid">
-      {[...charts]
-        .sort((a, b) => (a.id < b.id ? -1 : 1))
-        .map(c => (
-          <TeamChart key={c.id.toString()} chart={c} />
-        ))}
-    </div>
+    <section className="stack">
+      <div className="tc-head nodrag">
+        <h4 className="section-label">{charts.length ? 'Charts you asked the reports agent for' : 'Custom charts'}</h4>
+        <Button kind="secondary" size="sm" icon="plus" onClick={ask}>
+          Generate custom chart
+        </Button>
+      </div>
+      {charts.length > 0 && (
+        <div className="tc-grid">
+          {[...charts]
+            .sort((a, b) => (a.id < b.id ? 1 : -1))
+            .map(c => (
+              <TeamChart key={c.id.toString()} chart={c} />
+            ))}
+        </div>
+      )}
+    </section>
   );
 }

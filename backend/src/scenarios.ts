@@ -48,6 +48,9 @@ export interface Scenario {
   periodLabel: string;
   periodValue: string;
   report: { title: string; subtitle: string };
+  // Chart ideas Ask Pacioli offers ("Make a chart of ..."): things the ledger
+  // can answer that the built report doesn't already chart
+  chartIdeas: string[];
   // What Stripe charges are for, in the Bookkeeper's words
   stripeSells: string;
   sales: { title: string; chart: string; unit: string; items: SaleItem[] };
@@ -77,6 +80,7 @@ const CONCERT: Scenario = {
   periodLabel: 'Show',
   periodValue: 'Oct 25',
   report: { title: 'Show report', subtitle: 'Oct 25' },
+  chartIdeas: ['Ticket revenue by type', 'Sponsorship by sponsor', 'Production costs by vendor', 'Refunds by ticket type'],
   stripeSells: 'card payments for tickets',
   sales: {
     title: 'Tickets',
@@ -134,6 +138,7 @@ const STARTUP: Scenario = {
   periodLabel: 'Period',
   periodValue: 'October 2026',
   report: { title: 'Monthly report', subtitle: 'October' },
+  chartIdeas: ['Subscription revenue by plan', 'Contract revenue by customer', 'Cloud and software spend by vendor', 'Payroll vs revenue'],
   stripeSells: 'card payments for subscriptions',
   sales: {
     title: 'Subscriptions',
@@ -191,6 +196,7 @@ const COFFEE: Scenario = {
   periodLabel: 'Week',
   periodValue: 'Oct 20 to Oct 26',
   report: { title: 'Weekly report', subtitle: 'Week of Oct 20' },
+  chartIdeas: ['Counter sales by item', 'Catering and wholesale by customer', 'Cost of goods by supplier', 'Sales by day this week'],
   stripeSells: 'card payments at the counter',
   sales: {
     title: 'Counter sales',
