@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
-import { Button, Icon, Money, Source, Status } from '../../../design-system/src/components';
+import { Button, Icon, Money, Status, type IconName, type StatusKind } from '../../../design-system/src/components';
 import { ACTION_LABEL, Decide } from './NeedsYou';
-import { ROW_STATUS, SOURCE_TITLES, clock, dollars, jsonList, kindLabel, openItem, useOpenItem } from './live';
+import { ROW_STATUS, SOURCE_TITLES, clock, dollars, jsonList, openItem, useOpenItem } from './live';
+import { Evidence } from './Evidence';
 import { useLive } from './store';
-import { sentence } from './Transactions';
+import { SourceTag, sentence } from './Transactions';
 
 // One event, looked at closely: what came in, what the agent decided and why,
 // any question it asked you, and the emails that followed. Opens from any
@@ -12,6 +13,13 @@ import { sentence } from './Transactions';
 function when(d: Date): string {
   return d.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
+
+// The agent's outcome as a tag
+const OUTCOME: Record<string, { kind: StatusKind; label: string }> = {
+  ok: { kind: 'cleared', label: 'Posted' },
+  void: { kind: 'agent', label: 'Voided' },
+  review: { kind: 'disputed', label: 'Asked you' },
+};
 
 function pretty(raw: string): string {
   try {
@@ -48,154 +56,173 @@ export function ItemPanel() {
   const twinIds = new Set(asked.flatMap(i => (i.duplicateOf !== undefined ? [i.duplicateOf.toString()] : [])));
   const twins = [...twinIds].flatMap(t => rowBy.get(t) ?? []);
 
+  const open = asked.filter(i => i.status === 'open');
+  const answered = asked.filter(i => i.status !== 'open');
+  const outcome = review?.status === 'done' ? OUTCOME[review.outcome ?? ''] ?? OUTCOME.review : null;
+
+  // What happened to this event, oldest first
+  const activity: { at: Date; icon: IconName; text: string }[] = [];
+  activity.push({ at: event.occurredAt.toDate(), icon: 'Calendar', text: `Happened at ${sentence(event.counterparty)}` });
+  if (event.receivedAt.toDate().getTime() !== event.occurredAt.toDate().getTime()) {
+    activity.push({ at: event.receivedAt.toDate(), icon: 'ArrowDown', text: `Arrived from ${SOURCE_TITLES[event.source] ?? event.source}` });
+  }
+  if (run) activity.push({ at: run.startedAt.toDate(), icon: 'agent', text: `Checked in run ${run.id.toString()}${outcome ? `: ${outcome.label.toLowerCase()}` : ''}` });
+  for (const item of answered) {
+    if (item.decidedAt) activity.push({ at: item.decidedAt.toDate(), icon: 'person', text: `You chose ${ACTION_LABEL[item.decision ?? ''] ?? item.decision}` });
+  }
+  for (const t of mail) {
+    for (const m of messagesByThread.get(t.id.toString()) ?? []) {
+      activity.push({ at: m.sentAt.toDate(), icon: 'mail', text: m.direction === 'in' ? `${t.counterparty} replied` : `Emailed ${t.counterparty}` });
+    }
+  }
+  activity.sort((x, y) => x.at.getTime() - y.at.getTime());
+
   return (
-    <aside className="item-panel" aria-label={`${event.counterparty} details`}>
-      <header className="item-head">
-        <div className="stack">
-          <span className="muted small">
-            {SOURCE_TITLES[event.source] ?? event.source} · {kindLabel(event.kind)}
-          </span>
-          <h2>{sentence(event.counterparty)}</h2>
-        </div>
+    <aside className="item-panel bill" aria-label={`${event.counterparty} details`}>
+      <header className="bill-head">
+        <SourceTag source={event.source} kind={event.kind} />
         <Button kind="quiet" size="sm" icon="Close" onClick={() => openItem(null)} />
       </header>
-
-      <div className="item-hero">
-        <span className="item-amount">
-          <Money value={dollars(event.amountMinor, event.currency)} />
-        </span>
-        <Status kind={status.kind} busy={status.busy}>{status.label}</Status>
+      <div className="bill-hero">
+        <h2>{sentence(event.counterparty)}</h2>
+        <div className="bill-amount-row">
+          <span className="item-amount">
+            <Money value={dollars(event.amountMinor, event.currency)} />
+          </span>
+          <Status kind={status.kind} busy={status.busy}>
+            {status.label}
+          </Status>
+        </div>
+        {event.description && <p className="muted">{sentence(event.description)}</p>}
       </div>
-      {event.description && <p>{sentence(event.description)}</p>}
 
-      <dl className="facts-list">
-        {when(event.occurredAt.toDate()) === when(event.receivedAt.toDate()) ? (
-          <div>
-            <dt>When</dt>
-            <dd>{when(event.occurredAt.toDate())}</dd>
-          </div>
-        ) : (
-          <>
-            <div>
-              <dt>Happened</dt>
-              <dd>{when(event.occurredAt.toDate())}</dd>
-            </div>
-            <div>
-              <dt>Arrived</dt>
-              <dd>{when(event.receivedAt.toDate())}</dd>
-            </div>
-          </>
-        )}
-        {event.reference && (
-          <div>
-            <dt>Reference</dt>
-            <dd className="id">{event.reference}</dd>
-          </div>
-        )}
-        {event.documentUrl && (
-          <div>
-            <dt>Document</dt>
-            <dd>
-              <a href={event.documentUrl} target="_blank" rel="noreferrer">
-                Open <Icon name="External" size={12} />
-              </a>
-            </dd>
-          </div>
-        )}
-      </dl>
-
-      <section className="item-section">
-        <h3>
-          <Icon name="agent" size={14} /> The agent's call
-        </h3>
-        {!review ? (
-          <p className="muted">Waiting for the agent's next run.</p>
-        ) : review.status !== 'done' ? (
-          <p className="muted">Being checked in run {review.runId.toString()} right now.</p>
-        ) : (
-          <dl className="facts-list agent-call">
-            <div>
-              <dt>Decided</dt>
-              <dd>
-                <Status kind={review.outcome === 'ok' ? 'cleared' : review.outcome === 'void' ? 'agent' : 'disputed'}>
-                  {review.outcome === 'ok' ? 'Posted' : review.outcome === 'void' ? 'Voided' : 'Asked you'}
-                </Status>
-              </dd>
-            </div>
-            {review.category && (
-              <div>
-                <dt>Category</dt>
-                <dd>{review.category}</dd>
-              </div>
-            )}
-            {review.note && (
-              <div className="is-wide">
-                <dt>Why</dt>
-                <dd>{review.note}</dd>
-              </div>
-            )}
-            {run && (
-              <div>
-                <dt>Checked in</dt>
-                <dd>
-                  Run {run.id.toString()} · {clock(run.startedAt.toDate())}
-                </dd>
-              </div>
-            )}
-          </dl>
-        )}
-      </section>
-
-      {asked.map(item => {
+      {/* The one thing waiting on a person comes first, in its own box */}
+      {open.map(item => {
         const d = detailBy.get(item.id.toString());
         const evidence = jsonList(d?.evidence);
         return (
-          <section key={item.id.toString()} className="item-section">
-            <h3>
-              <Icon name="hourglass" size={14} /> {d?.title ?? 'Question for you'}
-            </h3>
-            <p>{d?.whatHappened || item.reason}</p>
-            {evidence.length > 0 && (
-              <ol className="sources">
-                {evidence.map((line, i) => (
-                  <Source key={line} n={i + 1} source={line} detail="" />
-                ))}
-              </ol>
-            )}
-            {d?.fix && (
-              <p>
-                <span className="section-label">Proposed fix · </span>
-                {d.fix}
+          <section key={item.id.toString()} className="bill-needs">
+            <header className="bill-needs-head">
+              <Icon name="hourglass" size={14} /> Needs your call
+            </header>
+            <div className="bill-needs-body">
+              <h3>{d?.title ?? item.question}</h3>
+              <p className="muted">{d?.whatHappened || item.reason}</p>
+              {evidence.length > 0 && <Evidence lines={evidence} />}
+              <p className="bill-suggest">
+                <span className="strong">Suggested: {ACTION_LABEL[item.recommendation] ?? 'Keep as is'}.</span> {d?.fix ?? item.question}
               </p>
-            )}
-            {item.status === 'open' ? (
-              <>
-                <p className="strong">{item.question}</p>
-                <Decide item={item} event={event} />
-              </>
-            ) : (
-              <p className="item-decided">
-                <Icon name="check" size={14} />
-                {ACTION_LABEL[item.decision ?? ''] ?? item.decision}
-                {item.decidedAt && ` at ${clock(item.decidedAt.toDate())}`}
-                {item.resultNote && <span className="muted"> · {item.resultNote}</span>}
-              </p>
-            )}
+              <Decide item={item} event={event} />
+            </div>
           </section>
         );
       })}
 
+      <section className="bill-card">
+        <header className="bill-card-head">Details</header>
+        <dl className="bill-rows">
+          {when(event.occurredAt.toDate()) === when(event.receivedAt.toDate()) ? (
+            <div>
+              <dt>When</dt>
+              <dd>{when(event.occurredAt.toDate())}</dd>
+            </div>
+          ) : (
+            <>
+              <div>
+                <dt>Happened</dt>
+                <dd>{when(event.occurredAt.toDate())}</dd>
+              </div>
+              <div>
+                <dt>Arrived</dt>
+                <dd>{when(event.receivedAt.toDate())}</dd>
+              </div>
+            </>
+          )}
+          {event.reference && (
+            <div>
+              <dt>Reference</dt>
+              <dd className="id">{event.reference}</dd>
+            </div>
+          )}
+          {review?.category && (
+            <div>
+              <dt>Category</dt>
+              <dd>{review.category}</dd>
+            </div>
+          )}
+          {event.documentUrl && (
+            <div>
+              <dt>Document</dt>
+              <dd>
+                <a href={event.documentUrl} target="_blank" rel="noreferrer">
+                  Open <Icon name="External" size={12} />
+                </a>
+              </dd>
+            </div>
+          )}
+        </dl>
+      </section>
+
+      <section className="bill-card">
+        <header className="bill-card-head">
+          <span>
+            <Icon name="agent" size={14} /> The agent's call
+          </span>
+          {outcome ? (
+            <Status kind={outcome.kind}>{outcome.label}</Status>
+          ) : review ? (
+            <Status kind="agent" busy>
+              Checking
+            </Status>
+          ) : (
+            <Status kind="agent">Waiting</Status>
+          )}
+        </header>
+        <div className="bill-card-body">
+          {!review ? (
+            <p className="muted">Waiting for the agent's next run.</p>
+          ) : review.status !== 'done' ? (
+            <p className="muted">Being checked in run {review.runId.toString()} right now.</p>
+          ) : (
+            <>
+              {review.note && <p className="bill-why">{review.note}</p>}
+              <dl className="bill-rows is-flush">
+                {run && (
+                  <div>
+                    <dt>Checked in</dt>
+                    <dd>
+                      Run {run.id.toString()} · {clock(run.startedAt.toDate())}
+                    </dd>
+                  </div>
+                )}
+                {answered.map(item => (
+                  <div key={item.id.toString()}>
+                    <dt>You chose</dt>
+                    <dd>
+                      {ACTION_LABEL[item.decision ?? ''] ?? item.decision}
+                      {item.decidedAt && ` · ${clock(item.decidedAt.toDate())}`}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </>
+          )}
+        </div>
+      </section>
+
       {twins.length > 0 && (
-        <section className="item-section">
-          <h3>
-            <Icon name="Copy" size={14} /> Looks the same as
-          </h3>
-          <ul className="row-list">
+        <section className="bill-card">
+          <header className="bill-card-head">
+            <span>
+              <Icon name="Copy" size={14} /> Looks the same as
+            </span>
+          </header>
+          <ul className="row-list bill-list">
             {twins.map(t => (
               <li key={t.event.id.toString()}>
                 <button type="button" className="row-button" onClick={() => openItem(t.event.id)}>
                   <span className="stack">
-                    <span className="strong">{t.event.counterparty}</span>
+                    <span className="strong">{sentence(t.event.counterparty)}</span>
                     <span className="muted small">{when(t.event.occurredAt.toDate())}</span>
                   </span>
                   <Money value={dollars(t.event.amountMinor, t.event.currency)} />
@@ -207,15 +234,18 @@ export function ItemPanel() {
       )}
 
       {mail.map(t => (
-        <section key={t.id.toString()} className="item-section">
-          <h3>
-            <Icon name="mail" size={14} /> Email to {t.counterparty}
-          </h3>
-          <p className="muted small">
-            {t.subject} · {t.toAddress}
-          </p>
-          <ol className="thread">
-            {(messagesByThread.get(t.id.toString()) ?? []).map(m => (
+        <section key={t.id.toString()} className="bill-card">
+          <header className="bill-card-head">
+            <span>
+              <Icon name="mail" size={14} /> Email to {t.counterparty}
+            </span>
+          </header>
+          <div className="bill-card-body">
+            <p className="muted small">
+              {t.subject} · {t.toAddress}
+            </p>
+            <ol className="thread">
+              {(messagesByThread.get(t.id.toString()) ?? []).map(m => (
                 <li key={m.id.toString()} className={`msg ${m.direction === 'in' ? 'msg-them' : 'msg-agent'}`}>
                   <div className="msg-line">
                     <span className="msg-who">{m.direction === 'in' ? m.fromAddress : 'Settle'}</span>
@@ -224,9 +254,25 @@ export function ItemPanel() {
                   <p className="email-body">{m.body}</p>
                 </li>
               ))}
-          </ol>
+            </ol>
+          </div>
         </section>
       ))}
+
+      <section className="bill-activity">
+        <h4 className="section-label">Activity</h4>
+        <ol>
+          {activity.map((a, i) => (
+            <li key={i}>
+              <span className="bill-activity-icon">
+                <Icon name={a.icon} size={12} />
+              </span>
+              <span className="bill-activity-text">{a.text}</span>
+              <span className="muted small">{when(a.at)}</span>
+            </li>
+          ))}
+        </ol>
+      </section>
 
       <details className="item-raw">
         <summary>

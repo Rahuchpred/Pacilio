@@ -87,7 +87,7 @@
   position: absolute;
   pointer-events: none;
   padding: var(--space-2xs) var(--space-sm);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-control);
   background: var(--color-bg-canvas);
   border: var(--border-hairline) solid var(--color-border-strong);
   color: var(--color-text-primary);

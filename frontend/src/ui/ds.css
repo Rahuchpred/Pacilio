@@ -11,6 +11,26 @@
   --color-source-ledger: #0e8a8a;
   --color-source-cord: #a3509b;
 }
+/* Presence: who is on the canvas. Six soft hues, light enough to glow,
+   clear of the action colors (orange decide, green done, red issue) and
+   of the four source colors. */
+:root {
+  --color-presence-0: #5a7393;
+  --color-presence-1: #8a6a92;
+  --color-presence-2: #a8874f;
+  --color-presence-3: #7c8255;
+  --color-presence-4: #5f8b96;
+  --color-presence-5: #a36f7d;
+}
+.who-0 { --who: var(--color-presence-0); }
+.who-1 { --who: var(--color-presence-1); }
+.who-2 { --who: var(--color-presence-2); }
+.who-3 { --who: var(--color-presence-3); }
+.who-4 { --who: var(--color-presence-4); }
+.who-5 { --who: var(--color-presence-5); }
+.avatar-dot[class*="who-"] {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--who) 75%, #fff), var(--who));
+}
 .src-nessie { --src: var(--color-source-nessie); }
 .src-stripe { --src: var(--color-source-stripe); }
 .src-ledger { --src: var(--color-source-ledger); }
@@ -366,8 +386,10 @@ body {
   height: 12px;
   flex: none;
   border-radius: 50%;
-  border: 1.5px solid color-mix(in srgb, currentColor 25%, transparent);
-  border-top-color: currentColor;
+  /* Bold enough to read at a glance: a 2px ring in full ink on a clear track */
+  border: 2px solid color-mix(in srgb, var(--color-text-primary) 18%, transparent);
+  border-top-color: var(--color-text-primary);
+  border-right-color: var(--color-text-primary);
   animation: spin 700ms linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }

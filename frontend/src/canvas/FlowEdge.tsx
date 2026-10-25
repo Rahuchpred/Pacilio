@@ -71,10 +71,10 @@ function PacketDot({ path, packet, onDone }: { path: string; packet: Packet; onD
       <path ref={track} d={path} fill="none" stroke="none" />
       <g ref={dot} className={`packet-tag ${packet.tone}`} style={{ opacity: 0 }}>
         {packet.label ? (
-          // A pill riding on the line itself, its colored dot leading at the
-          // front, so parallel lanes never cover each other
+          // A Settle tag (4px corners) riding on the line itself, its colored
+          // dot leading at the front, so parallel lanes never cover each other
           <>
-            <rect ref={box} y={-TAG_H / 2} height={TAG_H} rx={TAG_H / 2} />
+            <rect ref={box} y={-TAG_H / 2} height={TAG_H} rx={4} />
             <circle className="packet" cx={0} cy={0} r={4} ref={dotInPill} />
             <text ref={text} x={0} y={0} dominantBaseline="central">
               {packet.label}

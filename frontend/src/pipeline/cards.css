@@ -29,6 +29,7 @@
 .pipeline .w-inbox-full { width: 460px; }
 .pipeline .w-main-full { width: 760px; }
 .pipeline .w-flag-full { width: 560px; }
+.pipeline .w-flag-full.triage { width: 1000px; }
 .pipeline .w-ledger-full { width: 1080px; }
 .pipeline .w-emails-full { width: 520px; }
 .pipeline .w-ragent-full { width: 560px; }
@@ -601,7 +602,7 @@ button.ask-fact { cursor: pointer; }
   height: 16px;
   padding: 0 4px;
   box-sizing: border-box;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-control);
   background: var(--color-action-primary);
   color: var(--color-text-inverse);
   font-size: var(--type-label-size);
@@ -925,7 +926,6 @@ button.ask-fact:active,
 
 /* Far cards at work: the same spinner as the tags, beside the word */
 .far-busy { display: inline-flex; align-items: center; gap: var(--space-xs); }
-.far-busy .spinner { width: 14px; height: 14px; }
 
 /* ---- Classifications ---- */
 
@@ -985,3 +985,239 @@ button.ask-fact:active,
 .class-chip { display: inline-block; white-space: normal; overflow-wrap: anywhere; }
 .agent-event-status { min-width: 0; }
 .agent-event-status .status { max-width: 100%; }
+
+.far-busy .spinner { width: 0.8em; height: 0.8em; border-width: 2.5px; }
+
+/* ---- The bill: grouped like a finance app's detail panel ----
+   Header, then what waits on you in its own box, then Details and the
+   agent's call as bordered groups with ruled rows, then the activity. */
+.item-panel.bill { gap: var(--space-lg); overflow-y: auto; }
+/* Sections keep their full height; the panel scrolls instead of squashing them */
+.item-panel.bill > * { flex: none; }
+.bill-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); }
+.bill-hero { display: flex; flex-direction: column; gap: var(--space-xs); }
+.bill-hero h2 { margin: 0; }
+.bill-hero p { margin: 0; text-wrap: pretty; }
+.bill-amount-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); }
+
+.bill-card {
+  border: var(--border-hairline) solid var(--color-border-default);
+  border-radius: var(--radius-panel);
+  background: var(--color-bg-canvas);
+  overflow: hidden;
+}
+.bill-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-bg-surface);
+  border-bottom: var(--border-hairline) solid var(--color-border-default);
+  font-size: var(--type-small-size);
+  font-weight: 500;
+}
+.bill-card-head > span { display: inline-flex; align-items: center; gap: var(--space-xs); }
+.bill-card-body { display: flex; flex-direction: column; gap: var(--space-sm); padding: var(--space-md); }
+.bill-why { margin: 0; text-wrap: pretty; }
+.bill-rows { margin: 0; }
+.bill-rows > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--type-small-size);
+}
+.bill-rows > div + div { border-top: var(--border-hairline) solid var(--color-border-default); }
+.bill-rows dt { color: var(--color-text-secondary); }
+.bill-rows dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.bill-rows.is-flush > div { padding-left: 0; padding-right: 0; }
+.bill-list { padding: var(--space-2xs) var(--space-xs); }
+
+/* What waits on you: the only orange in the panel, a pale band on top. */
+.bill-needs {
+  border-radius: var(--radius-panel);
+  background: var(--color-bg-canvas);
+  box-shadow: inset 0 0 0 var(--border-hairline) color-mix(in srgb, var(--color-action-decide) 45%, transparent);
+  overflow: hidden;
+}
+.bill-needs-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-action-decide-soft);
+  color: var(--color-text-decide);
+  font-size: var(--type-small-size);
+  font-weight: 500;
+}
+.bill-needs-body { display: flex; flex-direction: column; gap: var(--space-md); padding: var(--space-md); }
+.bill-needs-body h3 { margin: 0; font-size: var(--type-body-lg-size); line-height: var(--type-body-lg-line); font-weight: 500; text-wrap: pretty; }
+.bill-needs-body p { margin: 0; text-wrap: pretty; }
+.bill-suggest { padding: var(--space-sm) var(--space-md); border-radius: var(--radius-control); background: var(--color-bg-surface); }
+
+/* Evidence as a small ruled table, amounts right-aligned. */
+.bill-evidence { width: 100%; border-collapse: collapse; font-size: var(--type-small-size); }
+.bill-evidence td { padding: var(--space-xs) 0; vertical-align: top; border-top: var(--border-hairline) solid var(--color-border-default); }
+.bill-evidence tr:last-child td { border-bottom: var(--border-hairline) solid var(--color-border-default); }
+.bill-ev-ref { white-space: nowrap; padding-right: var(--space-md) !important; }
+.bill-ev-ref > span { display: block; }
+.bill-ev-ref > span + span { margin-top: 2px; }
+.bill-ev-detail { width: 100%; padding-right: var(--space-md) !important; text-wrap: pretty; }
+.bill-ev-amount { white-space: nowrap; text-align: right; font-variant-numeric: tabular-nums; font-weight: 500; }
+
+/* Activity: a quiet timeline joined by a hairline. */
+.bill-activity { display: flex; flex-direction: column; gap: var(--space-sm); }
+.bill-activity h4 { margin: 0; }
+.bill-activity ol { list-style: none; margin: 0; padding: 0; position: relative; }
+.bill-activity ol::before {
+  content: "";
+  position: absolute;
+  left: 11px;
+  top: 12px;
+  bottom: 12px;
+  width: 1px;
+  background: var(--color-border-default);
+}
+.bill-activity li { position: relative; display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; align-items: center; gap: var(--space-sm); padding: var(--space-2xs) 0; font-size: var(--type-small-size); }
+.bill-activity-icon {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-control);
+  background: var(--color-bg-surface);
+  box-shadow: inset 0 0 0 var(--border-hairline) var(--color-border-default);
+  color: var(--color-text-secondary);
+}
+.bill-activity-text { min-width: 0; }
+
+/* Look closer reads as a button: outlined, full width of its card. */
+.txn-card .look-closer-wrap { display: flex; }
+.txn-card .look-closer-wrap .btn { flex: 1; justify-content: center; }
+
+/* ---- Needs you, open: triage ----
+   Two boxes under the band: the queue by kind on the left, the chosen
+   question on the right. Space and one panel tint separate them; no rules. */
+.triage-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.3fr);
+  gap: var(--space-lg);
+  /* One fixed height: picking another kind never resizes the card, so the
+     canvas around it stays still. Each box scrolls inside itself. */
+  height: 640px;
+}
+.triage-queue {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border-radius: var(--radius-panel);
+  background: var(--color-bg-surface);
+  min-width: 0;
+  min-height: 0;
+}
+.triage-kinds { flex: 1; min-height: 0; list-style: none; margin: 0 calc(-1 * var(--space-xs)); padding: 0 var(--space-xs); display: flex; flex-direction: column; gap: var(--space-2xs); overflow-y: auto; }
+.triage-empty { padding: var(--space-md); }
+.triage-foot { margin: 0; padding-top: var(--space-xs); border-top: var(--border-hairline) solid var(--color-border-default); }
+
+/* Search and filters: a long queue becomes a few piles */
+.triage-tools { display: flex; flex-direction: column; gap: var(--space-sm); }
+.triage-search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: 32px;
+  padding: 0 var(--space-sm);
+  border-radius: var(--radius-control);
+  background: var(--color-bg-canvas);
+  box-shadow: inset 0 0 0 var(--border-hairline) var(--color-border-control);
+  color: var(--color-text-secondary);
+}
+.triage-search:focus-within { box-shadow: inset 0 0 0 1px var(--color-border-strong); }
+.triage-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: inherit; font-size: var(--type-small-size); color: var(--color-text-primary); }
+.triage-filter { display: flex; flex-wrap: wrap; gap: var(--space-2xs); }
+.triage-filter button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  height: 26px;
+  padding: 0 var(--space-sm);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  font: inherit;
+  font-size: var(--type-small-size);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease, transform 160ms var(--motion-ease-out);
+}
+.triage-filter button:active { transform: scale(0.97); }
+.triage-filter button[aria-selected="true"] { background: var(--color-bg-canvas); color: var(--color-text-primary); box-shadow: inset 0 0 0 var(--border-hairline) var(--color-border-control); }
+.triage-filter-n { font-variant-numeric: tabular-nums; color: var(--color-text-tertiary); }
+.triage-kind {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px var(--space-sm);
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 120ms ease, box-shadow 120ms ease, transform 160ms var(--motion-ease-out);
+}
+.triage-kind:active { transform: scale(0.99); }
+@media (hover: hover) and (pointer: fine) {
+  .triage-kind:hover { background: var(--color-bg-canvas); }
+}
+.triage-kind[aria-pressed="true"] { background: var(--color-bg-canvas); box-shadow: inset 0 0 0 var(--border-hairline) var(--color-border-strong), var(--elevation-paper); }
+.triage-kind-title { font-weight: 500; text-wrap: pretty; min-width: 0; }
+.triage-kind-meta { display: inline-flex; align-items: baseline; gap: var(--space-xs); justify-self: end; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.triage-count {
+  padding: 0 var(--space-xs);
+  border-radius: var(--radius-control);
+  background: var(--color-bg-sunken);
+  font-size: var(--type-label-size);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+.triage-kind-suggest { grid-column: 1 / -1; }
+
+.triage-detail { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.triage-detail-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding-right: var(--space-xs);
+  /* A new question dissolves in, so a switch reads as a change, not a jump */
+  animation: triage-in 220ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+@keyframes triage-in { from { opacity: 0; filter: blur(3px); transform: translateY(4px); } }
+@media (prefers-reduced-motion: reduce) {
+  .triage-detail-body { animation: triage-fade 160ms ease; }
+  @keyframes triage-fade { from { opacity: 0; } }
+}
+/* Your call: pinned to the bottom, so the buttons never move between questions */
+.triage-call {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding-top: var(--space-md);
+  margin-top: var(--space-sm);
+  border-top: var(--border-hairline) solid var(--color-border-default);
+  background: var(--color-bg-canvas);
+}
+.triage-detail-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-md); }
+.triage-detail-head h3 { margin: 0; font-size: var(--type-body-lg-size); line-height: var(--type-body-lg-line); font-weight: 500; text-wrap: pretty; }
+.triage-detail-head .ask-pager { flex: none; }
+
+/* The decision for a whole kind sits under the single one, plainer. */
+.triage-bulk { display: flex; align-items: center; flex-wrap: nowrap; gap: var(--space-sm); min-height: 40px; box-sizing: border-box; padding-top: var(--space-sm); border-top: var(--border-hairline) dashed var(--color-border-default); }
+.triage-bulk.is-running { font-size: var(--type-small-size); }

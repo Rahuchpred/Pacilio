@@ -18,6 +18,7 @@ import { Cursors } from './Cursors';
 import { logError, throttle } from './throttle';
 import { arrange, type Point, type Size } from './canvas/arrange';
 import { edgeTypes } from './canvas/FlowEdge';
+import { PinchZoomThroughLists } from './canvas/PinchZoom';
 import { LAYOUT, OVERVIEW, txnId } from './canvas/layout';
 import { CanvasCorner, leveled } from './canvas/levels';
 import { localId, sharedId, useExpanded, useFocus, useSetExpanded } from './canvas/view';
@@ -307,6 +308,7 @@ export function Pipeline() {
         <Controls showInteractive={false} />
         <CanvasCorner />
         <Cursors />
+        <PinchZoomThroughLists />
       </ReactFlow>
       <Dock />
       <ItemPanel />

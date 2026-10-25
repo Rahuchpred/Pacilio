@@ -1404,8 +1404,10 @@ code {
   height: 12px;
   flex: none;
   border-radius: 50%;
-  border: 1.5px solid color-mix(in srgb, currentColor 25%, transparent);
-  border-top-color: currentColor;
+  /* Bold enough to read at a glance: a 2px ring in full ink on a clear track */
+  border: 2px solid color-mix(in srgb, var(--color-text-primary) 18%, transparent);
+  border-top-color: var(--color-text-primary);
+  border-right-color: var(--color-text-primary);
   animation: spin 700ms linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }

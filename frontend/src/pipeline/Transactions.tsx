@@ -124,9 +124,11 @@ function Full(props: NodeProps) {
         </p>
       )}
       <div className="nodrag">
-        <Button kind="quiet" size="sm" icon="search" onClick={() => openItem(row.event.id)}>
-          Look closer
-        </Button>
+        <span className="look-closer-wrap">
+          <Button kind="secondary" size="sm" icon="search" onClick={() => openItem(row.event.id)}>
+            Look closer
+          </Button>
+        </span>
       </div>
       <Handles type="txn" />
     </div>
