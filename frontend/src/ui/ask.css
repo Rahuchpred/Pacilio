@@ -128,3 +128,6 @@
 .ask-thread { max-height: 360px; overflow-y: auto; }
 .ask-pair { display: flex; flex-direction: column; gap: var(--space-sm); }
 .ask-answer p { white-space: pre-wrap; }
+
+/* The header's subtitle stays on one line */
+.ask-head-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }

@@ -5,7 +5,8 @@ import { Card } from './Card';
 import { ROW_STATUS, SOURCES, SOURCE_TITLES, byIdDesc, clock, dollars, kindLabel, openItem, useRows } from './live';
 import { useLive } from './store';
 
-// Inbox: the four sources feeding the main agent, and what they sent.
+// Sources: the bank, Stripe, the accounting system and receipts feeding the
+// main agent, and what they sent.
 
 const LATEST = 14;
 
@@ -56,8 +57,8 @@ function Far() {
     <FarCard
       type="inbox"
       width="w-inbox"
-      icon="mail"
-      word="Inbox"
+      icon="download"
+      word="Sources"
       big={total}
       line={running ? `events from ${running} of 4 sources` : 'events, sources paused'}
     />
@@ -71,7 +72,7 @@ function Full() {
   const latest = [...rows].sort((a, b) => byIdDesc(a.event, b.event)).slice(0, LATEST);
   const errors = sources.filter(s => s.status?.enabled && s.status.lastError);
   return (
-    <Card type="inbox" icon="mail" title="Inbox" meta={<span className="muted small">{rows.length} events</span>} className="w-inbox-full">
+    <Card type="inbox" icon="download" title="Sources" meta={<span className="muted small">{rows.length} events</span>} className="w-inbox-full">
       <SourceList />
       {errors.map(s => (
         <p key={s.name} className="card-error">

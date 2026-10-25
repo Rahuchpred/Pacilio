@@ -114,7 +114,7 @@ export function AskSettle() {
           <header className="ask-head">
             <Icon name="Sparkle" />
             <span className="strong">Ask Settle</span>
-            <span className="ask-sub">Reads the ledger, messages the agents</span>
+            <span className="ask-sub ask-head-sub">Talks to your agents</span>
             <kbd>Esc</kbd>
           </header>
           <div className="ask-thread" ref={thread}>

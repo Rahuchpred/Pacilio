@@ -6,7 +6,7 @@ import { TXN_SLOTS } from '../pipeline/live';
 //
 //                 Needs you ─────────────── Emails
 //                     │   └──────┐
-//   Inbox ──── Main agent ──── Ledger ──── Reports agent ──── Show report
+// Sources ──── Main agent ──── Ledger ──── Reports agent ──── Show report
 //                  │
 //      transactions the agent is checking
 
