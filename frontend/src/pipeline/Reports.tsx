@@ -70,71 +70,70 @@ function BuildNow() {
   );
 }
 
-// One step of the build: a tile with its state, joined to the next by a line
-// that flows while work moves along it.
+// One step of the build, inline: icon, label, value. Steps sit on one line
+// joined by chevrons, so the card reads as a sentence, not a form.
 type StepState = 'done' | 'active' | 'waiting';
 function BuildStep({ icon, label, value, state }: { icon: IconName; label: string; value: string; state: StepState }) {
   return (
-    <div className={`rp-step is-${state}`}>
-      {state === 'active' ? <span className="spinner" aria-hidden="true" /> : <Icon name={icon} size={16} />}
+    <span className={`rp-step is-${state}`}>
+      {state === 'active' ? <span className="spinner" aria-hidden="true" /> : <Icon name={icon} size={14} />}
       <span className="rp-step-label">{label}</span>
       <span className="rp-step-value">{value}</span>
-    </div>
+    </span>
   );
 }
 
-// The reports agent in one card: how a report gets made, step by step, with
-// the live work while it builds and the last result while it rests.
+function StepJoin() {
+  return (
+    <span className="rp-join" aria-hidden="true">
+      <Icon name="ChevronRight" size={12} />
+    </span>
+  );
+}
+
+// The reports agent in one card: a one-line trail of the build, the agent's
+// sentence (or its live work while it builds), and when it runs next.
 function AgentFull() {
   const { state, doc, building, running, next, status } = useReport();
   const t = totals(useRows());
   const taskId = state?.taskId ?? doc?.taskId;
   const built = doc ? clock(doc.updatedAt.toDate()) : null;
-  const { scenario } = useLive();
+  const [showCommands, setShowCommands] = useState(false);
   return (
     <Card type="reportAgent" icon="agent" title="Reports agent" meta={<Status kind={status.kind} busy={status.busy}>{status.label}</Status>} className="w-ragent-full rp-card">
       <div className={`rp-flow${building ? ' is-building' : ''}`}>
-        <BuildStep icon="FileTable" label="Ledger" value={`${t.settled.toLocaleString('en-US')} settled rows`} state="done" />
-        <span className="rp-link" aria-hidden="true" />
-        <BuildStep
-          icon="agent"
-          label="Droid builds"
-          value={building ? 'Building now' : built ? 'Done' : 'Not run yet'}
-          state={building ? 'active' : built ? 'done' : 'waiting'}
-        />
-        <span className="rp-link" aria-hidden="true" />
-        <BuildStep icon="ChartLine" label={scenario.report.title} value={building ? 'Next version soon' : built ?? 'None yet'} state={building ? 'waiting' : built ? 'done' : 'waiting'} />
+        <BuildStep icon="FileTable" label="Ledger" value={`${t.settled.toLocaleString('en-US')} rows`} state="done" />
+        <StepJoin />
+        <BuildStep icon="agent" label="Droid" value={building ? 'building' : built ? 'done' : 'not run'} state={building ? 'active' : built ? 'done' : 'waiting'} />
+        <StepJoin />
+        <BuildStep icon="ChartLine" label="Report" value={building ? 'soon' : built ?? 'none yet'} state={building ? 'waiting' : built ? 'done' : 'waiting'} />
       </div>
 
       {state?.lastError && <p className="card-error">{state.lastError}</p>}
 
       {building ? (
-        <section className="stack">
-          <h4 className="section-label">Droid, right now</h4>
-          <Steps taskId={state?.taskId} limit={5} />
-        </section>
+        <Steps taskId={state?.taskId} limit={5} />
+      ) : doc?.headline ? (
+        <p className="agent-built">{doc.headline}</p>
       ) : (
-        <section className="stack">
-          <h4 className="section-label">{built ? `Last report · ${built}` : 'No report yet'}</h4>
-          {doc?.headline ? <p className="agent-built">{doc.headline}</p> : <p className="muted small">Build one to see the numbers so far.</p>}
-        </section>
+        <p className="muted small">Build one to see the numbers so far.</p>
       )}
 
       <div className="rp-foot nodrag">
-        <span className="muted small">
-          {running ? (next ? `Next build after ${clock(next)}, if the ledger changed` : 'Next build soon') : 'Paused'} · every {EVERY_MIN} min
+        <span className="muted small" title={`Rebuilds every ${EVERY_MIN} min while running, if the ledger changed`}>
+          {running ? (next ? `Next build ${clock(next)}` : 'Next build soon') : 'Paused'}
         </span>
-        <BuildNow />
+        <span className="rp-actions">
+          {!building && taskId !== undefined && (
+            <Button kind="quiet" size="sm" icon="Terminal" onClick={() => setShowCommands(v => !v)}>
+              {showCommands ? 'Hide commands' : 'Commands'}
+            </Button>
+          )}
+          <BuildNow />
+        </span>
       </div>
 
-      {!building && taskId !== undefined && (
-        <details className="agent-steps">
-          <summary>
-            <Icon name="ChevronRight" size={12} /> Commands Droid ran
-          </summary>
-          <Steps taskId={taskId} />
-        </details>
-      )}
+      {showCommands && !building && taskId !== undefined && <Steps taskId={taskId} />}
     </Card>
   );
 }
