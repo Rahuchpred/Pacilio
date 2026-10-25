@@ -29,24 +29,18 @@
   transition: transform 200ms var(--motion-ease-out), visibility 0s linear 200ms;
 }
 
-/* The name sits where it does with the sidebar closed, so closing it
-   doesn't move it */
-.sidebar-head,
-.sidebar-closed {
-  display: flex;
-  align-items: center;
-  height: 40px;
-}
-.sidebar-head {
-  justify-content: space-between;
-  padding-left: var(--space-sm);
-}
-.sidebar-closed {
+/* The name and the button sit above the sidebar and never move; the
+   sidebar keeps their row free */
+.sidebar-head { height: 40px; flex-shrink: 0; }
+.sidebar-top {
   position: fixed;
   top: var(--space-lg);
   left: var(--space-lg);
-  z-index: 20;
+  z-index: 26;
+  display: flex;
+  align-items: center;
   gap: var(--space-sm);
+  height: 40px;
 }
 .sidebar-toggle { color: var(--color-text-secondary); }
 
@@ -95,10 +89,19 @@
 }
 .sidebar-item:focus-visible { outline: 2px solid var(--color-action-primary); outline-offset: -2px; }
 
+/* Asking: the row and its two buttons sit in one hairline card (the one
+   thing being acted on), so the buttons read as that row's and not as
+   the selected row's wash */
+.sidebar-list li.is-asking {
+  border: var(--border-hairline) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+}
+.sidebar-list li.is-asking .sidebar-item { background: transparent; color: var(--color-text-primary); font-weight: 500; }
 .sidebar-confirm {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-xs);
-  padding: var(--space-xs) var(--space-sm) var(--space-sm);
+  padding: 0 var(--space-sm) var(--space-sm);
 }
 
 /* The handle straddles the edge; its line shows on hover (after a beat,

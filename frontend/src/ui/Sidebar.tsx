@@ -78,22 +78,19 @@ export function Sidebar() {
     </button>
   );
 
+  // One name and one button for both states, fixed in place above the
+  // sidebar, so opening and closing only slides the list
   return (
     <>
       <aside id="sidebar" className={`sidebar${open ? '' : ' is-closed'}`} style={{ width }} aria-label="Sidebar">
-        <header className="sidebar-head">
-          <Brand />
-          {open && toggle}
-        </header>
+        <div className="sidebar-head" />
         <Scenarios />
         <ResizeHandle width={width} onResize={setWidth} onResizing={setResizing} />
       </aside>
-      {!open && (
-        <div className="sidebar-closed">
-          <Brand />
-          {toggle}
-        </div>
-      )}
+      <div className="sidebar-top">
+        <Brand />
+        {toggle}
+      </div>
     </>
   );
 }
@@ -131,12 +128,11 @@ function Scenarios() {
         {SCENARIOS.map(s => {
           const active = s.key === scenario.key;
           return (
-            <li key={s.key}>
+            <li key={s.key} className={asking === s.key && !active ? 'is-asking' : undefined}>
               <button
                 type="button"
                 className={`sidebar-item${active ? ' is-active' : ''}`}
                 aria-current={active || undefined}
-                title={s.blurb}
                 onClick={() => !active && setAsking(a => (a === s.key ? null : s.key))}
               >
                 {s.name}
