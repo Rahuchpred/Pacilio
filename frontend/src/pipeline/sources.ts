@@ -73,7 +73,7 @@ export const PIPELINE_NODES: Node[] = [
     height: LEDGER_HEIGHT,
     ...fixed,
   },
-  { id: REPORT_AGENT_NODE_ID, type: 'reportAgent', position: { x: REPORT_AGENT_X, y: LEDGER_Y }, data: {}, ...fixed },
+  { id: REPORT_AGENT_NODE_ID, type: 'reportAgent', position: { x: REPORT_AGENT_X, y: LEDGER_Y + LEDGER_HEIGHT / 2 - 90 }, data: {}, ...fixed },
   {
     id: REPORTS_NODE_ID,
     type: 'reports',
