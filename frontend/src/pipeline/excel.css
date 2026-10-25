@@ -113,7 +113,8 @@
 
 /* A row that just arrived or changed flashes, then settles to its fill */
 .xl tr.is-fresh td { animation: xl-flash 1.6s ease-out; }
-@keyframes xl-flash { from { background-color: #fff2b3; } }
+/* Pacioli's logo orange (#ff7019), soft enough to read the row through */
+@keyframes xl-flash { from { background-color: rgba(255, 112, 25, 0.28); } }
 
 .xl-tabs {
   height: 28px;
