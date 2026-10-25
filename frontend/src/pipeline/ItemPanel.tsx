@@ -3,6 +3,7 @@ import { Button, Icon, Money, Source, Status } from '../../../design-system/src/
 import { ACTION_LABEL, Decide } from './NeedsYou';
 import { ROW_STATUS, SOURCE_TITLES, clock, dollars, jsonList, kindLabel, openItem, useOpenItem } from './live';
 import { useLive } from './store';
+import { sentence } from './Transactions';
 
 // One event, looked at closely: what came in, what the agent decided and why,
 // any question it asked you, and the emails that followed. Opens from any
@@ -54,7 +55,7 @@ export function ItemPanel() {
           <span className="muted small">
             {SOURCE_TITLES[event.source] ?? event.source} · {kindLabel(event.kind)}
           </span>
-          <h2>{event.counterparty}</h2>
+          <h2>{sentence(event.counterparty)}</h2>
         </div>
         <Button kind="quiet" size="sm" icon="Close" onClick={() => openItem(null)} />
       </header>
@@ -63,29 +64,34 @@ export function ItemPanel() {
         <span className="item-amount">
           <Money value={dollars(event.amountMinor, event.currency)} />
         </span>
-        <Status kind={status.kind}>{status.label}</Status>
+        <Status kind={status.kind} busy={status.busy}>{status.label}</Status>
       </div>
-      <p>{event.description}</p>
+      {event.description && <p>{sentence(event.description)}</p>}
 
       <dl className="facts-list">
-        <div>
-          <dt>Happened</dt>
-          <dd>{when(event.occurredAt.toDate())}</dd>
-        </div>
-        <div>
-          <dt>Arrived</dt>
-          <dd>{when(event.receivedAt.toDate())}</dd>
-        </div>
+        {when(event.occurredAt.toDate()) === when(event.receivedAt.toDate()) ? (
+          <div>
+            <dt>When</dt>
+            <dd>{when(event.occurredAt.toDate())}</dd>
+          </div>
+        ) : (
+          <>
+            <div>
+              <dt>Happened</dt>
+              <dd>{when(event.occurredAt.toDate())}</dd>
+            </div>
+            <div>
+              <dt>Arrived</dt>
+              <dd>{when(event.receivedAt.toDate())}</dd>
+            </div>
+          </>
+        )}
         {event.reference && (
           <div>
             <dt>Reference</dt>
             <dd className="id">{event.reference}</dd>
           </div>
         )}
-        <div>
-          <dt>Source id</dt>
-          <dd className="id">{event.sourceId}</dd>
-        </div>
         {event.documentUrl && (
           <div>
             <dt>Document</dt>
@@ -100,29 +106,43 @@ export function ItemPanel() {
 
       <section className="item-section">
         <h3>
-          <Icon name="agent" size={14} /> Main agent
+          <Icon name="agent" size={14} /> The agent's call
         </h3>
         {!review ? (
           <p className="muted">Waiting for the agent's next run.</p>
         ) : review.status !== 'done' ? (
           <p className="muted">Being checked in run {review.runId.toString()} right now.</p>
         ) : (
-          <>
-            <p>
-              {review.outcome === 'ok'
-                ? 'Posted to the ledger.'
-                : review.outcome === 'void'
-                  ? 'Voided: kept out of the ledger.'
-                  : 'Not sure, so it asked you.'}
-              {review.category && <span className="muted"> Category: {review.category}.</span>}
-            </p>
-            {review.note && <p className="muted">{review.note}</p>}
-            {run && (
-              <p className="tertiary small">
-                Run {run.id.toString()} at {clock(run.startedAt.toDate())}, with {run.eventIds.length - 1} other events.
-              </p>
+          <dl className="facts-list agent-call">
+            <div>
+              <dt>Decided</dt>
+              <dd>
+                <Status kind={review.outcome === 'ok' ? 'cleared' : review.outcome === 'void' ? 'agent' : 'disputed'}>
+                  {review.outcome === 'ok' ? 'Posted' : review.outcome === 'void' ? 'Voided' : 'Asked you'}
+                </Status>
+              </dd>
+            </div>
+            {review.category && (
+              <div>
+                <dt>Category</dt>
+                <dd>{review.category}</dd>
+              </div>
             )}
-          </>
+            {review.note && (
+              <div className="is-wide">
+                <dt>Why</dt>
+                <dd>{review.note}</dd>
+              </div>
+            )}
+            {run && (
+              <div>
+                <dt>Checked in</dt>
+                <dd>
+                  Run {run.id.toString()} · {clock(run.startedAt.toDate())}
+                </dd>
+              </div>
+            )}
+          </dl>
         )}
       </section>
 
@@ -212,6 +232,9 @@ export function ItemPanel() {
         <summary>
           <Icon name="Code" size={14} /> What {SOURCE_TITLES[event.source] ?? event.source} sent
         </summary>
+        <p className="muted small">
+          Source id <span className="id">{event.sourceId}</span>
+        </p>
         <pre>{pretty(event.raw)}</pre>
       </details>
     </aside>

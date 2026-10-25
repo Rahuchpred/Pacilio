@@ -1,14 +1,15 @@
 import type { NodeProps } from '@xyflow/react';
-import { Button, Money, Status, type IconName } from '../../../design-system/src/components';
+import { Button, Icon, Money, Status, type IconName } from '../../../design-system/src/components';
+import { sentence } from './text';
 import { FarCard, Handles, type CardLevels, type Look } from '../canvas/levels';
 import { ROW_STATUS, SOURCE_TITLES, dollars, kindLabel, openItem, useTransactions, type Row, type RowState } from './live';
 
 // The transactions around the main agent: what it is checking right now, what
-// waits for its next run, and what it just finished. Each card turns orange
-// while checked, then green when posted or red when it needs you. Open, it
+// waits for its next run, and what it just finished. Each card stays plain
+// while checked, then turns green when posted or red when it needs you. Open, it
 // shows the details and links to the item panel.
 
-const SOURCE_ICON: Record<string, IconName> = { nessie: 'bank', stripe: 'ticket', ledger: 'doc', cord: 'DocumentBlank' };
+export const SOURCE_ICON: Record<string, IconName> = { nessie: 'bank', stripe: 'ticket', ledger: 'doc', cord: 'DocumentBlank' };
 
 const LOOK: Record<RowState, Look> = {
   waiting: 'idle',
@@ -43,34 +44,68 @@ function Far(props: NodeProps) {
       type="txn"
       width="w-txn"
       icon={SOURCE_ICON[row.event.source] ?? 'doc'}
-      word={row.event.counterparty}
+      word={sentence(row.event.counterparty)}
       big={<Money value={dollars(row.event.amountMinor, row.event.currency)} cents={false} />}
-      line={ROW_STATUS[row.state].label}
-      craft={look === 'working' ? 'decide' : look === 'issue' ? 'reject' : undefined}
+      line={
+        ROW_STATUS[row.state].busy ? (
+          <span className="far-busy">
+            <span className="spinner" aria-hidden="true" />
+            {ROW_STATUS[row.state].label}
+          </span>
+        ) : (
+          ROW_STATUS[row.state].label
+        )
+      }
+      craft={look === 'done' ? 'accept' : look === 'issue' ? 'reject' : undefined}
+      className={`src-${row.event.source}`}
     />
   );
 }
 
+export { sentence };
+
+export function SourceTag({ source, kind }: { source: string; kind?: string }) {
+  return (
+    <span className={`src-tag src-${source}`}>
+      <Icon name={SOURCE_ICON[source] ?? 'doc'} />
+      <span className="src-tag-text">
+        {SOURCE_TITLES[source] ?? source}
+        {kind && ` · ${kindLabel(kind)}`}
+      </span>
+    </span>
+  );
+}
+
+// Open: where it came from and where it stands, who and what, the money on
+// its own strip, the agent's note, then a way in.
 function Full(props: NodeProps) {
   const row = useSlot(props);
   if (!row) return <Empty />;
   const s = ROW_STATUS[row.state];
+  const amount = dollars(row.event.amountMinor, row.event.currency);
   return (
-    <div className="pnode w-txn-full">
+    <div className="pnode w-txn-full txn-card">
       <div className="txn-top">
-        <span className="strong txn-party">{row.event.counterparty}</span>
-        <Status kind={s.kind}>{s.label}</Status>
+        <SourceTag source={row.event.source} kind={row.event.kind} />
+        <Status kind={s.kind} busy={s.busy}>{s.label}</Status>
       </div>
-      <div className="txn-amount">
-        <Money value={dollars(row.event.amountMinor, row.event.currency)} />
+      <div className="txn-who">
+        <span className="strong txn-party">{sentence(row.event.counterparty)}</span>
+        {row.event.description && <span className="muted small">{sentence(row.event.description)}</span>}
       </div>
-      <span className="muted small">
-        {SOURCE_TITLES[row.event.source] ?? row.event.source} · {kindLabel(row.event.kind)}
-      </span>
-      <p className="small">{row.event.description}</p>
-      {row.review?.note && <p className="small muted">{row.review.note}</p>}
+      <div className="txn-money">
+        <span className="muted small">{amount < 0 ? 'Money out' : 'Money in'}</span>
+        <span className="txn-amount">
+          <Money value={amount} />
+        </span>
+      </div>
+      {row.review?.note && (
+        <p className="txn-note small">
+          <Icon name="agent" size={14} /> {row.review.note}
+        </p>
+      )}
       <div className="nodrag">
-        <Button kind="secondary" size="sm" icon="search" onClick={() => openItem(row.event.id)}>
+        <Button kind="quiet" size="sm" icon="search" onClick={() => openItem(row.event.id)}>
           Look closer
         </Button>
       </div>

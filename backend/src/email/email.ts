@@ -24,7 +24,16 @@ const MAX_MESSAGE = 1000;
 const TICK_INTERVAL_MICROS = 30_000_000n;
 const MINUTE_MICROS = 60_000_000n;
 const INBOX_NAME = 'Settle Bookkeeping';
-const SIGNATURE = '\n\n— Settle, bookkeeping for the Oct 24 show';
+const SIGNATURE = '\n\nSettle\nBookkeeping for the Oct 24 show';
+
+// No em or en dashes in anything we email: number ranges get a hyphen, any
+// other dash becomes a comma.
+function noDashes(text: string): string {
+  return text
+    .replace(/(\d)\s*[\u2013\u2014]\s*(\d)/g, '$1-$2')
+    .replace(/\s*[\u2013\u2014]\s*/g, ', ')
+    .replace(/,\s*([.,;:!?])/g, '$1');
+}
 
 type Step = { delayMin: number; message: string };
 
@@ -101,10 +110,12 @@ export function startFollowUp(ctx: PCtx, reviewItemId: bigint): string {
   if (!info.item) throw new SenderError('Item not found');
   const counterparty = info.detail?.followUpTo || info.event?.counterparty || 'the vendor';
   const subject = info.detail?.followUpSubject || info.detail?.title || info.item.question;
-  const body =
+  const body = noDashes(
     (info.detail?.followUpMessage ||
       `Hello ${counterparty},\n\n${info.detail?.whatHappened || info.item.reason}\n\n${info.detail?.fix || ''}`) +
-    SIGNATURE;
+      SIGNATURE
+  );
+  const subjectClean = noDashes(subject);
   const to = ctx.env.FOLLOWUP_EMAIL_TO ?? '';
 
   const threadId = ctx.withTx(tx => {
@@ -114,7 +125,7 @@ export function startFollowUp(ctx: PCtx, reviewItemId: bigint): string {
       eventId: info.item!.eventId,
       counterparty,
       toAddress: to,
-      subject,
+      subject: subjectClean,
       agentmailThreadId: undefined,
       lastMessageId: undefined,
       status: 'waiting',
@@ -132,7 +143,7 @@ export function startFollowUp(ctx: PCtx, reviewItemId: bigint): string {
     if (!to) throw new Error('FOLLOWUP_EMAIL_TO is not set in .env');
     const mail = client(ctx);
     const box = inbox(ctx, mail);
-    const sent = mail.send(box.inboxId, to, subject, body);
+    const sent = mail.send(box.inboxId, to, subjectClean, body);
     ctx.withTx(tx => {
       tx.db.emailMessage.insert({
         id: 0n,
@@ -160,7 +171,8 @@ export function startFollowUp(ctx: PCtx, reviewItemId: bigint): string {
 }
 
 // Send something in a thread from us and (re)start waiting for an answer.
-function sendInThread(ctx: PCtx, thread: Thread, text: string, kind: 'follow_up' | 'reply', followUps: number) {
+function sendInThread(ctx: PCtx, thread: Thread, raw: string, kind: 'follow_up' | 'reply', followUps: number) {
+  const text = noDashes(raw);
   const mail = client(ctx);
   const box = inbox(ctx, mail);
   if (!thread.lastMessageId) throw new Error('This thread has no message to reply to');

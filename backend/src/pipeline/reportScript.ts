@@ -7,14 +7,15 @@
 // ASCII-only (non-ASCII as \u escapes) so the upload size is exact. Avoid "$"
 // followed by "{" (template literal).
 //
-// Chart colors: dataviz reference palette slots 1-2 (blue = money in,
-// orange = money out), validated: CVD dE 24.7, normal dE 33.6, contrast >= 3:1.
+// Colors: Settle's warm neutrals from the design tokens. Charts are ink
+// (money in), warm grey (money out) and secondary ink (totals), so no hue
+// competes with the decide orange.
 
-export const REPORT_VERSION = 'v1';
+export const REPORT_VERSION = 'v2';
 export const REPORT_PATH = `settle/tools/report-${REPORT_VERSION}.py`;
 
-export const REPORT_SCRIPT = String.raw`# settle-report v1 -- provided by Settle. Do not edit.
-# Run: python3 /home/factory-user/settle/tools/report-v1.py /home/factory-user/settle
+export const REPORT_SCRIPT = String.raw`# settle-report v2 -- provided by Settle. Do not edit.
+# Run: python3 /home/factory-user/settle/tools/report-v2.py /home/factory-user/settle
 """Build report.json, report.html and report.xlsx from the settled rows of ledger.json."""
 import datetime
 import html
@@ -28,13 +29,18 @@ HERE = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path(__file__).reso
 
 SETTLED = ("ok", "refunded")
 HELD = ("review", "void", "following_up")
-IN_COLOR = "#2a78d6"    # money in (categorical slot 1)
-OUT_COLOR = "#eb6834"   # money out (categorical slot 2)
-TOTAL_COLOR = "#52514e" # totals: neutral ink
-SURFACE = "#fcfcfb"
-GRID = "#e6e5e1"
-TEXT = "#0b0b0b"
-TEXT_2 = "#52514e"
+# Settle tokens, orange accent, light (design-system/src/tokens/tokens.css).
+# Money is ink and paper: no hue, so nothing in the report reads like the
+# decide orange.
+IN_COLOR = "#1f1a14"    # money in: --color-text-primary
+OUT_COLOR = "#8a7f72"   # money out: --color-border-strong
+TOTAL_COLOR = "#5c5248" # totals: --color-text-secondary
+SURFACE = "#f8f5f0"     # --color-bg-surface
+CANVAS = "#ffffff"      # --color-bg-canvas
+GRID = "#e8e1d7"        # --color-border-default
+SUNKEN = "#f0ebe3"      # --color-bg-sunken
+TEXT = "#1f1a14"        # --color-text-primary
+TEXT_2 = "#5c5248"      # --color-text-secondary
 
 
 def money(cents, whole=False):
@@ -259,7 +265,7 @@ body{margin:0;padding:20px 24px;background:%(surface)s;color:%(text)s;
 h1{font-size:20px;font-weight:500;margin:0}
 .headline{margin:6px 0 18px;color:%(text2)s;max-width:900px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(520px,1fr));gap:20px}
-.card{border:1px solid #e3e2de;border-radius:10px;padding:14px 16px;background:#fff}
+.card{border:1px solid %(grid)s;border-radius:8px;padding:14px 16px;background:%(canvas)s}
 .card h2{font-size:14px;font-weight:500;margin:0 0 2px}
 .card p.sub{margin:0 0 10px;color:%(text2)s}
 .legend{display:flex;gap:16px;margin:0 0 6px;color:%(text2)s}
@@ -270,11 +276,11 @@ svg text.strong{font-weight:600;fill:%(text)s}
 details{margin-top:8px;color:%(text2)s}
 summary{cursor:pointer}
 table{width:100%%;border-collapse:collapse;margin-top:6px}
-th,td{padding:3px 6px;border-bottom:1px solid #eeede9;text-align:left}
+th,td{padding:3px 6px;border-bottom:1px solid %(sunken)s;text-align:left}
 th{font-weight:500;color:%(text2)s}
 .num{text-align:right}
 .empty{color:%(text2)s}
-""" % {"surface": SURFACE, "text": TEXT, "text2": TEXT_2}
+""" % {"surface": SURFACE, "text": TEXT, "text2": TEXT_2, "grid": GRID, "canvas": CANVAS, "sunken": SUNKEN}
 
 
 def render_html(s):

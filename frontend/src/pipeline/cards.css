@@ -31,7 +31,7 @@
 .pipeline .w-flag-full { width: 560px; }
 .pipeline .w-ledger-full { width: 1080px; }
 .pipeline .w-emails-full { width: 520px; }
-.pipeline .w-ragent-full { width: 420px; display: flex; flex-direction: column; gap: var(--space-md); }
+.pipeline .w-ragent-full { width: 560px; }
 .pipeline .w-ragent-full .w-ragent { width: 100%; }
 .pipeline .w-report-full { width: 960px; }
 
@@ -43,6 +43,7 @@
 .pipeline .far-card.w-txn .far-word { font-size: var(--type-body-lg-size); }
 .pipeline .far-card.w-txn .far-word span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pipeline .far-card.w-txn .far-word .icon { width: 20px; height: 20px; flex: none; }
+.pipeline .far-card.w-txn:not(.craft-surface) .far-word .icon { color: var(--src); }
 .pipeline .far-card.w-txn .far-big { font-size: var(--type-heading-size); line-height: var(--type-heading-line); }
 
 /* ---- Shared bits ---- */
@@ -134,7 +135,9 @@
   color: var(--color-text-primary);
   cursor: pointer;
 }
-.mini-chip:hover { border-color: var(--color-border-control); }
+@media (hover: hover) and (pointer: fine) {
+  .mini-chip:hover { border-color: var(--color-border-control); }
+}
 
 .link-button {
   padding: 0;
@@ -142,7 +145,7 @@
   background: none;
   font: inherit;
   font-size: var(--type-small-size);
-  color: var(--color-text-decide);
+  color: var(--color-text-primary);
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -182,6 +185,99 @@
 .w-main-full .log-row { grid-template-columns: 64px minmax(0, 1fr); gap: var(--space-md); padding: var(--space-sm) 0; }
 .run-list .log-time { flex: none; width: 64px; }
 
+/* The open main agent: a sentence on now, where everything ended up, then
+   runs on the left and the chosen run's calls on the right. */
+.w-main-full .agent-counts {
+  padding: var(--space-md) 0;
+  border-top: var(--border-hairline) solid var(--color-border-default);
+  border-bottom: var(--border-hairline) solid var(--color-border-default);
+}
+.agent-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+  gap: var(--space-lg);
+  align-items: start;
+}
+.agent-col { display: flex; flex-direction: column; gap: var(--space-sm); min-width: 0; }
+.agent-col-head { margin: 0; }
+/* Runs: one line each, time, what came out, how long. */
+.agent-runs { list-style: none; margin: 0; padding: 0; max-height: 460px; overflow-y: auto; }
+.agent-run {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  gap: var(--space-sm);
+  align-items: baseline;
+  width: 100%;
+  padding: var(--space-sm);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.agent-run[aria-pressed="true"] { background: var(--color-bg-sunken); }
+@media (hover: hover) and (pointer: fine) {
+  .agent-run:hover { background: var(--color-bg-sunken); }
+}
+.agent-run-time,
+.agent-run-took { color: var(--color-text-secondary); font-variant-numeric: tabular-nums; font-size: var(--type-small-size); }
+.agent-run-what { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--type-small-size); }
+/* The chosen run: its events, then the agent's own note, in one panel. */
+.agent-run-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border-radius: var(--radius-panel);
+  background: var(--color-bg-surface);
+}
+.agent-events { list-style: none; margin: 0; padding: 0; max-height: 380px; overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-2xs); }
+.agent-event {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 112px;
+  gap: var(--space-md);
+  align-items: center;
+  width: 100%;
+  padding: var(--space-sm);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: var(--color-bg-canvas);
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+@media (hover: hover) and (pointer: fine) {
+  .agent-event:hover { box-shadow: inset 0 0 0 var(--border-hairline) var(--color-border-control); }
+}
+.agent-event-name { display: flex; flex-direction: column; gap: var(--space-2xs); min-width: 0; }
+.agent-event-amount { font-variant-numeric: tabular-nums; }
+.agent-event-status { justify-self: end; }
+.agent-summary {
+  display: flex;
+  gap: var(--space-xs);
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--type-small-size);
+  text-wrap: pretty;
+}
+.agent-summary .icon { flex: none; translate: 0 2px; }
+.agent-steps summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--color-text-secondary);
+  font-size: var(--type-small-size);
+  cursor: pointer;
+  list-style: none;
+}
+.agent-steps summary::-webkit-details-marker { display: none; }
+.agent-steps summary .icon { transition: transform 200ms var(--motion-ease-out); }
+.agent-steps[open] summary .icon { transform: rotate(90deg); }
+.agent-steps .steps { margin-top: var(--space-sm); }
+
 .steps {
   list-style: none;
   margin: 0;
@@ -203,8 +299,27 @@
 /* ---- Transactions ---- */
 
 .pipeline .w-txn { padding: var(--space-md); gap: var(--space-xs); cursor: pointer; }
-.txn-top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); }
+.txn-top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); min-width: 0; }
+/* The status always shows in full; the source tag gives way */
+.txn-top .status { flex: none; }
+.txn-top .src-tag { flex: 0 1 auto; }
 .txn-party { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* An open transaction in four parts, separated by space, money on its own strip. */
+.pipeline .txn-card { gap: var(--space-md); padding: var(--space-lg); }
+.txn-who { display: flex; flex-direction: column; gap: var(--space-2xs); min-width: 0; }
+.txn-who .small { text-wrap: pretty; }
+.txn-money {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-control);
+  background: var(--color-bg-surface);
+}
+.txn-money .txn-amount { font-size: var(--type-heading-size); line-height: var(--type-heading-line); font-weight: 500; font-variant-numeric: tabular-nums; }
+.txn-note { display: flex; gap: var(--space-xs); margin: 0; color: var(--color-text-secondary); }
+.txn-note .icon { flex: none; translate: 0 2px; }
 .txn-amount {
   font-size: var(--type-subheading-size);
   line-height: var(--type-subheading-line);
@@ -227,8 +342,22 @@
   cursor: default;
 }
 .pipeline .edge-quiet .react-flow__edge-path { stroke: var(--color-border-control); }
-.pipeline .edge-working .react-flow__edge-path { stroke: var(--color-action-decide); }
-.packet { fill: var(--color-action-decide); stroke: var(--color-bg-canvas); stroke-width: 2; }
+.pipeline .edge-working .react-flow__edge-path { stroke: var(--color-text-secondary); }
+.packet { fill: var(--src, var(--color-text-primary)); stroke: var(--color-bg-canvas); stroke-width: 2; }
+/* What travels into the agent: the event's name and amount on its source's color. */
+.packet-tag rect {
+  fill: color-mix(in srgb, var(--src) 12%, var(--color-bg-canvas));
+  stroke: color-mix(in srgb, var(--src) 45%, transparent);
+  stroke-width: 1;
+}
+.packet-stem { stroke: color-mix(in srgb, var(--src) 45%, transparent); stroke-width: 1; }
+.packet-tag text {
+  fill: color-mix(in srgb, var(--src) 85%, #000);
+  font-family: var(--font-sans);
+  font-size: var(--type-label-size);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
 
 /* ---- Needs you ---- */
 
@@ -269,6 +398,29 @@ button.ask-fact { cursor: pointer; }
 .pipeline .ask-sources > * + * { margin-top: var(--space-sm); }
 .source-detail:empty { display: none; }
 
+/* The open question reads top to bottom in labelled parts: what happened,
+   the evidence, what the agent suggests, your call. Space separates the
+   parts; no rules between them. */
+.pipeline .pnode.escalation.ask-banded:not(.far-card) { gap: var(--space-xl); }
+.ask-part { display: flex; flex-direction: column; gap: var(--space-sm); }
+.ask-part > .section-label { margin: 0; }
+.ask-text { margin: 0; color: var(--color-text-secondary); text-wrap: pretty; }
+.ask-suggestion { margin: 0; text-wrap: pretty; }
+.pipeline .ask-compare.is-single { grid-template-columns: 1fr; }
+.ask-decide { display: flex; flex-direction: column; gap: var(--space-sm); }
+.ask-buttons { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
+.ask-count {
+  margin-left: var(--space-xs);
+  font-weight: 400;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.ask-also .row-button .strong { min-width: 0; }
+/* The pager rides on the band, top right, in the band's own ink. */
+.pipeline .ask-top .ask-pager { gap: var(--space-2xs); }
+.pipeline .ask-top .ask-pager .btn { color: inherit; }
+.pipeline .ask-top .ask-pager .btn:disabled { opacity: 0.45; }
+
 /* ---- Ledger ---- */
 
 .pipeline .lv-short .w-ledger .sheet-row,
@@ -308,12 +460,11 @@ button.ask-fact { cursor: pointer; }
 /* ---- Emails ---- */
 
 .thread-tag { display: inline-flex; align-items: center; gap: var(--space-xs); flex: none; }
-.email-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--color-action-decide);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-action-decide) 22%, transparent);
+.thread-new {
+  font-size: var(--type-label-size);
+  line-height: var(--type-label-line);
+  font-weight: 500;
+  color: var(--color-text-primary);
 }
 .email-threads { list-style: none; margin: 0; padding: 0; max-height: 640px; overflow-y: auto; }
 .email-thread + .email-thread { border-top: var(--border-hairline) solid var(--color-border-default); }
@@ -336,15 +487,9 @@ button.ask-fact { cursor: pointer; }
 
 /* ---- Reports ---- */
 
-.agent-steps-card { cursor: default; }
+.agent-steps-card { cursor: default; gap: var(--space-md); }
+.agent-built { margin: 0; text-wrap: pretty; }
 .takeaways { margin: 0; padding-left: var(--space-lg); display: flex; flex-direction: column; gap: var(--space-xs); }
-.inout { display: flex; flex-direction: column; gap: var(--space-sm); }
-.inout-row { display: grid; grid-template-columns: 72px minmax(0, 1fr) 84px; align-items: center; gap: var(--space-sm); }
-.inout-track { height: 12px; }
-.inout-bar { display: block; height: 100%; border-radius: 0 4px 4px 0; min-width: 2px; }
-/* Data colors: money in blue, money out orange (validated pair, slots 1 and 2) */
-.inout-bar.is-in { background: #2a78d6; }
-.inout-bar.is-out { background: #eb6834; }
 
 /* ---- Item panel: one event, looked at closely ---- */
 
@@ -363,7 +508,7 @@ button.ask-fact { cursor: pointer; }
   padding: var(--space-xl);
   background: var(--color-bg-canvas);
   border-radius: var(--radius-panel);
-  box-shadow: 0 0 0 1px rgb(31 26 20 / 0.06), var(--elevation-paper, 0 12px 32px rgb(0 0 0 / 0.12));
+  box-shadow: var(--elevation-paper);
   font-family: var(--font-sans);
   font-size: var(--type-small-size);
   line-height: var(--type-small-line);
@@ -444,8 +589,10 @@ button.ask-fact { cursor: pointer; }
   color: var(--color-text-secondary);
   cursor: pointer;
 }
-.bell:hover,
 .bell.is-open { background: var(--color-bg-sunken); color: var(--color-text-primary); }
+@media (hover: hover) and (pointer: fine) {
+  .bell:hover { background: var(--color-bg-sunken); color: var(--color-text-primary); }
+}
 .bell-badge {
   position: absolute;
   top: 0;
@@ -455,11 +602,11 @@ button.ask-fact { cursor: pointer; }
   padding: 0 4px;
   box-sizing: border-box;
   border-radius: var(--radius-full);
-  background: var(--color-action-decide);
-  color: var(--color-text-on-decide);
-  font-size: 10px;
+  background: var(--color-action-primary);
+  color: var(--color-text-inverse);
+  font-size: var(--type-label-size);
   line-height: 16px;
-  font-weight: 600;
+  font-weight: 500;
   text-align: center;
 }
 .notifications { width: 340px; max-height: 420px; overflow-y: auto; }
@@ -479,9 +626,10 @@ button.ask-fact { cursor: pointer; }
   text-align: left;
   cursor: pointer;
 }
-.notice-list button:hover { background: var(--color-bg-sunken); }
-.notice-list .icon { flex: none; margin-top: 2px; color: var(--color-action-decide); }
-.notice-list .email-dot { flex: none; margin-top: 6px; }
+@media (hover: hover) and (pointer: fine) {
+  .notice-list button:hover { background: var(--color-bg-sunken); }
+}
+.notice-list .icon { flex: none; margin-top: 2px; color: var(--color-text-secondary); }
 
 /* The crafted far surface wins over the plain card background. */
 .pipeline .pnode.far-card.craft-surface {
@@ -502,7 +650,7 @@ button.ask-fact { cursor: pointer; }
 /* An overview card opens on click; an open card closes on a click outside its controls. */
 .pipeline .lv-openable .far-card { cursor: pointer; }
 .pipeline .w-txn-full { width: 300px; box-sizing: border-box; }
-.pipeline .react-flow__node { transition: transform 260ms var(--motion-ease-out); }
+.pipeline .react-flow__node { transition: transform 280ms var(--motion-ease-in-out); }
 .pipeline .react-flow__node.dragging { transition: none; }
 @media (prefers-reduced-motion: reduce) {
   .pipeline .react-flow__node { transition: none; }
@@ -613,3 +761,168 @@ button.ask-fact { cursor: pointer; }
 .tc-table { width: 100%; border-collapse: collapse; font-size: var(--type-small-size); font-variant-numeric: tabular-nums; }
 .tc-table td { padding: var(--space-2xs) 0; border-top: var(--border-hairline) solid var(--color-border-default); }
 .tc-table td.num { text-align: right; }
+
+/* Inbox rows: the source as a colored tag, then the time. */
+.inbox-meta { display: inline-flex; align-items: center; gap: var(--space-xs); }
+
+/* Full-screen report: the conclusions beside the whole dashboard. */
+.viewer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: stretch;
+  padding: var(--space-xl);
+  background: color-mix(in srgb, var(--color-text-primary) 28%, transparent);
+}
+.viewer {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-radius: var(--radius-panel);
+  background: var(--color-bg-canvas);
+  box-shadow: var(--elevation-paper);
+  overflow: hidden;
+  font-family: var(--font-sans);
+  color: var(--color-text-primary);
+}
+.viewer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: var(--border-hairline) solid var(--color-border-default);
+}
+.viewer-title { display: inline-flex; align-items: center; gap: var(--space-sm); font-size: var(--type-subheading-size); font-weight: 500; }
+.viewer-actions { display: inline-flex; gap: var(--space-xs); }
+.viewer-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(280px, 360px) minmax(0, 1fr); }
+.viewer-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  padding: var(--space-lg);
+  overflow-y: auto;
+  background: var(--color-bg-surface);
+}
+.viewer-side h4 { margin: 0; }
+.viewer-frame { width: 100%; height: 100%; border: 0; display: block; }
+
+/* Full-screen sheet: the Excel view fills the viewer. */
+.viewer-sheet { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: var(--space-md); }
+.viewer-sheet .xl { flex: 1; height: auto; min-height: 0; }
+
+/* Live lists (see canvas/motion.ts): a row pushed off the end dissolves out. */
+.live-list { position: relative; }
+.live-list > [data-leaving="true"] { animation: live-leave 220ms cubic-bezier(0.23, 1, 0.32, 1) forwards; }
+@keyframes live-leave { to { opacity: 0; filter: blur(4px); transform: scale(0.98); } }
+@media (prefers-reduced-motion: reduce) {
+  .live-list > [data-leaving="true"] { animation: live-fade 160ms ease forwards; }
+  @keyframes live-fade { to { opacity: 0; } }
+}
+
+/* ---- Motion pass (Emil's rules) ---- */
+
+/* Everything pressable answers the press. Wide rows scale less than buttons
+   so the edge does not visibly jump. */
+.row-button,
+.agent-run,
+.agent-event,
+button.ask-fact,
+.mini-chip,
+.bell,
+.notice-list button {
+  transition: transform 160ms var(--motion-ease-out), background-color 120ms ease, box-shadow 120ms ease;
+}
+.row-button:active,
+.agent-run:active,
+.agent-event:active,
+button.ask-fact:active,
+.notice-list button:active { transform: scale(0.99); }
+.mini-chip:active,
+.bell:active { transform: scale(0.96); }
+
+/* Full-screen viewers arrive: the backdrop fades, the sheet rises a touch.
+   Centered like a modal, so it scales from the middle. */
+.viewer-backdrop { transition: opacity 200ms var(--motion-ease-out); }
+.viewer { transition: opacity 220ms var(--motion-ease-out), transform 220ms var(--motion-ease-out); }
+@starting-style {
+  .viewer-backdrop { opacity: 0; }
+  .viewer { opacity: 0; transform: translateY(8px) scale(0.985); }
+}
+
+/* The bill: the agent's call as labelled facts; a long reason sits under its label. */
+.item-panel .facts-list { padding: 0; }
+.facts-list div.is-wide { flex-direction: column; gap: var(--space-2xs); }
+.facts-list div.is-wide dd { text-wrap: pretty; }
+.agent-call dd .status { vertical-align: middle; }
+
+@media (prefers-reduced-motion: reduce) {
+  .row-button:active,
+  .agent-run:active,
+  .agent-event:active,
+  button.ask-fact:active,
+  .notice-list button:active,
+  .mini-chip:active,
+  .bell:active { transform: none; }
+  .viewer { transition: opacity 160ms ease; }
+  @starting-style { .viewer { transform: none; } }
+}
+
+/* Inbox lanes: one thin line per source, tinted with the source's color. */
+.pipeline .edge-lane .react-flow__edge-path { stroke: color-mix(in srgb, var(--src) 45%, var(--color-border-control)); stroke-width: 1.5; }
+.pipeline .react-flow__node-inbox .react-flow__handle[data-handleid^="out-"],
+.pipeline .react-flow__node-main .react-flow__handle[data-handleid^="in-"] { width: 6px; height: 6px; border-width: 1px; }
+.pipeline .react-flow__node-inbox .react-flow__handle[data-handleid="out-nessie"],
+.pipeline .react-flow__node-main .react-flow__handle[data-handleid="in-nessie"] { background: var(--color-source-nessie); }
+.pipeline .react-flow__node-inbox .react-flow__handle[data-handleid="out-stripe"],
+.pipeline .react-flow__node-main .react-flow__handle[data-handleid="in-stripe"] { background: var(--color-source-stripe); }
+.pipeline .react-flow__node-inbox .react-flow__handle[data-handleid="out-ledger"],
+.pipeline .react-flow__node-main .react-flow__handle[data-handleid="in-ledger"] { background: var(--color-source-ledger); }
+.pipeline .react-flow__node-inbox .react-flow__handle[data-handleid="out-cord"],
+.pipeline .react-flow__node-main .react-flow__handle[data-handleid="in-cord"] { background: var(--color-source-cord); }
+
+/* Decisions riding out: posted in the accept green, voided in ink, a
+   question in the decide orange (it goes to a person). */
+.out-posted { --src: var(--color-action-accept); }
+.out-voided { --src: var(--color-text-secondary); }
+.out-asked { --src: var(--color-action-decide); }
+
+/* Reports agent: the build as three joined steps. A step that is done is
+   ink on paper with a check-green icon; the active one breathes; the line
+   into it flows while work moves along it (linear: constant motion). */
+.pipeline .rp-card { gap: var(--space-lg); }
+.rp-flow { display: grid; grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1fr) 28px minmax(0, 1fr); align-items: center; }
+.rp-step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  min-width: 0;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-panel);
+  background: var(--color-bg-surface);
+  box-shadow: inset 0 0 0 var(--border-hairline) var(--color-border-default);
+  transition: background 200ms ease, box-shadow 200ms ease;
+}
+.rp-step .icon { color: var(--color-text-secondary); }
+.rp-step.is-done .icon { color: var(--color-status-cleared); }
+.rp-step.is-active { background: var(--color-bg-canvas); box-shadow: inset 0 0 0 var(--border-hairline) var(--color-border-strong), var(--elevation-paper); }
+.rp-step.is-active .icon { color: var(--color-text-primary); }
+.rp-step.is-waiting { opacity: 0.7; }
+.rp-step-label { font-size: var(--type-label-size); color: var(--color-text-secondary); }
+.rp-step-value { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.rp-link { height: 2px; margin: 0 var(--space-2xs); background: var(--color-border-control); border-radius: 1px; }
+.rp-flow.is-building .rp-link:first-of-type {
+  background: repeating-linear-gradient(90deg, var(--color-text-secondary) 0 6px, transparent 6px 12px);
+  background-size: 24px 2px;
+  animation: rp-flow 600ms linear infinite;
+}
+@keyframes rp-flow { to { background-position: 24px 0; } }
+.rp-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); flex-wrap: wrap; }
+@media (prefers-reduced-motion: reduce) {
+  .rp-flow.is-building .rp-link:first-of-type { animation: none; }
+}
+
+/* Far cards at work: the same spinner as the tags, beside the word */
+.far-busy { display: inline-flex; align-items: center; gap: var(--space-xs); }
+.far-busy .spinner { width: 14px; height: 14px; }

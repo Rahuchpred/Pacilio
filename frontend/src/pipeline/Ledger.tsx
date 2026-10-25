@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useProcedure } from 'spacetimedb/react';
-import { Button, Money } from '../../../design-system/src/components';
+import { Button, Icon, Money } from '../../../design-system/src/components';
 import { procedures } from '../module_bindings';
 import { FarCard, type CardLevels } from '../canvas/levels';
 import { Card } from './Card';
@@ -32,11 +33,49 @@ function Far() {
   );
 }
 
+// The whole sheet over the canvas, so every column and row has room. Esc or
+// Close returns.
+function SheetViewer({ onClose, onDownload }: { onClose: () => void; onDownload: () => void }) {
+  const { rows, t, doc } = useLedger();
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  return createPortal(
+    <div className="viewer-backdrop" onClick={onClose}>
+      <div className="viewer" role="dialog" aria-label="Master ledger" onClick={e => e.stopPropagation()}>
+        <header className="viewer-head">
+          <span className="viewer-title">
+            <Icon name="FileTable" /> Master ledger.xlsx
+            <span className="muted small">
+              {doc ? `Updated ${clock(doc.updatedAt.toDate())} · ` : ''}net <Money value={t.net} />, {t.settled} posted, {t.held} held for you
+            </span>
+          </span>
+          <span className="viewer-actions">
+            <Button kind="secondary" size="sm" icon="download" disabled={!doc} onClick={onDownload}>
+              Download .xlsx
+            </Button>
+            <Button kind="quiet" size="sm" icon="Close" onClick={onClose}>
+              Close
+            </Button>
+          </span>
+        </header>
+        <div className="viewer-sheet">
+          <ExcelSheet rows={rows} />
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 function Full() {
   const { rows, t, doc } = useLedger();
   const xlsxUrl = useProcedure(procedures.ledgerXlsxUrl);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [viewing, setViewing] = useState(false);
 
   const download = () => {
     setBusy(true);
@@ -56,6 +95,9 @@ function Full() {
       meta={
         <>
           <span className="muted small">{doc ? `Updated ${clock(doc.updatedAt.toDate())}` : 'Not written yet'}</span>
+          <Button kind="secondary" size="sm" icon="ExpandAll" onClick={() => setViewing(true)}>
+            Full screen
+          </Button>
           <Button kind="secondary" size="sm" icon="download" disabled={!doc} pending={busy} onClick={download}>
             Download .xlsx
           </Button>
@@ -68,6 +110,7 @@ function Full() {
         Net <Money value={t.net} /> from {t.settled} posted and refunded rows; {t.held} held for you. The .xlsx is the agent's
         workbook, with the same sheets.
       </p>
+      {viewing && <SheetViewer onClose={() => setViewing(false)} onDownload={download} />}
     </Card>
   );
 }

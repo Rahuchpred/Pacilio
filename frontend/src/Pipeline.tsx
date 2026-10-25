@@ -31,6 +31,7 @@ import { needsYou } from './pipeline/NeedsYou';
 import { report, reportAgent } from './pipeline/Reports';
 import { transaction } from './pipeline/Transactions';
 import { TXN_SLOTS, useOpenItems, useTransactions } from './pipeline/live';
+import { LANE_SOURCES, laneId } from './pipeline/activity';
 import '../../design-system/src/tokens/tokens.css';
 import '../../design-system/src/buttons.css';
 import './ui/ds.css';
@@ -77,7 +78,18 @@ function useEdges(): Edge[] {
   return useMemo(() => {
     const e = (edge: Edge): Edge => ({ type: 'flow', markerEnd: arrow, ...edge });
     return [
-      e({ id: 'e-inbox-main', source: 'inbox', target: 'main', targetHandle: 'in', data: { packets: true } }),
+      // Four lanes, one per source, each in its source's color
+      ...LANE_SOURCES.map(source =>
+        e({
+          id: laneId(source),
+          source: 'inbox',
+          sourceHandle: `out-${source}`,
+          target: 'main',
+          targetHandle: `in-${source}`,
+          className: `edge-lane src-${source}`,
+          markerEnd: undefined,
+        })
+      ),
       ...Array.from({ length: TXN_SLOTS }, (_, i) =>
         e({
           id: `e-main-${txnId(i)}`,
@@ -88,7 +100,9 @@ function useEdges(): Edge[] {
           markerEnd: undefined,
           animated: checking[i],
           className: checking[i] ? 'edge-working' : 'edge-quiet',
-          data: { path: 'smoothstep' },
+          // Every line turns at the same height under the agent, then drops
+          // straight down its column, so lower rows never cross the cards above
+          data: { path: 'smoothstep', turnAfter: 48 },
         })
       ),
       e({
@@ -100,18 +114,18 @@ function useEdges(): Edge[] {
         label: 'Unsure',
         className: 'edge-decide',
         markerEnd: open ? decideArrow : arrow,
-        data: { calm: !open },
+        data: { calm: !open, path: 'smoothstep', labelOnDrop: true },
       }),
       e({
         id: 'e-flagged-ledger',
         source: 'flagged',
-        sourceHandle: 'out',
+        sourceHandle: 'ok',
         target: 'ledger',
         targetHandle: 'answer',
         label: 'After your OK',
         className: 'edge-report edge-money',
         markerEnd: moneyArrow,
-        data: { path: 'smoothstep' },
+        data: { path: 'smoothstep', labelOnDrop: true },
       }),
       e({
         id: 'e-flagged-emails',

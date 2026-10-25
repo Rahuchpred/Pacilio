@@ -164,3 +164,30 @@
 .xl tbody th,
 .xl tbody td { height: 22px; box-sizing: border-box; }
 .xl tr.xl-spacer td { padding: 0; border: 0; background: transparent; }
+
+/* Rows that changed below the fold: a chip over the sheet tabs, in Excel's
+   green, that scrolls down to them while they still flash. */
+.xl { position: relative; }
+.xl-new {
+  position: absolute;
+  left: 50%;
+  bottom: 64px;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 13px;
+  background: #107c41;
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.18);
+  cursor: pointer;
+  z-index: 3;
+  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), opacity 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+@starting-style { .xl-new { opacity: 0; transform: translateX(-50%) translateY(4px); } }
+.xl-new:active { transform: translateX(-50%) scale(0.97); }

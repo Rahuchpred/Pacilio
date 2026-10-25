@@ -1,17 +1,20 @@
 import { useState } from 'react';
-import { Icon, Status } from '../../../design-system/src/components';
+import { Icon, Money, Status } from '../../../design-system/src/components';
 import type { AgentRun } from '../module_bindings/types';
-import { FarCard, type CardLevels } from '../canvas/levels';
+import { FarCard, type CardLevels, type Look } from '../canvas/levels';
+import { useLiveList } from '../canvas/motion';
 import { Card } from './Card';
-import { clock, openItem, useAgentLook, useRows } from './live';
+import { ROW_STATUS, clock, dollars, openItem, useAgentLook, useRows, type Row, type RowState } from './live';
 import { useLive } from './store';
 
 // The main agent: Droid on the Factory computer, checking events in batches
 // and writing the master ledger.
 
-const LOG_FULL = 12;
+const RUNS_SHOWN = 12;
 const STEPS = 14;
-const RUN_CHIPS = 10;
+
+// Tool chatter that says nothing about the books.
+const NOISE = /^(ran tools in parallel|updated plan|\/home\/)/i;
 
 function useAgent() {
   const look = useAgentLook();
@@ -20,22 +23,38 @@ function useAgent() {
   const checking = rows.filter(r => r.state === 'checking').length;
   const waiting = rows.filter(r => r.state === 'waiting').length;
   const done = rows.length - checking - waiting;
-  return { look, agent: agents[0], runs: runsDesc, checking, waiting, done };
+  return { look, agent: agents[0], runs: runsDesc, rows, checking, waiting, done };
 }
 
-function runLine(run: AgentRun): string {
-  if (run.status === 'running') return `Checking ${run.eventIds.length} ${run.eventIds.length === 1 ? 'event' : 'events'}…`;
-  if (run.status === 'failed') return run.error ?? 'The run failed; its events go back in the queue.';
-  return run.summary ?? `Checked ${run.eventIds.length} events.`;
+// Where a run's events ended up, in reading order.
+const OUTCOMES: { states: RowState[]; label: string }[] = [
+  { states: ['posted', 'refunded'], label: 'posted' },
+  { states: ['review'], label: 'asked' },
+  { states: ['following_up'], label: 'following up' },
+  { states: ['voided'], label: 'void' },
+];
+
+function outcomeLine(rows: Row[]): string {
+  const parts = OUTCOMES.map(o => ({ n: rows.filter(r => o.states.includes(r.state)).length, label: o.label }))
+    .filter(p => p.n > 0)
+    .map(p => `${p.n} ${p.label}`);
+  return parts.join(' · ');
+}
+
+function minutes(run: AgentRun): string | null {
+  if (!run.finishedAt) return null;
+  const ms = run.finishedAt.toDate().getTime() - run.startedAt.toDate().getTime();
+  const s = Math.max(1, Math.round(ms / 1000));
+  return s < 60 ? `${s}s` : `${Math.round(s / 60)} min`;
 }
 
 // What Droid did in one run: commands, files, its notes.
 export function Steps({ taskId, limit = STEPS }: { taskId: bigint | undefined; limit?: number }) {
   const { stepsByTask } = useLive();
   if (taskId === undefined) return null;
-  // Droid's own words and tool calls; not the prompt, its thinking or the JSON reply
+  // Droid's own words and tool calls; not the prompt, its thinking, the JSON reply or tool chatter
   const mine = (stepsByTask.get(taskId.toString()) ?? [])
-    .filter(s => s.role !== 'user' && s.kind !== 'thinking' && s.text.trim() && !s.text.trim().startsWith('{'))
+    .filter(s => s.role !== 'user' && s.kind !== 'thinking' && s.text.trim() && !s.text.trim().startsWith('{') && !NOISE.test(s.text.trim()))
     .slice(-limit);
   if (!mine.length) return <p className="muted small">Starting up on the Factory computer…</p>;
   return (
@@ -50,94 +69,165 @@ export function Steps({ taskId, limit = STEPS }: { taskId: bigint | undefined; l
   );
 }
 
+// Working stays ink; green once the queue is empty after a clean run; red on an error.
+function useMainLook(): Look {
+  const { look, runs, waiting, checking } = useAgent();
+  if (look.state === 'issue') return 'issue';
+  if (look.state === 'working') return 'working';
+  if (runs[0]?.status === 'failed') return 'issue';
+  if (runs.length && !waiting && !checking) return 'done';
+  return 'idle';
+}
+
 function Far() {
   const { look, checking, waiting } = useAgent();
+  const state = useMainLook();
   return (
     <FarCard
       type="main"
       width="w-main"
       icon="agent"
       word="Main agent"
-      big={look.state === 'working' ? `Checking ${checking}` : `${waiting} waiting`}
-      line={<Status kind={look.kind}>{look.label}</Status>}
-      craft={look.state === 'working' ? 'decide' : look.state === 'issue' ? 'reject' : undefined}
+      big={
+        look.state === 'working' ? (
+          <>
+            {checking} <span className="far-unit">checking</span>
+          </>
+        ) : waiting ? (
+          <>
+            {waiting} <span className="far-unit">waiting</span>
+          </>
+        ) : (
+          'Caught up'
+        )
+      }
+      line={<Status kind={look.kind} busy={look.busy}>{look.label}</Status>}
+      craft={state === 'issue' ? 'reject' : state === 'done' ? 'accept' : undefined}
     />
   );
 }
 
-function Counts() {
-  const { checking, waiting, done } = useAgent();
-  return (
-    <dl className="counts">
-      <div>
-        <dt>Checking</dt>
-        <dd>{checking}</dd>
-      </div>
-      <div>
-        <dt>Waiting</dt>
-        <dd>{waiting}</dd>
-      </div>
-      <div>
-        <dt>Done</dt>
-        <dd>{done}</dd>
-      </div>
-    </dl>
-  );
+// One sentence on what the agent is doing right now.
+function nowLine(running: AgentRun | undefined, waiting: number, paused: boolean): string {
+  if (running) return `Checking ${running.eventIds.length} events since ${clock(running.startedAt.toDate())}. ${waiting} more wait for the next batch.`;
+  if (paused) return waiting ? `Paused with ${waiting} events waiting.` : 'Paused. Nothing is waiting.';
+  return waiting ? `${waiting} events wait for the next batch.` : 'Every event so far is checked.';
 }
 
-// Full: every run, and for the open one, what Droid actually did.
+// Full: what it is doing now, where everything ended up, and each run's calls.
 function Full() {
-  const { look, agent, runs } = useAgent();
-  const rows = useRows();
+  const { look, agent, runs, rows, waiting, checking } = useAgent();
   const [openRun, setOpenRun] = useState<string | null>(null);
-  const shown = runs.find(r => r.id.toString() === openRun) ?? runs[0];
+  const running = runs.find(r => r.status === 'running');
+  const shown = runs.find(r => r.id.toString() === openRun) ?? running ?? runs[0];
   const byEvent = new Map(rows.map(r => [r.event.id.toString(), r]));
+  const rowsOf = (run: AgentRun) => run.eventIds.map(id => byEvent.get(id.toString())).filter((r): r is Row => !!r);
+  const count = (...states: RowState[]) => rows.filter(r => states.includes(r.state)).length;
+  const shownRows = shown ? rowsOf(shown) : [];
+  const live = useLiveList(runs.slice(0, RUNS_SHOWN), r => r.id.toString());
+
   return (
-    <Card type="main" icon="agent" title="Main agent" meta={<Status kind={look.kind}>{look.label}</Status>} className="w-main-full pnode-main">
-      <p className="muted small">Droid on the Factory computer. It checks events in batches, writes the master ledger and asks you about anything it isn't sure of.</p>
-      <Counts />
+    <Card type="main" icon="agent" title="Main agent" meta={<Status kind={look.kind} busy={look.busy}>{look.label}</Status>} className="w-main-full pnode-main">
+      <p className="lede">{nowLine(running, waiting, !agent?.enabled)}</p>
       {agent?.lastError && <p className="card-error">{agent.lastError}</p>}
-      <div className="split-cols">
-        <div className="stack">
-          <span className="section-label">Runs</span>
-          <ol className="run-list nodrag nowheel">
-            {runs.slice(0, LOG_FULL).map(r => (
-              <li key={r.id.toString()}>
-                <button
-                  type="button"
-                  className="row-button"
-                  aria-pressed={r === shown}
-                  onClick={() => setOpenRun(r.id.toString())}
-                >
-                  <span className="log-time">{clock(r.startedAt.toDate())}</span>
-                  <span>{runLine(r)}</span>
-                </button>
-              </li>
-            ))}
-            {!runs.length && <li className="muted">No runs yet.</li>}
-          </ol>
+
+      <dl className="counts agent-counts">
+        <div>
+          <dt>Waiting</dt>
+          <dd>{waiting}</dd>
         </div>
-        {shown && (
-          <div className="stack">
-            <span className="section-label">Run {shown.id.toString()} · what Droid did</span>
-            <Steps taskId={shown.taskId} />
-            <span className="section-label">Events in this run</span>
-            <div className="chip-row nodrag">
-              {shown.eventIds.slice(0, RUN_CHIPS).map(id => {
-                const row = byEvent.get(id.toString());
-                return (
-                  <button key={id.toString()} type="button" className="mini-chip" onClick={() => openItem(id)}>
-                    {row?.event.counterparty ?? `Event ${id}`}
+        <div>
+          <dt>Checking</dt>
+          <dd>{checking}</dd>
+        </div>
+        <div>
+          <dt>Posted</dt>
+          <dd>{count('posted', 'refunded')}</dd>
+        </div>
+        <div>
+          <dt>Asked you</dt>
+          <dd>{count('review')}</dd>
+        </div>
+        <div>
+          <dt>Following up</dt>
+          <dd>{count('following_up')}</dd>
+        </div>
+        <div>
+          <dt>Voided</dt>
+          <dd>{count('voided')}</dd>
+        </div>
+      </dl>
+
+      <div className="agent-cols">
+        <section className="agent-col">
+          <h4 className="section-label agent-col-head">Runs</h4>
+          <ol className="agent-runs live-list nodrag nowheel" ref={live.list as React.Ref<HTMLOListElement>}>
+            {live.shown.map(({ item: r, key, leaving }) => {
+              const took = minutes(r);
+              return (
+                <li key={key} data-key={key} data-leaving={leaving}>
+                  <button type="button" className="agent-run" aria-pressed={r === shown} onClick={() => setOpenRun(r.id.toString())}>
+                    <span className="agent-run-time">{clock(r.startedAt.toDate())}</span>
+                    <span className="agent-run-what">
+                      {r.status === 'running'
+                        ? `Checking ${r.eventIds.length}`
+                        : r.status === 'failed'
+                          ? 'Failed'
+                          : outcomeLine(rowsOf(r)) || `${r.eventIds.length} checked`}
+                    </span>
+                    <span className="agent-run-took">{took ?? ''}</span>
                   </button>
-                );
-              })}
-              {shown.eventIds.length > RUN_CHIPS && <span className="muted small">+{shown.eventIds.length - RUN_CHIPS} more</span>}
+                </li>
+              );
+            })}
+            {!runs.length && <li className="muted small">No runs yet.</li>}
+          </ol>
+        </section>
+
+        <section className="agent-col">
+          <h4 className="section-label agent-col-head">
+            {shown ? `Run ${shown.id.toString()} · ${clock(shown.startedAt.toDate())} · ${shown.eventIds.length} events` : 'Run'}
+          </h4>
+          {shown ? (
+            <div className="agent-run-panel">
+              {shown.status === 'failed' && <p className="card-error">{shown.error ?? 'The run failed; its events go back in the queue.'}</p>}
+              <ul className="agent-events nodrag nowheel">
+                {shownRows.map(r => (
+                  <li key={r.event.id.toString()}>
+                    <button type="button" className="agent-event" onClick={() => openItem(r.event.id)}>
+                      <span className="agent-event-name">
+                        <span className="strong">{r.event.counterparty}</span>
+                        {r.review?.note && <span className="muted small">{r.review.note}</span>}
+                      </span>
+                      <span className="agent-event-amount">
+                        <Money value={dollars(r.event.amountMinor, r.event.currency)} />
+                      </span>
+                      <span className="agent-event-status">
+                        <Status kind={ROW_STATUS[r.state].kind} busy={ROW_STATUS[r.state].busy}>{ROW_STATUS[r.state].label}</Status>
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {shown.summary && (
+                <p className="agent-summary">
+                  <Icon name="agent" size={14} /> {shown.summary}
+                </p>
+              )}
+              <details className="agent-steps">
+                <summary>
+                  <Icon name="ChevronRight" size={12} /> Commands Droid ran
+                </summary>
+                <Steps taskId={shown.taskId} />
+              </details>
             </div>
-          </div>
-        )}
+          ) : (
+            <p className="muted small">No runs yet.</p>
+          )}
+        </section>
       </div>
     </Card>
   );
 }
 
-export const mainAgent: CardLevels = { far: Far, full: Full };
+export const mainAgent: CardLevels = { far: Far, full: Full, useLook: useMainLook };

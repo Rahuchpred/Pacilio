@@ -70,7 +70,7 @@
   fill: var(--color-action-accept);
 }
 .pipeline .react-flow__node-main .react-flow__handle[data-handleid="out"],
-.pipeline .react-flow__node-flagged .react-flow__handle[data-handleid="out"],
+.pipeline .react-flow__node-flagged .react-flow__handle[data-handleid="ok"],
 .pipeline .react-flow__node-ledger .react-flow__handle[data-handleid="in"],
 .pipeline .react-flow__node-ledger .react-flow__handle[data-handleid="answer"] {
   background: var(--color-action-accept);
@@ -166,6 +166,8 @@
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
+/* Restart asks in place: what it clears, then clear or keep. */
+.dock-confirm { display: flex; align-items: center; gap: var(--space-xs); }
 @media (max-width: 720px) {
   .dock-clock { display: none; }
 }

@@ -15,7 +15,8 @@ import { useLive } from './store';
 // Without a reply, Settle nudges on a schedule; a reply comes to the top with
 // a blue dot.
 
-const SIGNATURE = /\n\n— Settle, bookkeeping for the Oct 24 show$/;
+// Matches the current signature and the older one with a leading dash.
+const SIGNATURE = /\n\n(?:\u2014 Settle, bookkeeping|Settle\nBookkeeping) for the Oct 24 show$/;
 
 const THREAD_STATUS: Record<string, { kind: StatusKind; label: string }> = {
   waiting: { kind: 'held', label: 'Waiting' },
@@ -80,7 +81,7 @@ function ThreadTag({ thread }: { thread: EmailThread }) {
   const s = THREAD_STATUS[thread.status] ?? { kind: 'agent', label: thread.status };
   return (
     <span className="thread-tag">
-      {thread.unread && <span className="email-dot" aria-label="new reply" />}
+      {thread.unread && <span className="thread-new">New reply</span>}
       <Status kind={s.kind}>{s.label}</Status>
     </span>
   );
