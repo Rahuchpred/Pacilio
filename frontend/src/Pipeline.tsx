@@ -278,6 +278,12 @@ export function Pipeline() {
         edgesFocusable={false}
         colorMode="light"
         minZoom={0.15}
+        // Trackpad: two fingers pan, pinch zooms (Figma-style). A mouse wheel
+        // pans too; hold Cmd/Ctrl to zoom with it. Lists and the spreadsheet
+        // inside open cards still scroll themselves (they are marked nowheel).
+        panOnScroll
+        zoomOnPinch
+        zoomActivationKeyCode={['Meta', 'Control']}
         fitView
         fitViewOptions={FIT}
         proOptions={{ hideAttribution: true }}

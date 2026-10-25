@@ -185,6 +185,8 @@ export function ExcelSheet({ rows }: { rows: Row[] }) {
   let content = sheet.headers[0];
   let count = sheet.rows.filter(r => !r.total && r.cells.some(Boolean)).length;
   let sum: number | null = null;
+  // Money cells sum as money, counts as plain numbers, like Excel's formats
+  let sumIsMoney = true;
   if (sel && 'col' in sel) {
     name = `${letter(sel.col + 1)}:${letter(sel.col + 1)}`;
     const values = sheet.rows.filter(r => !r.total).map(r => r.cells[sel.col]).filter(Boolean);
@@ -192,12 +194,14 @@ export function ExcelSheet({ rows }: { rows: Row[] }) {
     count = values.length;
     const nums = values.map(parseMoney).filter((v): v is number => v !== null);
     sum = nums.length ? nums.reduce((t, v) => t + v, 0) : null;
+    sumIsMoney = values.some(v => v.includes('$'));
   } else if (sel) {
     const cell = sheet.rows[sel.r]?.cells[sel.c] ?? '';
     name = `${letter(sel.c + 1)}${sel.r + 2}`;
     content = sheet.formula(sel.r, sel.c) ?? cell;
     count = cell ? 1 : 0;
     sum = parseMoney(cell);
+    sumIsMoney = cell.includes('$');
   } else if (sheet.id === 'ledger') {
     const total = sheet.rows[sheet.rows.length - 1];
     sum = parseMoney(total.cells[AMOUNT_COL]);
@@ -317,7 +321,7 @@ export function ExcelSheet({ rows }: { rows: Row[] }) {
         <span>Ready{sheet.id !== 'summary' ? ' · double-click a row to look closer' : ''}</span>
         <span>
           <span>Count: {count}</span>
-          {sum !== null && <span>Sum: {money(sum)}</span>}
+          {sum !== null && <span>Sum: {sumIsMoney ? money(sum) : sum.toLocaleString('en-US')}</span>}
         </span>
       </div>
     </div>
