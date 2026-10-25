@@ -30,7 +30,7 @@ type Task = NonNullable<ReturnType<Ctx['db']['agentTask']['id']['find']>>;
 type AgentState = NonNullable<ReturnType<Ctx['db']['pipelineAgent']['id']['find']>>;
 
 // Each run has a fixed startup cost, so moderate batches keep up with the sources
-const BATCH_SIZE = 20;
+const BATCH_SIZE = 30;
 // Don't spend a run's startup cost on one or two events: wait for a batch,
 // unless the oldest waiting event has waited long enough
 const MIN_BATCH = 8;

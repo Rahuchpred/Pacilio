@@ -39,7 +39,7 @@ export const stripe: Source = {
   requiredEnv: ['STRIPE_SECRET_KEY'],
   defaultMaxPerTick: 20,
   defaultProfile: { typoRate: 0, typoFields: [], duplicateRate: 0.03 },
-  simulateChance: 0.7,
+  simulateChance: 0.85,
 
   // Only balance transactions created from now on
   baseline(ctx) {
