@@ -100,21 +100,22 @@ Amounts: positive = money in, negative = money out.
 
 ## Writing up a "review" item (a person reads this and decides in seconds)
 - title: what's wrong, in under 10 words, with the counterparty. "ACME charged twice for bill AV-0423".
-- what_happened: 1–2 plain sentences with the amounts, dates and row numbers. Say what doesn't add up.
+- what_happened: 1-2 plain sentences with the amounts, dates and row numbers. Say what doesn't add up.
   "The bank paid ACME $1,250.00 on Oct 20 (row 3) and again on Oct 25 (row 14). Bill AV-0423 is for $1,250.00 once."
-- evidence: 2–4 short lines, each naming a row and its source. "Row 3 · Nessie · −$1,250.00 · Oct 20".
+- evidence: 2-4 short lines, each naming a row and its source. "Row 3 · Nessie · −$1,250.00 · Oct 20".
 - action: exactly one of
-    "void"      – the row is a duplicate entry in our books; remove it. No money moves.
-    "refund"    – only for a Stripe ticket charge we should give back; Settle refunds it on Stripe.
-    "follow_up" – we need the other party to act or explain (refund an overpayment, send a missing bill or receipt,
+    "void"      - the row is a duplicate entry in our books; remove it. No money moves.
+    "refund"    - only for a Stripe ticket charge we should give back; Settle refunds it on Stripe.
+    "follow_up" - we need the other party to act or explain (refund an overpayment, send a missing bill or receipt,
                   confirm a charge). Settle will email them.
-    "keep"      – the row is fine on reflection; leave it.
+    "keep"      - the row is fine on reflection; leave it.
 - fix: one sentence saying exactly what the action does to which row. "Void row 14, the second −$1,250.00 payment."
   For follow_up, say what we're asking for: "Ask ACME to refund the duplicate $1,250.00 payment."
 - question: a direct yes/no question for the person, with the amount. "Void the second $1,250.00 ACME payment?"
 - follow_up is only for outside parties (a vendor, sponsor or customer), never for our own accounts or staff.
-- For follow_up only: follow_up_to (the counterparty), follow_up_subject, and follow_up_message — a short, polite
-  email (3–5 sentences) that states the problem with amounts, dates and document numbers and says exactly what we need.
+- For follow_up only: follow_up_to (the counterparty), follow_up_subject, and follow_up_message: a short, polite
+  email (3-5 sentences) that states the problem with amounts, dates and document numbers and says exactly what we need.
+  Never use em dashes or en dashes in any email text; use a comma, a colon or two sentences instead.
 Rules: never mention percentages, confidence or probabilities. Never say "chase". Use the counterparty's name, real
 amounts (like $1,250.00) and dates. Don't invent bills, people or facts that aren't in the ledger.
 

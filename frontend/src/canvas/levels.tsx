@@ -19,6 +19,10 @@ export type FarView = {
   // A card with something to say wears the crafted surface: orange while it
   // works or waits on a person, green when done, red with an open issue
   craft?: 'decide' | 'accept' | 'reject';
+  // The question wears orange only on its top band, like its open card
+  band?: boolean;
+  // Extra classes, e.g. a source color
+  className?: string;
 };
 
 export type CardLevels = {
@@ -39,7 +43,7 @@ export function Handles({ type }: { type: string }) {
           position={h.position}
           id={h.id}
           isConnectable={false}
-          style={h.left ? { left: h.left } : undefined}
+          style={h.left || h.top ? { left: h.left, top: h.top } : undefined}
         />
       ))}
     </>
@@ -65,8 +69,8 @@ function useFitText<T extends HTMLElement>() {
 export function FarCard({ type, width, ...v }: FarView & { type: string; width: string }) {
   const big = useFitText<HTMLDivElement>();
   return (
-    <div className={`pnode far-card ${width}${v.craft ? ' ' + CRAFT[v.craft] : ''}`}>
-      <div className="far-word">
+    <div className={`pnode far-card ${width}${v.craft ? ' ' + CRAFT[v.craft] : ''}${v.band ? ' is-banded' : ''}${v.className ? ' ' + v.className : ''}`}>
+      <div className={v.band ? 'far-word far-band' : 'far-word'}>
         <Icon name={v.icon} />
         <span>{v.word}</span>
       </div>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Icon } from '../../../design-system/src/components';
 import { ROW_STATUS, SOURCE_TITLES, dollars, kindLabel, openItem, type Row, type RowState } from './live';
 import './excel.css';
 
@@ -204,17 +205,54 @@ function useWindow(grid: React.RefObject<HTMLDivElement | null>, count: number) 
   // The header row (row 1) sits above the data rows
   const first = Math.max(0, Math.floor((view.top - ROW_H) / ROW_H) - OVERSCAN);
   const last = Math.min(count, Math.ceil((view.top + view.height) / ROW_H) + OVERSCAN);
-  return { first, last };
+  // The last data row actually on screen, for "new rows below"
+  const bottom = Math.floor((view.top + view.height) / ROW_H) - 2;
+  return { first, last, bottom };
 }
 
 export function ExcelSheet({ rows }: { rows: Row[] }) {
   const fresh = useFresh(rows);
-  const sheets = useMemo(() => buildSheets(rows, fresh), [rows, fresh]);
+  // Rows that changed while out of sight wait here until you scroll to them,
+  // then flash as they come into view
+  const [unseen, setUnseen] = useState<Set<string>>(new Set());
+  const [revealed, setRevealed] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!fresh.size) return;
+    setUnseen(prev => new Set([...prev, ...fresh]));
+  }, [fresh]);
+  const lit = useMemo(() => new Set([...fresh, ...revealed]), [fresh, revealed]);
+  const sheets = useMemo(() => buildSheets(rows, lit), [rows, lit]);
   const [tab, setTab] = useState('ledger');
   const [sel, setSel] = useState<Selection>(null);
   const grid = useRef<HTMLDivElement>(null);
   const sheet = sheets.find(s => s.id === tab) ?? sheets[0];
-  const { first, last } = useWindow(grid, sheet.rows.length);
+  const { first, last, bottom } = useWindow(grid, sheet.rows.length);
+  // Rows that just changed but sit below the fold: their flash would happen
+  // out of sight, so a chip says how many and takes you there
+  const indexOf = useMemo(() => new Map(sheet.rows.map((row, i) => [row.eventId?.toString(), i])), [sheet]);
+  const freshBelow = [...unseen]
+    .map(id => indexOf.get(id))
+    .filter((i): i is number => i !== undefined && i > bottom)
+    .sort((a, b) => a - b);
+  const freshCount = fresh.size;
+  // Pending rows now on screen: flash them once and let them go
+  useEffect(() => {
+    const shown = [...unseen].filter(id => {
+      const i = indexOf.get(id);
+      return i === undefined || i <= bottom;
+    });
+    if (!shown.length) return;
+    setUnseen(prev => new Set([...prev].filter(id => !shown.includes(id))));
+    const inView = shown.filter(id => !fresh.has(id) && indexOf.has(id));
+    if (!inView.length) return;
+    setRevealed(prev => new Set([...prev, ...inView]));
+    window.setTimeout(() => setRevealed(prev => new Set([...prev].filter(id => !inView.includes(id)))), FLASH_MS);
+  }, [unseen, indexOf, bottom, fresh]);
+  const toFresh = () => {
+    const el = grid.current;
+    if (!el || !freshBelow.length) return;
+    el.scrollTo({ top: (freshBelow[0] + 1) * ROW_H - el.clientHeight / 3, behavior: 'smooth' });
+  };
 
   // The bar's name box and contents, and the status bar's count and sum
   let name = 'A1';
@@ -357,6 +395,11 @@ export function ExcelSheet({ rows }: { rows: Row[] }) {
           </tbody>
         </table>
       </div>
+      {freshBelow.length > 0 && (
+        <button type="button" className="xl-new" onClick={toFresh}>
+          <Icon name="ArrowDown" size={12} /> {freshBelow.length} new {freshBelow.length === 1 ? 'row' : 'rows'}
+        </button>
+      )}
       <nav className="xl-tabs" role="tablist" aria-label="Sheets">
         {sheets.map(s => (
           <button
@@ -374,7 +417,10 @@ export function ExcelSheet({ rows }: { rows: Row[] }) {
         ))}
       </nav>
       <div className="xl-status">
-        <span>Ready{sheet.id !== 'summary' ? ' · double-click a row to look closer' : ''}</span>
+        <span>
+          {freshCount ? `Updated ${freshCount} ${freshCount === 1 ? 'row' : 'rows'}` : 'Ready'}
+          {sheet.id !== 'summary' ? ' · double-click a row to look closer' : ''}
+        </span>
         <span>
           <span>Count: {count}</span>
           {sum !== null && <span>Sum: {sumIsMoney ? money(sum) : sum.toLocaleString('en-US')}</span>}

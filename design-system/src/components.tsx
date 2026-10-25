@@ -231,10 +231,12 @@ const statusIcon: Record<StatusKind, IconName> = {
   needs: "hourglass",
   agent: "agent",
 };
-export function Status({ kind, children }: { kind: StatusKind; children: ReactNode }) {
+/* busy: work in progress. A spinner replaces the icon, so "working" reads
+   as motion, not as an agent mark fading in and out. */
+export function Status({ kind, busy, children }: { kind: StatusKind; busy?: boolean; children: ReactNode }) {
   return (
-    <span className={`status status-${kind}`}>
-      <Icon name={statusIcon[kind]} size={14} />
+    <span className={`status status-${kind}${busy ? " is-busy" : ""}`}>
+      {busy ? <span className="spinner" aria-hidden="true" /> : <Icon name={statusIcon[kind]} size={14} />}
       {children}
     </span>
   );

@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useProcedure, useReducer } from 'spacetimedb/react';
-import { Button, Money, Status, type StatusKind } from '../../../design-system/src/components';
+import { Button, Icon, Money, Status, type IconName, type StatusKind } from '../../../design-system/src/components';
 import { procedures, reducers } from '../module_bindings';
 import { logError } from '../throttle';
 import { FarCard, type CardLevels, type Look } from '../canvas/levels';
@@ -25,10 +26,10 @@ function useReport() {
   const next = state?.lastStartedAt
     ? new Date(state.lastStartedAt.toDate().getTime() + EVERY_MIN * 60_000)
     : undefined;
-  const status: { kind: StatusKind; label: string } = state?.lastError
+  const status: { kind: StatusKind; label: string; busy?: boolean } = state?.lastError
     ? { kind: 'disputed', label: 'Error' }
     : building
-      ? { kind: 'needs', label: 'Building' }
+      ? { kind: 'agent', label: 'Building', busy: true }
       : running
         ? { kind: 'cleared', label: 'Ready' }
         : { kind: 'agent', label: 'Paused' };
@@ -36,23 +37,25 @@ function useReport() {
 }
 
 function useReportLook(): Look {
-  const { state, building, doc } = useReport();
+  const { state, building, doc, running } = useReport();
   if (state?.lastError) return 'issue';
   if (building) return 'working';
-  return doc ? 'idle' : 'idle';
+  // Green only while it is on duty; a paused agent stays plain
+  return doc && running ? 'done' : 'idle';
 }
 
 function AgentFar() {
-  const { doc, building, status } = useReport();
+  const { doc, status } = useReport();
+  const look = useReportLook();
   return (
     <FarCard
       type="reportAgent"
       width="w-ragent"
       icon="agent"
       word="Reports agent"
-      big={<Status kind={status.kind}>{status.label}</Status>}
+      big={<Status kind={status.kind} busy={status.busy}>{status.label}</Status>}
       line={doc ? `Last report ${clock(doc.updatedAt.toDate())}` : 'No report yet'}
-      craft={building ? 'decide' : undefined}
+      craft={look === 'issue' ? 'reject' : look === 'done' ? 'accept' : undefined}
     />
   );
 }
@@ -67,43 +70,71 @@ function BuildNow() {
   );
 }
 
-function AgentShort() {
-  const { doc, running, next, status, state } = useReport();
+// One step of the build: a tile with its state, joined to the next by a line
+// that flows while work moves along it.
+type StepState = 'done' | 'active' | 'waiting';
+function BuildStep({ icon, label, value, state }: { icon: IconName; label: string; value: string; state: StepState }) {
   return (
-    <Card type="reportAgent" icon="agent" title="Reports agent" meta={<Status kind={status.kind}>{status.label}</Status>} className="w-ragent">
-      <dl className="counts">
-        <div>
-          <dt>Last report</dt>
-          <dd>{doc ? clock(doc.updatedAt.toDate()) : '–'}</dd>
-        </div>
-        <div>
-          <dt>Next</dt>
-          <dd>{running ? (next ? `after ${clock(next)}` : 'soon') : 'paused'}</dd>
-        </div>
-      </dl>
-      {state?.lastError ? (
-        <p className="card-error">{state.lastError}</p>
-      ) : (
-        <p className="muted small">Reads settled rows only, every {EVERY_MIN} min when the ledger changes.</p>
-      )}
-      <div className="nodrag">
-        <BuildNow />
-      </div>
-    </Card>
+    <div className={`rp-step is-${state}`}>
+      {state === 'active' ? <span className="spinner" aria-hidden="true" /> : <Icon name={icon} size={16} />}
+      <span className="rp-step-label">{label}</span>
+      <span className="rp-step-value">{value}</span>
+    </div>
   );
 }
 
+// The reports agent in one card: how a report gets made, step by step, with
+// the live work while it builds and the last result while it rests.
 function AgentFull() {
-  const { state, doc } = useReport();
+  const { state, doc, building, running, next, status } = useReport();
+  const t = totals(useRows());
   const taskId = state?.taskId ?? doc?.taskId;
+  const built = doc ? clock(doc.updatedAt.toDate()) : null;
   return (
-    <div className="w-ragent-full">
-      <AgentShort />
-      <div className="pnode agent-steps-card">
-        <span className="section-label">{state?.taskId !== undefined ? 'Building now' : 'Last build'} · what Droid did</span>
-        <Steps taskId={taskId} />
+    <Card type="reportAgent" icon="agent" title="Reports agent" meta={<Status kind={status.kind} busy={status.busy}>{status.label}</Status>} className="w-ragent-full rp-card">
+      <div className={`rp-flow${building ? ' is-building' : ''}`}>
+        <BuildStep icon="FileTable" label="Ledger" value={`${t.settled.toLocaleString('en-US')} settled rows`} state="done" />
+        <span className="rp-link" aria-hidden="true" />
+        <BuildStep
+          icon="agent"
+          label="Droid builds"
+          value={building ? 'Building now' : built ? 'Done' : 'Not run yet'}
+          state={building ? 'active' : built ? 'done' : 'waiting'}
+        />
+        <span className="rp-link" aria-hidden="true" />
+        <BuildStep icon="ChartLine" label="Show report" value={building ? 'Next version soon' : built ?? 'None yet'} state={building ? 'waiting' : built ? 'done' : 'waiting'} />
       </div>
-    </div>
+
+      {state?.lastError && <p className="card-error">{state.lastError}</p>}
+
+      {building ? (
+        <section className="stack">
+          <h4 className="section-label">Droid, right now</h4>
+          <Steps taskId={state?.taskId} limit={5} />
+        </section>
+      ) : (
+        <section className="stack">
+          <h4 className="section-label">{built ? `Last report · ${built}` : 'No report yet'}</h4>
+          {doc?.headline ? <p className="agent-built">{doc.headline}</p> : <p className="muted small">Build one to see the show's numbers.</p>}
+        </section>
+      )}
+
+      <div className="rp-foot nodrag">
+        <span className="muted small">
+          {running ? (next ? `Next build after ${clock(next)}, if the ledger changed` : 'Next build soon') : 'Paused'} · every {EVERY_MIN} min
+        </span>
+        <BuildNow />
+      </div>
+
+      {!building && taskId !== undefined && (
+        <details className="agent-steps">
+          <summary>
+            <Icon name="ChevronRight" size={12} /> Commands Droid ran
+          </summary>
+          <Steps taskId={taskId} />
+        </details>
+      )}
+    </Card>
   );
 }
 
@@ -132,12 +163,72 @@ function ReportFar() {
   );
 }
 
+// The report at full size: the agent's conclusions on the left, the whole
+// dashboard on the right, over the canvas. Esc or Close returns.
+function ReportViewer({ onClose, onDownload }: { onClose: () => void; onDownload: () => void }) {
+  const { doc } = useReport();
+  const commentary = jsonList(doc?.commentary);
+  const watch = jsonList(doc?.watch);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  if (!doc) return null;
+  return createPortal(
+    <div className="viewer-backdrop" onClick={onClose}>
+      <div className="viewer" role="dialog" aria-label="Show report" onClick={e => e.stopPropagation()}>
+        <header className="viewer-head">
+          <span className="viewer-title">
+            <Icon name="ChartLine" /> Show report
+            <span className="muted small">Built {clock(doc.updatedAt.toDate())} from settled rows</span>
+          </span>
+          <span className="viewer-actions">
+            <Button kind="secondary" size="sm" icon="download" onClick={onDownload}>
+              Download .xlsx
+            </Button>
+            <Button kind="quiet" size="sm" icon="Close" onClick={onClose}>
+              Close
+            </Button>
+          </span>
+        </header>
+        <div className="viewer-body">
+          <aside className="viewer-side">
+            {doc.headline && <p className="lede">{doc.headline}</p>}
+            <section className="stack">
+              <h4 className="section-label">What the reports agent concluded</h4>
+              <ul className="takeaways">
+                {commentary.map(line => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            </section>
+            {watch.length > 0 && (
+              <section className="stack">
+                <h4 className="section-label">Worth a look</h4>
+                <ul className="takeaways">
+                  {watch.map(line => (
+                    <li key={line}>{line}</li>
+                  ))}
+                </ul>
+              </section>
+            )}
+          </aside>
+          <iframe className="viewer-frame" title="Show report, full size" sandbox="" srcDoc={doc.html} />
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 function ReportFull() {
   const { doc, status, building } = useReport();
   const xlsxUrl = useProcedure(procedures.reportXlsxUrl);
   const [error, setError] = useState<string | null>(null);
   const commentary = jsonList(doc?.commentary);
   const watch = jsonList(doc?.watch);
+  const [viewing, setViewing] = useState(false);
 
   const download = () => {
     setError(null);
@@ -154,7 +245,10 @@ function ReportFull() {
       className="w-report-full"
       meta={
         <>
-          {building && <Status kind={status.kind}>{status.label}</Status>}
+          {building && <Status kind={status.kind} busy={status.busy}>{status.label}</Status>}
+          <Button kind="secondary" size="sm" icon="ExpandAll" disabled={!doc} onClick={() => setViewing(true)}>
+            Full screen
+          </Button>
           <Button kind="secondary" size="sm" icon="download" disabled={!doc} onClick={download}>
             Download .xlsx
           </Button>
@@ -191,6 +285,7 @@ function ReportFull() {
       ) : (
         <p className="muted">Built from settled ledger rows every 10 minutes while the pipeline runs, or now from the reports agent.</p>
       )}
+      {viewing && <ReportViewer onClose={() => setViewing(false)} onDownload={download} />}
     </Card>
   );
 }

@@ -50,9 +50,9 @@ export function jsonList(json: string | undefined): string[] {
 // Where one event stands, from arrival to the ledger.
 export type RowState = 'waiting' | 'checking' | 'posted' | 'refunded' | 'voided' | 'review' | 'following_up';
 
-export const ROW_STATUS: Record<RowState, { kind: StatusKind; label: string }> = {
+export const ROW_STATUS: Record<RowState, { kind: StatusKind; label: string; busy?: boolean }> = {
   waiting: { kind: 'agent', label: 'Waiting' },
-  checking: { kind: 'needs', label: 'Checking' },
+  checking: { kind: 'agent', label: 'Checking', busy: true },
   posted: { kind: 'cleared', label: 'Posted' },
   refunded: { kind: 'cleared', label: 'Refunded' },
   voided: { kind: 'agent', label: 'Voided' },
@@ -115,12 +115,12 @@ export function useOpenItems(): ReviewItem[] {
   return useLive().openItems;
 }
 
-export type AgentLook = { state: 'idle' | 'working' | 'done' | 'issue'; kind: StatusKind; label: string };
+export type AgentLook = { state: 'idle' | 'working' | 'done' | 'issue'; kind: StatusKind; label: string; busy?: boolean };
 
 export function useAgentLook(): AgentLook {
   const agent = useLive().agents[0];
   if (agent?.lastError) return { state: 'issue', kind: 'disputed', label: 'Error' };
-  if (agent?.status === 'running') return { state: 'working', kind: 'needs', label: 'Working' };
+  if (agent?.status === 'running') return { state: 'working', kind: 'agent', label: 'Working', busy: true };
   if (agent?.enabled) return { state: 'idle', kind: 'cleared', label: 'Ready' };
   return { state: 'idle', kind: 'agent', label: 'Paused' };
 }

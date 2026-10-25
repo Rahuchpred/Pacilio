@@ -1,5 +1,6 @@
 import { Position } from '@xyflow/react';
 import { TXN_SLOTS } from '../pipeline/live';
+import { LANE_SOURCES as LANES } from '../pipeline/activity';
 
 // Where every card sits. Positions are fixed and the same for everyone, spaced
 // for the cards at their middle size so opening one never moves the others.
@@ -8,7 +9,7 @@ import { TXN_SLOTS } from '../pipeline/live';
 //                     │   └──────┐
 // Sources ──── Main agent ──── Ledger ──── Reports agent ──── Show report
 //                  │
-//      transactions the agent is checking
+//      transactions the agent is checking, rows of five
 
 export const txnId = (i: number) => `txn-${i}`;
 
@@ -17,10 +18,17 @@ export const txnId = (i: number) => `txn-${i}`;
 const COL_GAP = 120;
 const TXN_W = 220;
 const TXN_GAP = 40;
+// The transactions sit in rows of five under the main agent
+const TXN_PER_ROW = 5;
+const TXN_ROW_H = 170;
+// A long run from the inbox to the main agent, so what travels it can be read
+const INBOX_GAP = 360;
 const INBOX_W = 340;
 const MAIN_X = INBOX_W + COL_GAP;
 const MAIN_W = 440;
-const LEDGER_X = MAIN_X + MAIN_W + COL_GAP;
+// A long run from the agent to the ledger: decisions ride it fast and often
+const LEDGER_GAP = 340;
+const LEDGER_X = MAIN_X + MAIN_W + LEDGER_GAP;
 const LEDGER_W = 480;
 const RAGENT_X = LEDGER_X + LEDGER_W + COL_GAP;
 const RAGENT_W = 320;
@@ -29,11 +37,11 @@ const REPORT_X = RAGENT_X + RAGENT_W + COL_GAP;
 const TOP_Y = -780;
 // Below the row: clear of the ledger's six rows and total
 const TXN_Y = 660;
-const TXN_ROW_W = TXN_SLOTS * TXN_W + (TXN_SLOTS - 1) * TXN_GAP;
+const TXN_ROW_W = TXN_PER_ROW * TXN_W + (TXN_PER_ROW - 1) * TXN_GAP;
 const TXN_X = MAIN_X + MAIN_W / 2 - TXN_ROW_W / 2;
 
 export const LAYOUT: Record<string, { type: string; x: number; y: number }> = {
-  inbox: { type: 'inbox', x: 0, y: 20 },
+  inbox: { type: 'inbox', x: MAIN_X - INBOX_GAP - INBOX_W, y: 20 },
   main: { type: 'main', x: MAIN_X, y: 0 },
   flagged: { type: 'flagged', x: MAIN_X, y: TOP_Y },
   ledger: { type: 'ledger', x: LEDGER_X, y: 0 },
@@ -41,7 +49,10 @@ export const LAYOUT: Record<string, { type: string; x: number; y: number }> = {
   reportAgent: { type: 'reportAgent', x: RAGENT_X, y: 20 },
   report: { type: 'report', x: REPORT_X, y: 0 },
   ...Object.fromEntries(
-    Array.from({ length: TXN_SLOTS }, (_, i) => [txnId(i), { type: 'txn', x: TXN_X + i * (TXN_W + TXN_GAP), y: TXN_Y }])
+    Array.from({ length: TXN_SLOTS }, (_, i) => [
+      txnId(i),
+      { type: 'txn', x: TXN_X + (i % TXN_PER_ROW) * (TXN_W + TXN_GAP), y: TXN_Y + Math.floor(i / TXN_PER_ROW) * TXN_ROW_H },
+    ])
   ),
 };
 
@@ -60,21 +71,25 @@ export const OVERVIEW: Record<string, { width: number; height: number }> = {
   report: { width: 420, height: 190 },
 };
 
-export type HandleSpec = { type: 'source' | 'target'; position: Position; id?: string; left?: string };
+export type HandleSpec = { type: 'source' | 'target'; position: Position; id?: string; left?: string; top?: string };
 
 // Connection points per card type, the same at every level.
 export const HANDLES: Record<string, HandleSpec[]> = {
-  inbox: [{ type: 'source', position: Position.Right }],
+  // One lane per source, in the order the inbox lists them
+  inbox: LANES.map((source, i) => ({ type: 'source' as const, position: Position.Right, id: `out-${source}`, top: `${30 + i * 14}%` })),
   main: [
-    { type: 'target', position: Position.Left, id: 'in' },
+    ...LANES.map((source, i) => ({ type: 'target' as const, position: Position.Left, id: `in-${source}`, top: `${28 + i * 15}%` })),
     { type: 'source', position: Position.Right, id: 'out' },
     { type: 'source', position: Position.Top, id: 'flag' },
     { type: 'source', position: Position.Bottom, id: 'txn' },
   ],
   txn: [{ type: 'target', position: Position.Top, id: 'in' }],
+  // Two lines leave the question on their own dots, so they never share a
+  // stretch: emails from the upper right, the answered ledger row from the lower right.
   flagged: [
     { type: 'target', position: Position.Bottom, id: 'in' },
-    { type: 'source', position: Position.Right, id: 'out' },
+    { type: 'source', position: Position.Right, id: 'out', top: '30%' },
+    { type: 'source', position: Position.Right, id: 'ok', top: '75%' },
   ],
   ledger: [
     { type: 'target', position: Position.Left, id: 'in' },

@@ -14,6 +14,7 @@ export function Dock() {
   const restart = useReducer(reducers.restartInbound);
   const tidy = useReducer(reducers.tidyPipelineLayout);
   const [busy, setBusy] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const running = statuses.filter(s => s.enabled).length > 0;
 
   const act = (fn: () => Promise<void>) => () => {
@@ -24,7 +25,7 @@ export function Dock() {
   return (
     <div className="dock">
       <span className="dock-state">
-        <Status kind={running ? 'cleared' : 'agent'}>{running ? 'Running' : 'Paused'}</Status>
+        <Status kind="agent" busy={running}>{running ? 'Running' : 'Paused'}</Status>
         <span className="dock-clock">{events.length} events</span>
       </span>
       {running ? (
@@ -36,20 +37,30 @@ export function Dock() {
           Run
         </Button>
       )}
-      <Button
-        kind="quiet"
-        size="sm"
-        icon="retry"
-        disabled={busy}
-        onClick={act(() => {
-          if (!window.confirm('Restart clears every event, the ledger and the report, and replays the sources from the start.')) {
-            return Promise.resolve();
-          }
-          return restart();
-        })}
-      >
-        Restart
-      </Button>
+      {confirming ? (
+        <span className="dock-confirm">
+          <span className="dock-clock">Clears every event, the ledger and the report</span>
+          <Button
+            kind="secondary"
+            size="sm"
+            icon="retry"
+            disabled={busy}
+            onClick={act(() => {
+              setConfirming(false);
+              return restart();
+            })}
+          >
+            Clear and replay
+          </Button>
+          <Button kind="quiet" size="sm" disabled={busy} onClick={() => setConfirming(false)}>
+            Keep
+          </Button>
+        </span>
+      ) : (
+        <Button kind="quiet" size="sm" icon="retry" disabled={busy} onClick={() => setConfirming(true)}>
+          Restart
+        </Button>
+      )}
       <span title="Put every card back in its place and close them, for everyone">
         <Button kind="quiet" size="sm" icon="CollapseAll" disabled={busy} onClick={act(() => tidy())}>
           Tidy

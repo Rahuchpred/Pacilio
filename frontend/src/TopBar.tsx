@@ -94,7 +94,7 @@ function Notifications() {
               {replies.map(r => (
                 <li key={`reply-${r.id}`}>
                   <button type="button" onClick={() => go('emails')}>
-                    <span className="email-dot" />
+                    <Icon name="mail" />
                     <span className="stack">
                       <span>
                         <b>{r.counterparty} replied</b> · {r.subject}

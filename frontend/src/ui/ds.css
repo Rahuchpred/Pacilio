@@ -2,6 +2,40 @@
    design-system/src/tokens/tokens.css; component rules are copied from
    design-system/src/styles.css, which also carries the docs site layout. */
 
+/* Data colors for the four inbound sources. They label where an event came
+   from, so they stay clear of the action colors: no orange (a person
+   decides), green (done) or red (an issue). */
+:root {
+  --color-source-nessie: #2f6fdb;
+  --color-source-stripe: #635bff;
+  --color-source-ledger: #0e8a8a;
+  --color-source-cord: #a3509b;
+}
+.src-nessie { --src: var(--color-source-nessie); }
+.src-stripe { --src: var(--color-source-stripe); }
+.src-ledger { --src: var(--color-source-ledger); }
+.src-cord { --src: var(--color-source-cord); }
+/* A source tag: the source's color as a soft fill with its own ink. */
+.src-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  height: 22px;
+  padding: 0 var(--space-xs);
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--src) 12%, var(--color-bg-canvas));
+  color: color-mix(in srgb, var(--src) 85%, #000);
+  font-size: var(--type-label-size);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.src-tag .icon { width: 12px; height: 12px; }
+/* A tag hugs its words, even inside a stretching column, but never wider
+   than its space: a long label ends in an ellipsis. */
+.src-tag { align-self: flex-start; width: max-content; max-width: 100%; min-width: 0; }
+.src-tag .icon { flex: none; }
+.src-tag-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
 body {
   margin: 0;
   background: var(--color-bg-surface);
@@ -324,3 +358,19 @@ body {
   .btn { transition: none; }
 }
 
+
+/* The one sign of work in progress: a small ring that turns. Linear, since
+   it is constant motion; fast enough to feel busy, not anxious. */
+.spinner {
+  width: 12px;
+  height: 12px;
+  flex: none;
+  border-radius: 50%;
+  border: 1.5px solid color-mix(in srgb, currentColor 25%, transparent);
+  border-top-color: currentColor;
+  animation: spin 700ms linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation-duration: 1800ms; }
+}
