@@ -345,7 +345,7 @@ body {
   gap: var(--space-sm);
 }
 .msg {
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-panel);
   padding: var(--space-md) var(--space-lg);
   display: flex;
   flex-direction: column;

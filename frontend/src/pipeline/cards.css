@@ -467,10 +467,13 @@ button.ask-fact { cursor: pointer; }
   font-weight: 500;
   color: var(--color-text-primary);
 }
-.email-threads { list-style: none; margin: 0; padding: 0; max-height: 640px; overflow-y: auto; }
-.email-thread + .email-thread { border-top: var(--border-hairline) solid var(--color-border-default); }
-.email-conversation { display: flex; flex-direction: column; gap: var(--space-sm); padding: 0 var(--space-xs) var(--space-md); }
+.email-threads { list-style: none; margin: 0; padding: 0; max-height: 640px; overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-2xs); }
+.email-thread.is-open > .row-button { background: var(--color-bg-sunken); }
+/* The open row's highlight and the first message keep a gap, and the
+   messages share the row's edges and the panel radius of every other card. */
+.email-conversation { display: flex; flex-direction: column; gap: var(--space-md); padding: var(--space-sm) 0 var(--space-md); }
 .email-conversation .thread { list-style: none; margin: 0; padding: 0; }
+.email-conversation .msg { padding: var(--space-md); }
 .msg-them { background: var(--color-bg-surface); border: var(--border-hairline) solid var(--color-border-default); }
 .email-body { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .email-compose { display: flex; flex-direction: column; gap: var(--space-sm); }
@@ -483,7 +486,11 @@ button.ask-fact { cursor: pointer; }
   resize: vertical;
   background: var(--color-bg-canvas);
   color: var(--color-text-primary);
+  transition: border-color 120ms ease;
 }
+.email-compose textarea::placeholder { color: var(--color-text-tertiary); }
+.email-compose textarea:focus,
+.email-compose textarea:focus-visible { outline: 0; border-color: var(--color-border-strong); }
 .email-compose-actions { display: flex; justify-content: flex-end; gap: var(--space-sm); }
 
 /* ---- Reports ---- */
@@ -689,7 +696,7 @@ button.ask-fact { cursor: pointer; }
 .fu-step textarea { padding: var(--space-xs) var(--space-sm); resize: vertical; }
 .fu-actions { display: flex; align-items: center; gap: var(--space-xs); flex-wrap: wrap; }
 .fu-spacer { flex: 1; }
-.email-links { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); }
+.email-links { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); padding-left: var(--space-xs); }
 
 /* ---- Messages from Ask Settle to the agents ---- */
 
@@ -1209,6 +1216,7 @@ button.ask-fact:active,
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
+  min-height: 48px;
   padding-top: var(--space-md);
   margin-top: var(--space-sm);
   border-top: var(--border-hairline) solid var(--color-border-default);
@@ -1297,3 +1305,28 @@ button.audit-entry { cursor: pointer; }
 
 /* An email the Bookkeeper sent on its own */
 .sent-by-agent { display: inline-flex; align-items: center; gap: var(--space-2xs); color: var(--color-text-decide); }
+
+/* One row: the answers on the left, the This one / All N switch on the right. */
+.triage-call-row { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-md); }
+.triage-running { align-items: center; font-size: var(--type-small-size); }
+.triage-scope {
+  display: inline-flex;
+  flex: none;
+  padding: 2px;
+  border-radius: var(--radius-control);
+  background: var(--color-bg-sunken);
+}
+.triage-scope button {
+  height: 28px;
+  padding: 0 var(--space-sm);
+  border: 0;
+  border-radius: calc(var(--radius-control) - 1px);
+  background: transparent;
+  font: inherit;
+  font-size: var(--type-small-size);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease, transform 160ms var(--motion-ease-out);
+}
+.triage-scope button:active { transform: scale(0.97); }
+.triage-scope button[aria-selected="true"] { background: var(--color-bg-canvas); color: var(--color-text-primary); box-shadow: 0 1px 2px rgb(31 26 20 / 0.08), inset 0 0 0 var(--border-hairline) var(--color-border-default); }
