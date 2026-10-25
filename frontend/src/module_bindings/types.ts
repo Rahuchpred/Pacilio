@@ -133,6 +133,18 @@ export const AgentTickSchedule = __t.object("AgentTickSchedule", {
 });
 export type AgentTickSchedule = __Infer<typeof AgentTickSchedule>;
 
+export const Classification = __t.object("Classification", {
+  name: __t.string(),
+  position: __t.u32(),
+});
+export type Classification = __Infer<typeof Classification>;
+
+export const ClassificationMode = __t.object("ClassificationMode", {
+  id: __t.u32(),
+  mode: __t.string(),
+});
+export type ClassificationMode = __Infer<typeof ClassificationMode>;
+
 export const Cursor = __t.object("Cursor", {
   identity: __t.identity(),
   x: __t.f64(),

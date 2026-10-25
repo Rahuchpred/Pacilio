@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { Icon, Money, Status } from '../../../design-system/src/components';
+import { Button, Icon, Money, Status } from '../../../design-system/src/components';
 import type { AgentRun } from '../module_bindings/types';
 import { FarCard, type CardLevels, type Look } from '../canvas/levels';
 import { useLiveList } from '../canvas/motion';
 import { Card } from './Card';
-import { ROW_STATUS, clock, dollars, openItem, useAgentLook, useRows, type Row, type RowState } from './live';
+import { ClassificationSettings, useClassifying } from './ClassificationSettings';
+import { ROW_STATUS, categoryOf, clock, dollars, openItem, useAgentLook, useRows, type Row, type RowState } from './live';
 import { useLive } from './store';
 
-// The main agent: Droid on the Factory computer, checking events in batches
+// The Bookkeeper: Droid on the Factory computer, checking events in batches
 // and writing the master ledger.
 
 const RUNS_SHOWN = 12;
@@ -87,7 +88,7 @@ function Far() {
       type="main"
       width="w-main"
       icon="agent"
-      word="Main agent"
+      word="Bookkeeper"
       big={
         look.state === 'working' ? (
           <>
@@ -125,9 +126,27 @@ function Full() {
   const count = (...states: RowState[]) => rows.filter(r => states.includes(r.state)).length;
   const shownRows = shown ? rowsOf(shown) : [];
   const live = useLiveList(runs.slice(0, RUNS_SHOWN), r => r.id.toString());
+  const [settings, setSettings] = useState(false);
+  const { mode } = useClassifying();
 
   return (
-    <Card type="main" icon="agent" title="Main agent" meta={<Status kind={look.kind} busy={look.busy}>{look.label}</Status>} className="w-main-full pnode-main">
+    <Card
+      type="main"
+      icon="agent"
+      title="Bookkeeper"
+      meta={
+        <>
+          <span className="nodrag" title="Choose how the agent classifies money">
+            <Button kind={settings ? 'secondary' : 'quiet'} size="sm" icon="Settings" onClick={() => setSettings(s => !s)}>
+              Classifications · {mode === 'auto' ? 'Auto' : 'Manual'}
+            </Button>
+          </span>
+          <Status kind={look.kind} busy={look.busy}>{look.label}</Status>
+        </>
+      }
+      className="w-main-full pnode-main"
+    >
+      {settings && <ClassificationSettings onDone={() => setSettings(false)} />}
       <p className="lede">{nowLine(running, waiting, !agent?.enabled)}</p>
       {agent?.lastError && <p className="card-error">{agent.lastError}</p>}
 
@@ -197,6 +216,11 @@ function Full() {
                     <button type="button" className="agent-event" onClick={() => openItem(r.event.id)}>
                       <span className="agent-event-name">
                         <span className="strong">{r.event.counterparty}</span>
+                        {r.state !== 'waiting' && (
+                          <span className={`class-chip${categoryOf(r) ? '' : ' is-pending'}`}>
+                            {categoryOf(r) ?? 'Classifying…'}
+                          </span>
+                        )}
                         {r.review?.note && <span className="muted small">{r.review.note}</span>}
                       </span>
                       <span className="agent-event-amount">

@@ -10,6 +10,8 @@ import { pipeline } from './pipeline/pipeline';
 import { emailEnv, emailTables } from './email/tables';
 import { email, ensureFollowUpDefaults } from './email/email';
 import { settleTables } from './settle/tables';
+import { classifyTables } from './classify/tables';
+import { classify, ensureClassificationDefaults } from './classify/classify';
 import { settle } from './settle/messages';
 
 // One row per identity that has ever connected. `color` drives avatar + cursor color.
@@ -53,7 +55,7 @@ const edge = table(
 );
 
 const spacetimedb = schema(
-  { user, cursor, node, edge, ...droidTables, ...inboundTables, ...accountingTables, ...pipelineTables, ...emailTables, ...settleTables },
+  { user, cursor, node, edge, ...droidTables, ...inboundTables, ...accountingTables, ...pipelineTables, ...emailTables, ...settleTables, ...classifyTables },
   { env: { ...droidEnv, ...inboundEnv, ...emailEnv } }
 );
 export default spacetimedb;
@@ -78,7 +80,7 @@ export const {
 
 export const { createBill, createInvoice, recordPayment } = accounting(spacetimedb);
 
-// ─── Main agent (Droid on the Factory computer) ─────────────────────────────
+// ─── Bookkeeper (Droid on the Factory computer) ─────────────────────────────
 
 export const { pipelineTick, resolveReviewItem, ledgerXlsxUrl, requestReport, reportXlsxUrl } = pipeline(spacetimedb);
 
@@ -138,6 +140,7 @@ function validateName(raw: string): string {
 
 export const onConnect = spacetimedb.clientConnected(ctx => {
   ensureFollowUpDefaults(ctx);
+  ensureClassificationDefaults(ctx);
   const existing = ctx.db.user.identity.find(ctx.sender);
   if (existing) {
     ctx.db.user.identity.update({ ...existing, online: true });
@@ -248,3 +251,7 @@ export const deleteEdge = spacetimedb.reducer(
 // ─── Ask Settle: messages to the agents ─────────────────────────────────────
 
 export const { cancelAgentMessage } = settle(spacetimedb);
+
+// ─── Classification settings ────────────────────────────────────────────────
+
+export const { setClassificationMode, setClassifications, resetClassifications } = classify(spacetimedb);

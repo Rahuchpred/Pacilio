@@ -1,6 +1,6 @@
 import { table, t } from 'spacetimedb/server';
 
-// The main agent: takes waiting inbound events in batches, has Droid (on the
+// The Bookkeeper: takes waiting inbound events in batches, has Droid (on the
 // Factory cloud computer) classify and reconcile them into the master ledger,
 // and sends anything it isn't sure about to the human action queue.
 

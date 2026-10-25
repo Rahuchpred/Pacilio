@@ -8,7 +8,7 @@ import { ROW_STATUS, SOURCES, byIdDesc, clock, dollars, openItem, useRows } from
 import { useLive } from './store';
 
 // Sources: the bank, Stripe, the accounting system and receipts feeding the
-// main agent, and what they sent.
+// Bookkeeper, and what they sent.
 
 const LATEST = 14;
 

@@ -107,7 +107,7 @@ function Question({
         <div className="escalation-head">
           <span className="escalation-who">
             <Icon name="agent" />
-            Main agent asks
+            Bookkeeper asks
           </span>
           {position.n > 1 ? (
             <span className="ask-pager nodrag">
@@ -253,7 +253,7 @@ function Calm({ applying, width }: { applying: number; width: string }) {
         <div className="escalation-head">
           <span className="escalation-who">
             <Icon name="agent" />
-            Main agent
+            Bookkeeper
           </span>
           <Status kind="cleared">All answered</Status>
         </div>

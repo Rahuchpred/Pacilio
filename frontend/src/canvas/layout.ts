@@ -7,7 +7,7 @@ import { LANE_SOURCES as LANES } from '../pipeline/activity';
 //
 //                 Needs you ─────────────── Emails
 //                     │   └──────┐
-// Sources ──── Main agent ──── Ledger ──── Reports agent ──── Show report
+// Sources ──── Bookkeeper ──── Ledger ──── Reports agent ──── Show report
 //                  │
 //      transactions the agent is checking, rows of five
 
@@ -18,10 +18,10 @@ export const txnId = (i: number) => `txn-${i}`;
 const COL_GAP = 120;
 const TXN_W = 220;
 const TXN_GAP = 40;
-// The transactions sit in rows of five under the main agent
+// The transactions sit in rows of five under the Bookkeeper
 const TXN_PER_ROW = 5;
 const TXN_ROW_H = 170;
-// A long run from the inbox to the main agent, so what travels it can be read
+// A long run from the inbox to the Bookkeeper, so what travels it can be read
 const INBOX_GAP = 360;
 const INBOX_W = 340;
 const MAIN_X = INBOX_W + COL_GAP;

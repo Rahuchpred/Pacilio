@@ -2,9 +2,20 @@ import type { NodeProps } from '@xyflow/react';
 import { Button, Icon, Money, Status, type IconName } from '../../../design-system/src/components';
 import { sentence } from './text';
 import { FarCard, Handles, type CardLevels, type Look } from '../canvas/levels';
-import { ROW_STATUS, SOURCE_TITLES, dollars, kindLabel, openItem, useTransactions, type Row, type RowState } from './live';
+import {
+  ROW_STATUS,
+  SOURCE_TITLES,
+  categoryOf,
+  classificationLine,
+  dollars,
+  kindLabel,
+  openItem,
+  useTransactions,
+  type Row,
+  type RowState,
+} from './live';
 
-// The transactions around the main agent: what it is checking right now, what
+// The transactions around the Bookkeeper: what it is checking right now, what
 // waits for its next run, and what it just finished. Each card stays plain
 // while checked, then turns green when posted or red when it needs you. Open, it
 // shows the details and links to the item panel.
@@ -48,12 +59,14 @@ function Far(props: NodeProps) {
       big={<Money value={dollars(row.event.amountMinor, row.event.currency)} cents={false} />}
       line={
         ROW_STATUS[row.state].busy ? (
-          <span className="far-busy">
+          <span className="far-busy txn-line" title={`${ROW_STATUS[row.state].label} ${classificationLine(row)}`}>
             <span className="spinner" aria-hidden="true" />
-            {ROW_STATUS[row.state].label}
+            <span className="txn-line-text">{classificationLine(row)}</span>
           </span>
         ) : (
-          ROW_STATUS[row.state].label
+          <span className="txn-line" title={`${ROW_STATUS[row.state].label}: ${classificationLine(row)}`}>
+            <span className="txn-line-text">{classificationLine(row)}</span>
+          </span>
         )
       }
       craft={look === 'done' ? 'accept' : look === 'issue' ? 'reject' : undefined}
@@ -97,6 +110,12 @@ function Full(props: NodeProps) {
         <span className="muted small">{amount < 0 ? 'Money out' : 'Money in'}</span>
         <span className="txn-amount">
           <Money value={amount} />
+        </span>
+      </div>
+      <div className="txn-class">
+        <span className="muted small">{row.state === 'checking' ? 'Classifying as' : 'Classified as'}</span>
+        <span className={`class-chip${categoryOf(row) ? '' : ' is-pending'}`}>
+          {categoryOf(row) ?? (row.state === 'waiting' ? 'Not yet' : 'Working it out…')}
         </span>
       </div>
       {row.review?.note && (

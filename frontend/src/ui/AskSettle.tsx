@@ -8,7 +8,7 @@ import { useLive } from '../pipeline/store';
 import './ask.css';
 
 // Ask Settle: a small button in the corner that opens a mini window above it.
-// Droid reads the ledger the main agent keeps and answers. When the ask is
+// Droid reads the ledger the Bookkeeper keeps and answers. When the ask is
 // really for an agent ("move these to Catering", "make me a vendor report"),
 // it also sends that agent a one-off message, queued for its next run.
 
@@ -22,7 +22,7 @@ The master ledger is ${WORKDIR}/ledger.json (every event with its row number, st
 following_up, its category and a note). ${WORKDIR}/report.json has the show report figures if it exists.
 
 You work with two agents:
-- "main": the main bookkeeping agent. It keeps the ledger. Send it anything that should change the ledger or how it
+- "main": the Bookkeeper. It keeps the ledger (always call it "the Bookkeeper" when you mention it). Send it anything that should change the ledger or how it
   handles rows on its next run: recategorize rows, void a duplicate, fix a note, re-check something.
 - "reports": the reports agent. Send it anything about the show report: a new analysis or breakdown, a new chart
   (bar, line or table; it stays in the report and updates on every build), removing a chart, something to call out.

@@ -126,7 +126,7 @@ export function useAgentLook(): AgentLook {
   return { state: 'idle', kind: 'agent', label: 'Paused' };
 }
 
-// The transactions around the main agent: what it is checking now, then what
+// The transactions around the Bookkeeper: what it is checking now, then what
 // waits for its next run, then what it just finished.
 export { TXN_SLOTS } from './activity';
 
@@ -149,4 +149,17 @@ export function useOpenItem(): string | null {
     },
     () => selected
   );
+}
+
+// The category an event is (being) classified as: live while the agent checks
+// it (from its "classify out loud" lines), final once the run is done.
+export function categoryOf(r: Row): string | undefined {
+  return r.review?.category ?? undefined;
+}
+
+export function classificationLine(r: Row): string {
+  const c = categoryOf(r);
+  if (r.state === 'waiting') return 'Waiting';
+  if (r.state === 'checking') return c ? `→ ${c}` : 'Classifying…';
+  return c ?? ROW_STATUS[r.state].label;
 }

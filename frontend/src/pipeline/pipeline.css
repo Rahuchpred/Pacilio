@@ -117,7 +117,7 @@
   gap: var(--space-sm);
 }
 
-/* Main agent log, tighter than the docs version */
+/* Bookkeeper log, tighter than the docs version */
 .w-main .log-row {
   grid-template-columns: 44px minmax(0, 1fr) auto;
   gap: var(--space-md);

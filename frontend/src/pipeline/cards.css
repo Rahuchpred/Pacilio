@@ -179,13 +179,13 @@
   box-shadow: 0 0 0 var(--border-hairline) var(--color-border-default);
 }
 
-/* ---- Main agent ---- */
+/* ---- Bookkeeper ---- */
 
 .pipeline .lv-short .w-main .log-row,
 .w-main-full .log-row { grid-template-columns: 64px minmax(0, 1fr); gap: var(--space-md); padding: var(--space-sm) 0; }
 .run-list .log-time { flex: none; width: 64px; }
 
-/* The open main agent: a sentence on now, where everything ended up, then
+/* The open Bookkeeper: a sentence on now, where everything ended up, then
    runs on the left and the chosen run's calls on the right. */
 .w-main-full .agent-counts {
   padding: var(--space-md) 0;
@@ -926,3 +926,62 @@ button.ask-fact:active,
 /* Far cards at work: the same spinner as the tags, beside the word */
 .far-busy { display: inline-flex; align-items: center; gap: var(--space-xs); }
 .far-busy .spinner { width: 14px; height: 14px; }
+
+/* ---- Classifications ---- */
+
+.class-chip {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  max-width: 100%;
+  padding: 1px var(--space-sm);
+  border-radius: var(--radius-control);
+  background: var(--color-bg-sunken);
+  color: var(--color-text-primary);
+  font-size: var(--type-label-size);
+  line-height: var(--type-label-line);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.class-chip.is-pending { color: var(--color-text-secondary); font-style: italic; }
+.class-chip.is-new { box-shadow: inset 0 0 0 var(--border-hairline) var(--color-border-control); }
+.txn-class { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); min-width: 0; }
+.cl-settings { margin-bottom: var(--space-sm); }
+.cl-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--space-xs); }
+.cl-settings .cl-list:has(input) { flex-direction: column; flex-wrap: nowrap; }
+.cl-item { display: flex; align-items: center; gap: var(--space-xs); min-width: 0; }
+.cl-item input,
+.cl-add input {
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  padding: 0 var(--space-sm);
+  font: inherit;
+  font-size: var(--type-small-size);
+  color: var(--color-text-primary);
+  background: var(--color-bg-canvas);
+  border: var(--border-hairline) solid var(--color-border-control);
+  border-radius: var(--radius-control);
+}
+.cl-add { display: flex; gap: var(--space-xs); }
+
+/* A transaction's category stays on one line (full text on hover) */
+.pipeline .far-card.w-txn .far-line { min-width: 0; overflow: hidden; }
+.txn-line { display: flex; align-items: center; gap: var(--space-xs); min-width: 0; max-width: 100%; }
+.txn-line .spinner { flex: none; }
+.txn-line-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pipeline .far-card.w-txn .far-line { font-size: var(--type-body-size); line-height: var(--type-body-line); }
+
+/* Notes in the Bookkeeper carry long ids (ch_3UUHQQCu…): wrap them anywhere */
+.agent-event-name > *,
+.agent-event,
+.step span,
+.agent-run-what,
+.lede { overflow-wrap: anywhere; min-width: 0; }
+
+/* Category chips in open cards show the whole category, wrapping if needed
+   (an inline-flex chip can't trim with "…", so it would run past the row) */
+.class-chip { display: inline-block; white-space: normal; overflow-wrap: anywhere; }
+.agent-event-status { min-width: 0; }
+.agent-event-status .status { max-width: 100%; }

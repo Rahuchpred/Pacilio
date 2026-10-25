@@ -195,7 +195,7 @@ export function inbound(stdb: Schema) {
       }
       ensureTicking(ctx);
     }
-    // The main agent runs and pauses with its sources
+    // The Bookkeeper runs and pauses with its sources
     setPipelineEnabled(ctx, enabled);
   }
 

@@ -4,7 +4,7 @@ import { useLive } from './store';
 import { sentence } from './text';
 
 // What is moving on the canvas, line by line. Each new event travels its
-// source's lane from the inbox to the main agent; when the agent picks an
+// source's lane from the inbox to the Bookkeeper; when the agent picks an
 // event up, a dot drops to its transaction card; when it decides, the result
 // rides the line it goes out on: posted or voided to the ledger, a question
 // up to Needs you. Every line keeps its own queue, spaced so tags never
@@ -37,7 +37,7 @@ export interface Packet {
 interface Activity {
   // Packets per edge id
   flows: Record<string, Packet[]>;
-  // The transactions around the main agent (see TXN_SLOTS)
+  // The transactions around the Bookkeeper (see TXN_SLOTS)
   transactions: Row[];
   removePacket(edge: string, key: string): void;
 }
@@ -48,7 +48,7 @@ const ActivityContext = createContext<Activity>({
   removePacket: () => {},
 });
 
-// What the main agent is checking now, then what waits for its next run,
+// What the Bookkeeper is checking now, then what waits for its next run,
 // then what it just finished. Events still travelling don't show yet.
 // Up to 15 at once: a batch is about 20 events, so this shows most of one
 export const TXN_SLOTS = 15;

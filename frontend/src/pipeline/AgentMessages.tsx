@@ -4,10 +4,10 @@ import { reducers } from '../module_bindings';
 import type { AgentMessage } from '../module_bindings/types';
 import { logError } from '../throttle';
 
-// Messages Ask Settle sent to the agents: "Sent '…' to Main agent", where it
+// Messages Ask Settle sent to the agents: "Sent '…' to Bookkeeper", where it
 // stands, and the agent's one-line reply once a run has handled it.
 
-export const AGENT_NAME: Record<string, string> = { main: 'Main agent', reports: 'Reports agent' };
+export const AGENT_NAME: Record<string, string> = { main: 'Bookkeeper', reports: 'Reports agent' };
 
 const STATE: Record<string, { kind: StatusKind; label: string }> = {
   queued: { kind: 'held', label: 'Queued' },

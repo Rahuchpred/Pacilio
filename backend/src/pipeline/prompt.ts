@@ -2,26 +2,13 @@
 // Factory computer, keeps the ledger as JSON, renders it to HTML, and replies
 // with a JSON list of decisions that our module checks and applies.
 
+import { DEFAULT_CATEGORIES, type Classifying } from '../classify/classify';
 import { RENDER_PATH } from './renderScript';
 
 export const WORKDIR = '/home/factory-user/settle';
 const RENDER_CMD = `python3 /home/factory-user/${RENDER_PATH} ${WORKDIR}`;
 export const LEDGER_HTML = 'settle/ledger.html';
 export const LEDGER_XLSX = 'settle/ledger.xlsx';
-
-export const CATEGORIES = [
-  'Revenue · Tickets',
-  'Revenue · Sponsorship',
-  'Production · Audio & lighting',
-  'Security',
-  'Catering',
-  'Labor & payroll',
-  'Marketing & printing',
-  'Permits & fees',
-  'Processor fees & refunds',
-  'Cash & transfers',
-  'Other',
-];
 
 export interface PromptEvent {
   id: string;
@@ -51,9 +38,15 @@ export function buildPrompt(
   events: PromptEvent[],
   decisions: PromptDecision[],
   resetLedger: boolean,
-  messages: PromptMessage[] = []
+  messages: PromptMessage[] = [],
+  classifying: Classifying = { mode: 'auto', categories: DEFAULT_CATEGORIES }
 ): string {
-  return `You are Settle's main bookkeeping agent for a concert promoter (the Oct 24 show).
+  const categories =
+    classifying.mode === 'manual'
+      ? `Categories (use exactly one of these; never anything else): ${classifying.categories.join('; ')}.`
+      : `Categories: use one of these when it fits: ${classifying.categories.join('; ')}.
+If none fits, make a short new one in the same style (like "Production · Staging") and reuse it after that.`;
+  return `You are the Bookkeeper, Settle's bookkeeping agent for a concert promoter (the Oct 24 show).
 You keep the master ledger: one spreadsheet of every money movement, checked and explained.
 
 Work quickly: go straight to the files below. Don't look for AGENTS.md, skills or other context,
@@ -72,7 +65,7 @@ Each row in ledger.json "rows":
  "counterparty": "...", "description": "...", "category": "...", "amount_cents": signed integer,
  "currency": "USD", "status": "ok|void|review|refunded|following_up", "note": "...", "duplicate_of": event_id or null,
  "recommendation": "void|refund|follow_up|keep" (review rows only, else null)}
-Categories (use exactly one): ${CATEGORIES.join('; ')}.
+${categories}
 Amounts: positive = money in, negative = money out.
 
 ## Sources
@@ -81,6 +74,12 @@ Amounts: positive = money in, negative = money out.
 - ledger: the accounting system, QuickBooks (vendor bills, sponsor invoices, recorded payments). Typed by hand, so it
   has typos and double entries. In anything a person reads (notes, evidence, titles), call this source "QuickBooks".
 - cord: scanned receipts for small purchases
+
+## Classify first, out loud
+Before you touch any file, send one plain-text message (not a tool call) with a line per new event, so people can
+watch the classification live:
+CLASSIFY <event_id> | <category> | <ok|void|review>
+Then do the work below. Your final JSON still decides; it may differ if you change your mind.
 
 ## For each new event
 1. Add a row (keep row numbers increasing). Classify it.

@@ -4,6 +4,7 @@ import { enqueueAgentTask } from '../droid/agents';
 import { FactoryClient, FactoryError } from '../droid/factory';
 import { LEDGER_HTML, LEDGER_XLSX, buildPrompt, type PromptDecision, type PromptEvent } from './prompt';
 import { finishMessages, markSent, promptId, queuedFor, requeueMessages } from '../settle/messages';
+import { currentClassifying } from '../classify/classify';
 import { RENDER_PATH, RENDER_SCRIPT, RENDER_VERSION } from './renderScript';
 import { REPORT_PATH, REPORT_SCRIPT, REPORT_VERSION } from './reportScript';
 import { reports, reportsTick, resetReports } from './reports';
@@ -145,7 +146,13 @@ function startRun(ctx: Ctx): boolean {
   const taskId = enqueueAgentTask(
     ctx,
     'pipeline',
-    buildPrompt(events, decisions, agent.resetLedger, messages.map(m => ({ id: promptId(m), text: m.text }))),
+    buildPrompt(
+      events,
+      decisions,
+      agent.resetLedger,
+      messages.map(m => ({ id: promptId(m), text: m.text })),
+      currentClassifying(ctx)
+    ),
     'high'
   );
   const run = ctx.db.agentRun.insert({
@@ -345,6 +352,25 @@ function applyDecisions(ctx: Ctx, run: Run, reply: Reply) {
   updateAgent(ctx, { status: 'idle', currentRunId: undefined, resetLedger: false });
 }
 
+// While a run works, its "CLASSIFY <id> | <category> | <status>" lines show up
+// as Droid's steps. Copy each category onto the event's review so people see
+// it live; the final reply still decides.
+const CLASSIFY_LINE = /CLASSIFY\s+(\d+)\s*\|\s*([^|\n]+?)\s*\|\s*(ok|void|review)/gi;
+
+function showLiveClassifications(ctx: Ctx, run: Run) {
+  const inRun = new Set(run.eventIds.map(String));
+  for (const step of ctx.db.agentStep.taskId.filter(run.taskId)) {
+    if (step.kind !== 'text' || !step.text.includes('CLASSIFY')) continue;
+    for (const m of step.text.matchAll(CLASSIFY_LINE)) {
+      if (!inRun.has(m[1])) continue;
+      const review = ctx.db.eventReview.eventId.find(BigInt(m[1]));
+      const category = clip(m[2], 120);
+      if (!review || review.status !== 'processing' || review.category === category) continue;
+      ctx.db.eventReview.eventId.update({ ...review, category, updatedAt: ctx.timestamp });
+    }
+  }
+}
+
 // The run didn't produce usable results: put its events back in the queue.
 function failRun(ctx: Ctx, run: Run, error: string) {
   for (const eventId of run.eventIds) ctx.db.eventReview.eventId.delete(eventId);
@@ -379,6 +405,9 @@ export function pipeline(stdb: Schema) {
       // A run is in flight: finish it once Droid is done, otherwise wait
       if (snap.run && snap.task) {
         const { run, task } = snap;
+        if (task.status !== 'done' && !STOPPED_TASK.includes(task.status)) {
+          ctx.withTx(tx => showLiveClassifications(tx, run));
+        }
         if (STOPPED_TASK.includes(task.status)) {
           ctx.withTx(tx => failRun(tx, run, task.error ?? `Droid task ${task.status}`));
         } else if (task.status === 'done') {

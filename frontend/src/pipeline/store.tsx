@@ -40,7 +40,11 @@ function useLiveTables() {
   const [layout] = useTable(tables.pipelineLayout);
   const [agentMessages] = useTable(tables.agentMessage);
   const [reportCharts] = useTable(tables.reportChart);
+  const [classifications] = useTable(tables.classification);
+  const [classificationModes] = useTable(tables.classificationMode);
   return {
+    classifications,
+    classificationModes,
     reportCharts,
     agentMessages,
     events,
