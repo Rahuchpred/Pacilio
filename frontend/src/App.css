@@ -35,7 +35,8 @@ button {
   inset: 0;
   left: var(--sidebar-w, 0px);
   container: board / inline-size;
-  transition: left 200ms var(--motion-ease-out);
+  /* Moves with the sidebar, same curve (sidebar.css) */
+  transition: left var(--sidebar-open, 240ms) var(--sidebar-ease, ease-out);
 }
 @media (max-width: 720px) {
   /* Phones: the sidebar opens over the canvas instead */

@@ -44,6 +44,7 @@ export function Sidebar() {
   // first view to the room it really has.
   useLayoutEffect(() => {
     document.documentElement.style.setProperty('--sidebar-w', open ? `${width}px` : '0px');
+    document.documentElement.dataset.sidebar = open ? 'open' : 'closed';
   }, [open, width]);
   useEffect(() => save(KEY.open, String(open)), [open]);
   useEffect(() => {
@@ -57,7 +58,11 @@ export function Sidebar() {
     const onKey = (e: globalThis.KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === '\\') {
         e.preventDefault();
+        // A shortcut is repeated often: switch at once, no slide
+        const root = document.documentElement;
+        root.classList.add('is-sidebar-instant');
         setOpen(o => !o);
+        requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove('is-sidebar-instant')));
       }
     };
     window.addEventListener('keydown', onKey);
@@ -137,14 +142,17 @@ function Scenarios() {
               >
                 {s.name}
               </button>
-              {asking === s.key && !active && (
-                <div className="sidebar-confirm">
-                  <Button kind="primary" size="sm" pending={busy} disabled={busy} onClick={() => confirm(s)}>
-                    Clear and switch
-                  </Button>
-                  <Button kind="quiet" size="sm" disabled={busy} onClick={() => setAsking(null)}>
-                    Keep
-                  </Button>
+              {!active && (
+                // Always there, folded shut, so it can unfold from the row
+                <div className="sidebar-confirm-wrap" aria-hidden={asking !== s.key}>
+                  <div className="sidebar-confirm">
+                    <Button kind="primary" size="sm" pending={busy} disabled={busy} onClick={() => confirm(s)}>
+                      Clear and switch
+                    </Button>
+                    <Button kind="quiet" size="sm" disabled={busy} onClick={() => setAsking(null)}>
+                      Keep
+                    </Button>
+                  </div>
                 </div>
               )}
             </li>

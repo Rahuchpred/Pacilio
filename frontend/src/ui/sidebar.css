@@ -1,7 +1,15 @@
 /* The left sidebar: docked full height on paper, one hairline on its right
    edge, no shadow. The board starts where it ends (--sidebar-w). */
 
-:root { --sidebar-w: 0px; }
+/* Motion: the sidebar and the board move together on the drawer curve.
+   Opening takes 240ms; closing is quicker (180ms) since the person has
+   already decided. The keyboard shortcut skips motion entirely. */
+:root {
+  --sidebar-w: 0px;
+  --sidebar-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --sidebar-open: 240ms;
+  --sidebar-close: 180ms;
+}
 
 .sidebar {
   position: fixed;
@@ -20,14 +28,19 @@
   font-size: var(--type-small-size);
   line-height: var(--type-small-line);
   color: var(--color-text-primary);
-  transition: transform 200ms var(--motion-ease-out), visibility 0s;
+  transition: transform var(--sidebar-open) var(--sidebar-ease), visibility 0s;
 }
 /* Closed: slides out, then leaves the tab order */
 .sidebar.is-closed {
   transform: translateX(-100%);
   visibility: hidden;
-  transition: transform 200ms var(--motion-ease-out), visibility 0s linear 200ms;
+  transition: transform var(--sidebar-close) var(--sidebar-ease), visibility 0s linear var(--sidebar-close);
 }
+/* The board closes in step with the sidebar */
+:root[data-sidebar='closed'] .board { transition-duration: var(--sidebar-close); }
+/* Toggled from the keyboard: no motion, it's a shortcut people repeat */
+.is-sidebar-instant .sidebar,
+.is-sidebar-instant .board { transition: none !important; }
 
 /* The name and the button sit above the sidebar and never move; the
    sidebar keeps their row free */
@@ -42,7 +55,8 @@
   gap: var(--space-sm);
   height: 40px;
 }
-.sidebar-toggle { color: var(--color-text-secondary); }
+.sidebar-toggle { color: var(--color-text-secondary); transition: transform 120ms var(--motion-ease-out); }
+.sidebar-toggle:active { transform: scale(0.94); }
 
 .sidebar-section { display: flex; flex-direction: column; gap: var(--space-xs); }
 .sidebar-heading {
@@ -78,9 +92,12 @@
   overflow: hidden;
   text-overflow: ellipsis;
   cursor: pointer;
-  transition: background-color 120ms ease, color 120ms ease;
+  transition: background-color 120ms ease, color 120ms ease, transform 120ms var(--motion-ease-out);
 }
-.sidebar-item:hover { background: var(--color-bg-sunken); color: var(--color-text-primary); }
+@media (hover: hover) and (pointer: fine) {
+  .sidebar-item:hover { background: var(--color-bg-sunken); color: var(--color-text-primary); }
+}
+.sidebar-item:not(.is-active):active { transform: scale(0.98); }
 .sidebar-item.is-active {
   background: var(--color-bg-sunken);
   color: var(--color-text-primary);
@@ -97,12 +114,38 @@
   border-radius: var(--radius-md);
 }
 .sidebar-list li.is-asking .sidebar-item { background: transparent; color: var(--color-text-primary); font-weight: 500; }
+/* The confirm unfolds downward from its row (0fr to 1fr rows), and folds
+   back up a little quicker when you press Keep */
+.sidebar-confirm-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  visibility: hidden;
+  transition: grid-template-rows 160ms var(--sidebar-ease), visibility 0s linear 160ms;
+}
 .sidebar-confirm {
+  min-height: 0;
+  overflow: hidden;
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-xs);
-  padding: 0 var(--space-sm) var(--space-sm);
+  padding: 0 var(--space-sm);
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 120ms ease, transform 160ms var(--sidebar-ease), padding-bottom 160ms var(--sidebar-ease);
 }
+li.is-asking .sidebar-confirm-wrap {
+  grid-template-rows: 1fr;
+  visibility: visible;
+  transition: grid-template-rows 220ms var(--sidebar-ease), visibility 0s;
+}
+li.is-asking .sidebar-confirm {
+  padding-bottom: var(--space-sm);
+  opacity: 1;
+  transform: none;
+  transition: opacity 180ms ease 40ms, transform 220ms var(--sidebar-ease), padding-bottom 220ms var(--sidebar-ease);
+}
+/* The card's hairline fades in with it */
+.sidebar-list li { border: var(--border-hairline) solid transparent; border-radius: var(--radius-md); transition: border-color 160ms ease; }
 
 /* The handle straddles the edge; its line shows on hover (after a beat,
    so passing over it doesn't flash) and while dragging */
@@ -134,7 +177,16 @@
 .is-resizing-sidebar * { cursor: col-resize !important; user-select: none; }
 .is-resizing-sidebar .board { transition: none; }
 
+
+/* Reduced motion: fades stay, movement goes */
 @media (prefers-reduced-motion: reduce) {
   .sidebar,
-  .sidebar.is-closed { transition: visibility 0s; }
+  .sidebar.is-closed { transition: opacity 160ms ease, visibility 0s linear 160ms; transform: none; }
+  .sidebar.is-closed { opacity: 0; }
+  .sidebar-confirm-wrap,
+  li.is-asking .sidebar-confirm-wrap { transition: visibility 0s; }
+  .sidebar-confirm,
+  li.is-asking .sidebar-confirm { transform: none; transition: opacity 160ms ease; }
+  .sidebar-item:active,
+  .sidebar-toggle:active { transform: none; }
 }
