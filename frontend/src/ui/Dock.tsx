@@ -3,6 +3,7 @@ import { useReducer } from 'spacetimedb/react';
 import { Button, Status } from '../../../design-system/src/components';
 import { reducers } from '../module_bindings';
 import { logError } from '../throttle';
+import { SOURCES } from '../pipeline/live';
 import { useLive } from '../pipeline/store';
 
 // Bottom center: run, pause or restart every source and both agents at once,
@@ -15,7 +16,8 @@ export function Dock() {
   const tidy = useReducer(reducers.tidyPipelineLayout);
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(false);
-  const running = statuses.filter(s => s.enabled).length > 0;
+  // Only sources the board knows about (a removed source's old row doesn't count)
+  const running = statuses.some(s => s.enabled && SOURCES.some(k => k.name === s.name));
 
   const act = (fn: () => Promise<void>) => () => {
     setBusy(true);

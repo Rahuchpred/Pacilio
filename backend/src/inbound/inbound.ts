@@ -185,6 +185,15 @@ export function inbound(stdb: Schema) {
   // ─── Whole-pipeline controls (the UI's Run / Pause / Restart) ─────────────
 
   function setAll(ctx: Ctx, enabled: boolean) {
+    // Forget sources that were removed from the hub (e.g. CORD), so a stale
+    // "running" row can't keep the board looking like it never paused
+    const known = new Set(InboundHub.sources.map(s => s.name));
+    for (const row of [...ctx.db.inboundSourceStatus.iter()]) {
+      if (!known.has(row.name)) ctx.db.inboundSourceStatus.name.delete(row.name);
+    }
+    for (const row of [...ctx.db.inboundSource.iter()]) {
+      if (!known.has(row.name)) ctx.db.inboundSource.name.delete(row.name);
+    }
     for (const source of InboundHub.sources) {
       const row = sourceRow(ctx, source);
       ctx.db.inboundSource.name.update({ ...row, enabled });
