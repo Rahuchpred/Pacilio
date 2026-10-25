@@ -12,6 +12,7 @@ import {
   checkNoBill,
   checkPayment,
   createReminder,
+  invoiceInMemo,
   documentsForMatching,
   isNoBillPayment,
   linkLateBill,
@@ -366,10 +367,10 @@ function applyDecisions(ctx: Ctx, run: Run, reply: Reply): bigint[] {
     // Either way the write-up is an email (sent now, or drafted for a person to send)
     if (d.status === 'follow_up') d.review = { ...(d.review ?? {}), action: 'follow_up' };
     let outcome = (OUTCOMES as readonly string[]).includes(d.status) ? d.status : 'review';
-    // The bill this row pays: as the Bookkeeper said, as the bank memo quotes it,
+    // The bill or invoice this row pays: as the Bookkeeper said, as the bank memo quotes it,
     // or the open bill from that vendor for exactly that amount
     const event = ctx.db.inboundEvent.id.find(BigInt(id));
-    const pays = clip(d.pays, 40) || (event && (billInMemo(ctx, event) || openBillFor(ctx, event))) || undefined;
+    const pays = clip(d.pays, 40) || (event && (billInMemo(ctx, event) || invoiceInMemo(ctx, event) || openBillFor(ctx, event))) || undefined;
     const row = (eventId: bigint) => rowOf(ctx, run, eventId);
     // Pacioli's own checks: an overpaid bill, a bill paid twice, or a large or
     // unknown payment with no bill goes to a person, even when the Bookkeeper let it through

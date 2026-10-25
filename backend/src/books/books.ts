@@ -69,6 +69,13 @@ export function billInMemo(ctx: Ctx, event: Event): string | undefined {
   return docNumbersIn(event.description).find(d => findDoc(ctx, d)?.kind === 'bill');
 }
 
+// The invoice a sponsor's deposit quotes ("Bayline - payment for INV-2290"),
+// so the payment is recorded even when the Bookkeeper didn't say what it pays
+export function invoiceInMemo(ctx: Ctx, event: Event): string | undefined {
+  if (event.source !== 'nessie' || event.amountMinor <= 0n) return undefined;
+  return docNumbersIn(event.description).find(d => findDoc(ctx, d)?.kind === 'invoice');
+}
+
 // Run before recordPayment: a payment of more than the bill has open, or of a
 // bill already paid, comes back as a write-up for a person
 export function checkPayment(
