@@ -14,7 +14,7 @@ We didn't go straight from design to code. We started the design system in Figma
 
 **Tools:** Figma Design (page "1 Ideation: pipeline map"), Mobbin, context.dev for brand research.
 **Why:** arguing over six boxes on a canvas was faster than arguing over a doc.
-**Time:** Friday night. **Rating:** 4/5.
+**Time:** about 1 hour, Friday night. **Rating:** 4/5.
 **Into the project:** that map became the six steps in the app (sources, agents, checks, asks you, pays, learns) and the layout of the canvas.
 **Friction:** Mobbin had good finance screens but nothing for an agent asking a person to decide. We took that pattern from Glaze.
 
@@ -22,7 +22,7 @@ We didn't go straight from design to code. We started the design system in Figma
 
 **Tools:** Figma Design for colors and components. Code for the live canvas.
 **Why:** we wanted one set of colors and names for both Figma and code. The canvas needs live data, and Figma can't show agents moving, so we prototyped it in code.
-**Time:** Friday night for the design system, then Saturday morning on 8 canvas tries in code. We kept one.
+**Time:** about 4 hours. Friday night on the design system, then Saturday morning on 8 canvas tries in code. We kept one.
 **Rating:** 5/5 for the design system. 2/5 for the canvas.
 **Into the project:** the color names in `design-system/src/tokens/tokens.json` match the Figma variables exactly.
 **Dead end:** we drew a phone version and an A vs B theme board, then deleted both. It's a web app. Both are still in version history.
@@ -31,7 +31,7 @@ We didn't go straight from design to code. We started the design system in Figma
 
 **Tools:** Figma MCP, driven by Claude Code.
 **Why:** we wanted Figma and the app to stay the same. Claude Code read our code and updated Figma itself.
-**Time:** Saturday morning. **Rating:** 4/5.
+**Time:** about 1 hour, Saturday morning. **Rating:** 4/5.
 **What we did:**
 - Fixed the Status tag in Figma to match the code. It was still the old round pill.
 - Rebuilt three app screens as 1440x900 frames from our own components, not screenshots.
@@ -44,11 +44,11 @@ We didn't go straight from design to code. We started the design system in Figma
 
 **Tools:** Claude Code writing React with our design skill (`skills/settle-design/SKILL.md`), plus the Figma and Mobbin MCPs.
 **Why:** the skill holds our design rules, so the code it writes already follows them.
-**Time:** Friday night through Saturday night. **Rating:** 4/5.
+**Time:** about 12 hours, Friday night through Saturday night. **Rating:** 4/5.
 **Into the project:** every check ended with a fix on whichever side was wrong, Figma or code.
-**Check 1, Saturday morning:** Figma next to the app showed 4 differences. We fixed all 4.
-**Check 2, Saturday afternoon:** we built 6 question cards in the app and kept 1.
-**Check 3, Saturday evening:** a teammate's merge broke 6 design rules. Claude Code logged each one on Figma page 6 with the file and line. One commit fixed most of them, and the recheck caught one coming back. Then we rebuilt the new screens in Figma.
+**Check 1, Saturday morning, about 30 min:** Figma next to the app showed 4 differences. We fixed all 4.
+**Check 2, Saturday afternoon, about 45 min:** we built 6 question cards in the app and kept 1.
+**Check 3, Saturday evening, about 1.5 hours:** a teammate's merge broke 6 design rules. Claude Code logged each one on Figma page 6 with the file and line. One commit fixed most of them, and the recheck caught one coming back. Then we rebuilt the new screens in Figma.
 **Before and after:** without the checks, a broken merge would have shipped. With them, it got logged in Figma within 72 minutes.
 
 | Figma frame | Running app |
