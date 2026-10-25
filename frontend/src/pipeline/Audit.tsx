@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useReducer } from 'spacetimedb/react';
-import { Button, Icon, type IconName } from '../../../design-system/src/components';
+import { Actor, Button, Icon, Status, type IconName } from '../../../design-system/src/components';
 import { reducers } from '../module_bindings';
 import type { AuditLog, Pattern } from '../module_bindings/types';
 import { FarCard, type CardLevels } from '../canvas/levels';
@@ -9,24 +9,115 @@ import { Card } from './Card';
 import { clock, openItem } from './live';
 import { useLive } from './store';
 
-// Audit log & patterns. Left: everything people did, newest first. Right:
-// the patterns the learner drew from their decisions and corrections, which
-// the Bookkeeper follows on every run. People can edit, delete or add them.
+// Audit log & patterns. Left: everything people did, newest first, one line
+// each. Right: the patterns the learner drew from their calls, which the
+// Bookkeeper follows on every run. People can edit, delete or add them.
 
 const LOG_SHOWN = 80;
 
-const KIND_ICON: Record<string, IconName> = {
-  decision: 'check',
-  settle: 'Send',
-  ask: 'Sparkle',
-  classification: 'Settings',
-  email: 'mail',
-  pipeline: 'Play',
-  report: 'ChartLine',
-  pattern: 'Edit',
+const SOURCE_ACTOR: Record<string, { kind: 'agent' | 'person'; name: string }> = {
+  learned: { kind: 'agent', name: 'Learned' },
+  edited: { kind: 'person', name: 'Edited' },
+  person: { kind: 'person', name: 'Added' },
 };
 
-const SOURCE_LABEL: Record<string, string> = { learned: 'Learned', edited: 'Edited by a person', person: 'Added by a person' };
+const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+
+// The log keeps the whole sentence; the row shows what was done on one line
+// and, under it, what changed: a word diff for patterns, the quote or aside
+// for everything else. The whole sentence stays in the hover title.
+function headline(summary: string) {
+  return summary
+    .replace(/:\s*".*$/s, '')
+    .replace(/\s*\([^()]*\)$/, '')
+    .trim();
+}
+
+type Op = { kind: 'same' | 'add' | 'del'; text: string };
+
+// Word diff by longest common subsequence. Patterns are a sentence or two, so
+// the n*m table stays small.
+function wordDiff(before: string, after: string): Op[] {
+  const a = before.split(/(\s+)/);
+  const b = after.split(/(\s+)/);
+  const lcs = Array.from({ length: a.length + 1 }, () => new Array<number>(b.length + 1).fill(0));
+  for (let i = a.length - 1; i >= 0; i--)
+    for (let j = b.length - 1; j >= 0; j--)
+      lcs[i][j] = a[i] === b[j] ? lcs[i + 1][j + 1] + 1 : Math.max(lcs[i + 1][j], lcs[i][j + 1]);
+  const ops: Op[] = [];
+  const push = (kind: Op['kind'], text: string) => {
+    const last = ops[ops.length - 1];
+    if (last?.kind === kind) last.text += text;
+    else ops.push({ kind, text });
+  };
+  let i = 0;
+  let j = 0;
+  while (i < a.length && j < b.length) {
+    if (a[i] === b[j]) push('same', a[i++]), j++;
+    else if (lcs[i + 1][j] >= lcs[i][j + 1]) push('del', a[i++]);
+    else push('add', b[j++]);
+  }
+  while (i < a.length) push('del', a[i++]);
+  while (j < b.length) push('add', b[j++]);
+  return ops;
+}
+
+// Keep a few words of context either side of each change; long unchanged
+// stretches become an ellipsis so the change stays short.
+const CONTEXT = 3;
+function trimSame(ops: Op[]): Op[] {
+  return ops.map((op, k) => {
+    if (op.kind !== 'same') return op;
+    const words = op.text.split(/(\s+)/);
+    const keep = CONTEXT * 2;
+    const first = k === 0;
+    const last = k === ops.length - 1;
+    const head = () => words.slice(0, keep).join('').trimEnd();
+    const tail = () => words.slice(-keep).join('').trimStart();
+    if (first && words.length > keep) return { ...op, text: `… ${tail()}` };
+    if (last && words.length > keep) return { ...op, text: `${head()} …` };
+    if (!first && !last && words.length > keep * 2) return { ...op, text: `${head()} … ${tail()}` };
+    return op;
+  });
+}
+
+function patternChange(summary: string): Op[] | null {
+  const edited = summary.match(/^Edited a pattern: "(.*)" \(was "(.*)"\)$/s);
+  if (edited) return trimSame(wordDiff(edited[2], edited[1]));
+  const added = summary.match(/^Added a pattern: "(.*)"$/s);
+  if (added) return [{ kind: 'add', text: added[1] }];
+  const deleted = summary.match(/^Deleted a pattern: "(.*)"$/s);
+  if (deleted) return [{ kind: 'del', text: deleted[1] }];
+  return null;
+}
+
+function detail(summary: string) {
+  const quote = summary.match(/:\s*"(.*)"/s);
+  if (quote) return quote[1];
+  const aside = summary.match(/\(([^()]*)\)$/);
+  return aside ? aside[1] : null;
+}
+
+function Change({ summary }: { summary: string }) {
+  const ops = patternChange(summary);
+  if (ops) {
+    return (
+      <span className="audit-detail audit-diff">
+        {ops.map((op, k) =>
+          op.kind === 'same' ? (
+            <span key={k}>{op.text}</span>
+          ) : op.kind === 'add' ? (
+            <ins key={k}>{op.text}</ins>
+          ) : (
+            <del key={k}>{op.text}</del>
+          )
+        )}
+      </span>
+    );
+  }
+  const more = detail(summary);
+  return more ? <span className="audit-detail">{more}</span> : null;
+}
 
 function useAudit() {
   const { auditLog, patterns, patternStates } = useLive();
@@ -45,33 +136,44 @@ function Far() {
       width="w-audit"
       icon="Document"
       word="Audit log & patterns"
-      big={`${active.length} ${active.length === 1 ? 'pattern' : 'patterns'}`}
-      line={learning ? 'Learning from new decisions…' : `from ${log.length} ${log.length === 1 ? 'action' : 'actions'} people took`}
+      big={plural(active.length, 'pattern')}
+      line={learning ? <Status kind="agent" busy>Learning</Status> : `${plural(log.length, 'action')} logged`}
     />
   );
 }
 
-function LogEntry({ a }: { a: AuditLog }) {
-  const time = clock(a.at.toDate());
-  const body = (
-    <>
-      <Icon name={a.whoName === 'Bookkeeper' ? 'agent' : (KIND_ICON[a.kind] ?? 'person')} size={14} />
-      <span className="audit-text">
-        <span className="strong">{a.whoName}</span> {a.summary}
-      </span>
-      <span className="audit-time">{time}</span>
-    </>
-  );
-  return a.eventId !== undefined ? (
-    <button type="button" className={`audit-entry${a.learnable ? ' is-learnable' : ''}`} onClick={() => openItem(a.eventId!)}>
-      {body}
+function IconButton({ icon, label, onClick }: { icon: IconName; label: string; onClick: () => void }) {
+  return (
+    <button type="button" className="btn btn-quiet btn-sm btn-icon" aria-label={label} title={label} onClick={onClick}>
+      <Icon name={icon} />
     </button>
-  ) : (
-    <div className={`audit-entry${a.learnable ? ' is-learnable' : ''}`}>{body}</div>
   );
 }
 
-function PatternItem({ p, log }: { p: Pattern; log: AuditLog[] }) {
+function LogRow({ a }: { a: AuditLog }) {
+  const agent = a.whoName === 'Bookkeeper';
+  const body = (
+    <>
+      <span className="audit-time">{clock(a.at.toDate())}</span>
+      <span className="audit-what">
+        <span className="audit-text">{headline(a.summary)}</span>
+        <Change summary={a.summary} />
+      </span>
+      <Actor kind={agent ? 'agent' : 'person'} name={a.whoName} />
+    </>
+  );
+  return a.eventId !== undefined ? (
+    <button type="button" className="audit-row" title={a.summary} onClick={() => openItem(a.eventId!)}>
+      {body}
+    </button>
+  ) : (
+    <div className="audit-row" title={a.summary}>
+      {body}
+    </div>
+  );
+}
+
+function PatternRow({ p, log }: { p: Pattern; log: AuditLog[] }) {
   const edit = useReducer(reducers.editPattern);
   const remove = useReducer(reducers.deletePattern);
   const [draft, setDraft] = useState<string | null>(null);
@@ -85,8 +187,9 @@ function PatternItem({ p, log }: { p: Pattern; log: AuditLog[] }) {
   const taught = evidence
     .map(id => log.find(a => `a${a.id}` === id))
     .filter((a): a is AuditLog => !!a)
-    .map(a => `• ${a.whoName} ${a.summary}`)
+    .map(a => `${a.whoName} ${a.summary}`)
     .join('\n');
+  const actor = SOURCE_ACTOR[p.source] ?? { kind: 'person' as const, name: p.source };
 
   const save = () => {
     if (draft === null) return;
@@ -96,47 +199,38 @@ function PatternItem({ p, log }: { p: Pattern; log: AuditLog[] }) {
       .catch((err: Error) => setError(err.message));
   };
 
+  if (draft !== null) {
+    return (
+      <li className="pattern">
+        <textarea className="pattern-input" rows={3} value={draft} onChange={e => setDraft(e.target.value)} autoFocus />
+        <div className="pattern-foot">
+          <Button kind="quiet" size="sm" onClick={() => setDraft(null)}>
+            Cancel
+          </Button>
+          <Button kind="primary" size="sm" disabled={!draft.trim()} onClick={save}>
+            Save
+          </Button>
+        </div>
+        {error && <p className="card-error">{error}</p>}
+      </li>
+    );
+  }
+
   return (
-    <li className={`pattern is-${p.source}`}>
-      {draft === null ? (
-        <p className="pattern-text">{p.text}</p>
-      ) : (
-        <textarea className="pattern-edit" rows={3} value={draft} onChange={e => setDraft(e.target.value)} autoFocus />
-      )}
-      {p.because && <p className="pattern-why">{p.because}</p>}
+    <li className="pattern">
+      <p className="pattern-text" title={p.because || undefined}>
+        {p.text}
+      </p>
       <div className="pattern-meta">
-        <span className="pattern-tag">{SOURCE_LABEL[p.source] ?? p.source}</span>
-        {evidence.length > 0 && (
-          <span className="muted small" title={taught || undefined}>
-            from {evidence.length} {evidence.length === 1 ? 'action' : 'actions'}
-          </span>
-        )}
-        <span className="muted small">
-          used {p.uses} {p.uses === 1 ? 'time' : 'times'}
+        <Actor kind={actor.kind} name={actor.name} />
+        <span className="tertiary small" title={taught || undefined}>
+          Used {plural(p.uses, 'time')}
         </span>
         <span className="pattern-actions">
-          {draft === null ? (
-            <>
-              <Button kind="quiet" size="sm" icon="Edit" onClick={() => setDraft(p.text)}>
-                Edit
-              </Button>
-              <Button kind="quiet" size="sm" icon="TrashCan" onClick={() => remove({ patternId: p.id }).catch(logError)}>
-                Delete
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button kind="quiet" size="sm" onClick={() => setDraft(null)}>
-                Cancel
-              </Button>
-              <button type="button" className="btn btn-primary btn-sm" disabled={!draft.trim()} onClick={save}>
-                Save
-              </button>
-            </>
-          )}
+          <IconButton icon="Edit" label="Edit pattern" onClick={() => setDraft(p.text)} />
+          <IconButton icon="TrashCan" label="Delete pattern" onClick={() => remove({ patternId: p.id }).catch(logError)} />
         </span>
       </div>
-      {error && <p className="card-error">{error}</p>}
     </li>
   );
 }
@@ -149,7 +243,7 @@ function AddPattern() {
   if (!open) {
     return (
       <Button kind="quiet" size="sm" icon="Add" onClick={() => setOpen(true)}>
-        Add a pattern
+        Add pattern
       </Button>
     );
   }
@@ -163,22 +257,22 @@ function AddPattern() {
       .catch((err: Error) => setError(err.message));
   };
   return (
-    <div className="pattern-add">
+    <div className="pattern pattern-new">
       <textarea
+        className="pattern-input"
         rows={2}
         value={text}
         onChange={e => setText(e.target.value)}
-        placeholder="Like: Treat Golden Gate Catering bills under $100 as Catering and don't ask."
+        placeholder="Treat Golden Gate Catering bills under $100 as Catering."
         autoFocus
       />
-      <div className="fu-actions">
-        <span className="fu-spacer" />
+      <div className="pattern-foot">
         <Button kind="quiet" size="sm" onClick={() => setOpen(false)}>
           Cancel
         </Button>
-        <button type="button" className="btn btn-primary btn-sm" disabled={!text.trim()} onClick={submit}>
+        <Button kind="primary" size="sm" disabled={!text.trim()} onClick={submit}>
           Add
-        </button>
+        </Button>
       </div>
       {error && <p className="card-error">{error}</p>}
     </div>
@@ -191,35 +285,39 @@ function Full() {
     <Card type="audit" icon="Document" title="Audit log & patterns" className="w-audit-full">
       <div className="audit-cols">
         <section className="audit-col">
-          <h4 className="section-label">Everything people did ({log.length})</h4>
-          <ol className="audit-log nodrag nowheel">
+          <header className="audit-col-head">
+            <h4>Log</h4>
+            <span className="tertiary small">{log.length}</span>
+          </header>
+          <div className="audit-log nodrag nowheel">
             {log.slice(0, LOG_SHOWN).map(a => (
-              <li key={a.id.toString()}>
-                <LogEntry a={a} />
-              </li>
+              <LogRow key={a.id.toString()} a={a} />
             ))}
-            {!log.length && <li className="muted small">Nothing yet. Decisions, Settle messages and settings changes land here.</li>}
-            {log.length > LOG_SHOWN && <li className="muted small">+{log.length - LOG_SHOWN} earlier</li>}
-          </ol>
+            {!log.length && <p className="audit-empty">Nothing yet.</p>}
+            {log.length > LOG_SHOWN && <p className="audit-empty">{log.length - LOG_SHOWN} earlier</p>}
+          </div>
         </section>
 
         <section className="audit-col">
-          <h4 className="section-label">Patterns the Bookkeeper follows ({active.length})</h4>
-          <p className="muted small">
-            {learning
-              ? 'Learning from the newest decisions…'
-              : pending
-                ? `${pending} new ${pending === 1 ? 'action' : 'actions'} to learn from in a moment.`
-                : 'Learned from your decisions and corrections (the highlighted actions). Edit or delete any of them.'}
-          </p>
+          <header className="audit-col-head">
+            <h4>Patterns</h4>
+            <span className="tertiary small">{active.length}</span>
+            <span className="audit-col-status">
+              {learning ? (
+                <Status kind="agent" busy>
+                  Learning
+                </Status>
+              ) : pending > 0 ? (
+                <span className="tertiary small">{plural(pending, 'new call')} to learn from</span>
+              ) : null}
+            </span>
+          </header>
           {state?.lastError && <p className="card-error">{state.lastError}</p>}
           <ul className="patterns nodrag nowheel">
             {active.map(p => (
-              <PatternItem key={p.id.toString()} p={p} log={log} />
+              <PatternRow key={p.id.toString()} p={p} log={log} />
             ))}
-            {!active.length && (
-              <li className="muted small">No patterns yet. They appear once people decide a few similar things the same way.</li>
-            )}
+            {!active.length && <li className="audit-empty">None yet. They appear after a few similar calls.</li>}
           </ul>
           <div className="nodrag">
             <AddPattern />

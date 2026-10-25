@@ -112,7 +112,7 @@ export function AskSettle() {
       {open && (
         <div className={`ask-window${instant ? ' is-instant' : ''}`} role="dialog" aria-label="Ask Settle">
           <header className="ask-head">
-            <Icon name="Sparkle" />
+            <Icon name="Settle" />
             <span className="strong">Ask Settle</span>
             <span className="ask-sub ask-head-sub">Talks to your agents</span>
             <kbd>Esc</kbd>
@@ -128,7 +128,7 @@ export function AskSettle() {
               <div key={t.id.toString()} className="ask-pair">
                 <p className="ask-you">{questionOf(t.prompt)}</p>
                 <div className="ask-answer">
-                  <Icon name="Sparkle" size={14} />
+                  <Icon name="Settle" size={14} />
                   <div>
                     {t.status === 'done' ? (
                       <>
@@ -170,7 +170,7 @@ export function AskSettle() {
           setOpen(o => !o);
         }}
       >
-        <Icon name="Sparkle" />
+        <Icon name="Settle" />
         <span>Ask Settle</span>
         <kbd>⌘K</kbd>
       </button>
