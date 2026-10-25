@@ -11,11 +11,11 @@
 // (money in), warm grey (money out) and secondary ink (totals), so no hue
 // competes with the decide orange.
 
-export const REPORT_VERSION = 'v4';
+export const REPORT_VERSION = 'v5';
 export const REPORT_PATH = `settle/tools/report-${REPORT_VERSION}.py`;
 
-export const REPORT_SCRIPT = String.raw`# settle-report v4 -- provided by Pacioli. Do not edit.
-# Run: python3 /home/factory-user/settle/tools/report-v4.py /home/factory-user/settle
+export const REPORT_SCRIPT = String.raw`# settle-report v5 -- provided by Pacioli. Do not edit.
+# Run: python3 /home/factory-user/settle/tools/report-v5.py /home/factory-user/settle
 """Build report.json, report.html and report.xlsx from the settled rows of ledger.json."""
 import datetime
 import html
@@ -50,10 +50,20 @@ def money(cents, whole=False):
     return ("\u2212" + text) if value < 0 else text
 
 
-def load_rows():
+def load_ledger():
     path = HERE / "ledger.json"
-    data = json.loads(path.read_text()) if path.exists() else {"rows": []}
-    return data.get("rows", [])
+    return json.loads(path.read_text()) if path.exists() else {"rows": []}
+
+
+LEDGER = load_ledger()
+# The business the ledger is for: report titles and what Stripe sells
+SCENARIO = LEDGER.get("scenario") or {}
+REPORT = SCENARIO.get("report") or {"title": "Show report", "subtitle": "Oct 25"}
+SALES = SCENARIO.get("sales") or {"title": "Tickets", "chart": "Tickets sold by type", "unit": "ticket"}
+
+
+def load_rows():
+    return LEDGER.get("rows", [])
 
 
 # ------------------------------------------------------------- numbers -----
@@ -98,17 +108,18 @@ def summarize(rows):
             vendors[name] = vendors.get(name, 0) - amt(r)
     top_vendors = sorted(vendors.items(), key=lambda kv: -kv[1])[:8]
 
-    tickets, ticket_gross, refunds = {}, 0, 0
+    # Card sales: Stripe charges read "2x GA ticket - Oct 25 show"
+    sales, sales_gross, refunds = {}, 0, 0
     for r in settled:
         cat = r.get("category") or ""
         desc = r.get("description") or r.get("counterparty") or ""
-        if cat.startswith("Revenue") and "ticket" in cat.lower() and amt(r) > 0:
-            ticket_gross += amt(r)
+        if cat.startswith("Revenue") and r.get("source") == "stripe" and amt(r) > 0:
+            sales_gross += amt(r)
             m = re.search(r"(\d+)\s*x\s+([A-Za-z][A-Za-z ]*?)(?:\s+-|$)", r.get("counterparty", "") + " " + desc)
             raw = m.group(2).lower().replace(" package", "").replace(" ticket", "").strip() if m else "other"
             kind = {"ga": "GA", "vip": "VIP", "early bird": "Early bird"}.get(raw, raw.capitalize())
             qty = int(m.group(1)) if m else 1
-            tickets[kind] = tickets.get(kind, 0) + qty
+            sales[kind] = sales.get(kind, 0) + qty
         if amt(r) < 0 and "refund" in (desc + " " + cat).lower():
             refunds -= amt(r)
 
@@ -133,8 +144,8 @@ def summarize(rows):
         },
         "cash": cash,
         "top_vendors": [{"name": n, "spend": v} for n, v in top_vendors],
-        "tickets": {"by_type": dict(sorted(tickets.items(), key=lambda kv: -kv[1])),
-                    "gross": ticket_gross, "refunds": refunds},
+        "sales": {"title": SALES["title"], "by_type": dict(sorted(sales.items(), key=lambda kv: -kv[1])),
+                  "gross": sales_gross, "refunds": refunds},
     }
 
 
@@ -300,7 +311,8 @@ def render_html(s):
     rev_items = list(p["revenue"].items())
     cost_items = list(p["costs"].items())
     cats = [("in", k, v) for k, v in rev_items] + [("out", k, v) for k, v in cost_items]
-    tix = s["tickets"]
+    tix = s["sales"]
+    unit = SALES["unit"]
     cards = [
         ("Profit and loss", "Revenue steps up, each cost steps down, ending at net.",
          '<div class="legend"><span style="--c:%s">Money in</span><span style="--c:%s">Money out</span>'
@@ -316,15 +328,15 @@ def render_html(s):
         ("Top vendors", "Largest settled spend by counterparty.",
          hbar_chart([(v["name"], v["spend"]) for v in s["top_vendors"]], OUT_COLOR, "Top vendors by spend")
          + table(["Vendor", "Spend"], [(v["name"], money(v["spend"])) for v in s["top_vendors"]], (1,))),
-        ("Tickets", "Tickets sold by type. Gross %s, refunds %s." % (money(tix["gross"]), money(-tix["refunds"])),
-         hbar_chart(list(tix["by_type"].items()), IN_COLOR, "Tickets sold by type",
-                    fmt=lambda v, short=False: "%d ticket%s" % (v, "" if v == 1 else "s"))
-         + table(["Type", "Tickets"], [(k, v) for k, v in tix["by_type"].items()], (1,))),
+        (SALES["title"], "%s. Gross %s, refunds %s." % (SALES["chart"], money(tix["gross"]), money(-tix["refunds"])),
+         hbar_chart(list(tix["by_type"].items()), IN_COLOR, SALES["chart"],
+                    fmt=lambda v, short=False: "%d %s%s" % (v, unit, "" if v == 1 else "s"))
+         + table(["Type", "Sold"], [(k, v) for k, v in tix["by_type"].items()], (1,))),
     ]
     body = "".join('<section class="card"><h2>%s</h2><p class="sub">%s</p>%s</section>' % (esc(t), esc(sub), html_) for t, sub, html_ in cards)
-    return ("<!doctype html><html><head><meta charset='utf-8'><title>Show report</title><style>%s</style></head><body>"
-            "<h1>Show report \u00b7 Oct 25</h1><p class='headline'>%s</p><div class='grid'>%s</div></body></html>"
-            % (CSS, esc(headline), body))
+    return ("<!doctype html><html><head><meta charset='utf-8'><title>%s</title><style>%s</style></head><body>"
+            "<h1>%s \u00b7 %s</h1><p class='headline'>%s</p><div class='grid'>%s</div></body></html>"
+            % (esc(REPORT["title"]), CSS, esc(REPORT["title"]), esc(REPORT["subtitle"]), esc(headline), body))
 
 
 # ----------------------------------------------------------------- xlsx ----
@@ -452,15 +464,15 @@ def render_xlsx(s):
         tv.cell(tv.max_row, 2).number_format = fmt
     bar(tv, "Top vendors by spend", len(s["top_vendors"]), OUT_COLOR)
 
-    tk = wb.create_sheet("Tickets")
-    header(tk, ["Type", "Tickets"], [24, 12])
-    for k, v in s["tickets"]["by_type"].items():
+    tk = wb.create_sheet(SALES["title"][:31])
+    header(tk, ["Type", "Sold"], [24, 12])
+    for k, v in s["sales"]["by_type"].items():
         tk.append([k, v])
-    bar(tk, "Tickets sold by type", len(s["tickets"]["by_type"]), IN_COLOR)
-    tk.cell(tk.max_row + 2, 1, "Ticket gross")
-    tk.cell(tk.max_row, 2, s["tickets"]["gross"] / 100).number_format = fmt
+    bar(tk, SALES["chart"], len(s["sales"]["by_type"]), IN_COLOR)
+    tk.cell(tk.max_row + 2, 1, "Gross")
+    tk.cell(tk.max_row, 2, s["sales"]["gross"] / 100).number_format = fmt
     tk.cell(tk.max_row + 1, 1, "Refunds")
-    tk.cell(tk.max_row, 2, -s["tickets"]["refunds"] / 100).number_format = fmt
+    tk.cell(tk.max_row, 2, -s["sales"]["refunds"] / 100).number_format = fmt
 
     wb.save(HERE / "report.xlsx")
 

@@ -1,7 +1,7 @@
 import { Timestamp } from 'spacetimedb';
 import type { InferSchema, ReducerCtx } from 'spacetimedb/server';
 import type spacetimedb from '../../index';
-import { SHOW, SPONSORS, VENDORS, addDays, amountBetween, pick } from '../simulation';
+import { addDays, amountBetween, pick } from '../simulation';
 import { parseState, type InboundEventDraft, type Source, type SourceContext } from '../types';
 
 // Our mock accounting system (backend/src/accounting): bills, invoices and the
@@ -26,13 +26,14 @@ function describe(lines: Line[], memo: string): string {
 const initials = (name: string) => name.split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 3);
 
 function simulateLedger(ctx: SourceContext): void {
+  const { scenario } = ctx;
   const now = ctx.now();
   const roll = ctx.random();
   ctx.withTx(raw => {
     const tx = raw as Ctx;
     const docNumber = (prefix: string) => `${prefix}-${ctx.random.integerInRange(1000, 9999)}`;
     // Documents dated over the past few weeks, so some are already due or
-    // overdue when they reach the books (the show is today)
+    // overdue when they reach the books
     const dated = (maxDaysAgo: number) => addDays(now, -ctx.random.integerInRange(0, maxDaysAgo));
     const base = {
       id: 0n,
@@ -41,20 +42,21 @@ function simulateLedger(ctx: SourceContext): void {
       createdAt: tx.timestamp,
     };
 
-    // A sponsor invoice now and then; otherwise a vendor bill for the show.
-    // Payments aren't made up here: the bank pays bills and sponsors pay
-    // invoices into the bank, and Pacioli records them when it matches them.
+    // A customer invoice now and then (a sponsor, a client); otherwise a
+    // vendor bill. Payments aren't made up here: the bank pays bills and
+    // customers pay invoices into the bank, and Pacioli records them when it
+    // matches them.
     if (roll < 0.3) {
-      const sponsor = pick(ctx.random, SPONSORS);
-      const total = BigInt(amountBetween(ctx.random, sponsor.min, sponsor.max));
+      const customer = pick(ctx.random, scenario.customers);
+      const total = BigInt(amountBetween(ctx.random, customer.min, customer.max));
       const issued = dated(45);
       tx.db.accountingInvoice.insert({
         ...base,
         txnDate: Timestamp.fromDate(issued),
-        customer: sponsor.name,
+        customer: customer.name,
         docNumber: docNumber('INV'),
         dueDate: Timestamp.fromDate(addDays(issued, 30)),
-        lines: [{ description: `${sponsor.item} - ${SHOW}`, amountMinor: total }],
+        lines: [{ description: `${customer.item} - ${scenario.period}`, amountMinor: total }],
         totalMinor: total,
         balanceMinor: total,
         memo: 'Net 30',
@@ -83,9 +85,9 @@ function simulateLedger(ctx: SourceContext): void {
       return;
     }
 
-    const vendor = pick(ctx.random, VENDORS);
+    const vendor = pick(ctx.random, scenario.vendors);
     const main = BigInt(amountBetween(ctx.random, vendor.min, vendor.max));
-    const lines = [{ description: `${vendor.item} - ${SHOW}`, amountMinor: main }];
+    const lines = [{ description: `${vendor.item} - ${scenario.period}`, amountMinor: main }];
     if (ctx.random() < 0.3) lines.push({ description: 'Delivery and setup', amountMinor: BigInt(amountBetween(ctx.random, 5_000, 20_000)) });
     const total = lines.reduce((sum, l) => sum + l.amountMinor, 0n);
     const received = dated(20);
@@ -120,7 +122,7 @@ export const ledger: Source = {
     return this.poll(ctx, state, Number.MAX_SAFE_INTEGER).state;
   },
 
-  // Bills arrive from vendors, invoices go to sponsors, open ones get paid
+  // Bills arrive from vendors, invoices go to customers
   simulate(ctx, state) {
     simulateLedger(ctx);
     return state;

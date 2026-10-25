@@ -76,6 +76,7 @@ export const {
   runInbound,
   pauseInbound,
   restartInbound,
+  setScenario,
   inboundTick,
 } = inbound(spacetimedb);
 

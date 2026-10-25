@@ -70,6 +70,7 @@ import SetEmailFollowUpsReducer from "./set_email_follow_ups_reducer";
 import SetInboundSourceReducer from "./set_inbound_source_reducer";
 import SetNameReducer from "./set_name_reducer";
 import SetPipelineCardExpandedReducer from "./set_pipeline_card_expanded_reducer";
+import SetScenarioReducer from "./set_scenario_reducer";
 import SteerAgentTaskReducer from "./steer_agent_task_reducer";
 import TidyPipelineLayoutReducer from "./tidy_pipeline_layout_reducer";
 
@@ -116,6 +117,7 @@ import ReportDocumentRow from "./report_document_table";
 import ReportStateRow from "./report_state_table";
 import ReviewDetailRow from "./review_detail_table";
 import ReviewItemRow from "./review_item_table";
+import ScenarioRow from "./scenario_table";
 import ToolInstallRow from "./tool_install_table";
 import UserRow from "./user_table";
 
@@ -524,6 +526,17 @@ const tablesSchema = __schema({
       { name: 'review_item_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, ReviewItemRow),
+  scenario: __table({
+    name: 'scenario',
+    indexes: [
+      { accessor: 'id', name: 'scenario_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'scenario_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, ScenarioRow),
   toolInstall: __table({
     name: 'tool_install',
     indexes: [
@@ -586,6 +599,7 @@ const reducersSchema = __reducers(
   __reducerSchema("set_inbound_source", SetInboundSourceReducer),
   __reducerSchema("set_name", SetNameReducer),
   __reducerSchema("set_pipeline_card_expanded", SetPipelineCardExpandedReducer),
+  __reducerSchema("set_scenario", SetScenarioReducer),
   __reducerSchema("steer_agent_task", SteerAgentTaskReducer),
   __reducerSchema("tidy_pipeline_layout", TidyPipelineLayoutReducer),
 );

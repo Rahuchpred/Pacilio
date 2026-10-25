@@ -90,6 +90,7 @@ function AgentFull() {
   const t = totals(useRows());
   const taskId = state?.taskId ?? doc?.taskId;
   const built = doc ? clock(doc.updatedAt.toDate()) : null;
+  const { scenario } = useLive();
   return (
     <Card type="reportAgent" icon="agent" title="Reports agent" meta={<Status kind={status.kind} busy={status.busy}>{status.label}</Status>} className="w-ragent-full rp-card">
       <div className={`rp-flow${building ? ' is-building' : ''}`}>
@@ -102,7 +103,7 @@ function AgentFull() {
           state={building ? 'active' : built ? 'done' : 'waiting'}
         />
         <span className="rp-link" aria-hidden="true" />
-        <BuildStep icon="ChartLine" label="Show report" value={building ? 'Next version soon' : built ?? 'None yet'} state={building ? 'waiting' : built ? 'done' : 'waiting'} />
+        <BuildStep icon="ChartLine" label={scenario.report.title} value={building ? 'Next version soon' : built ?? 'None yet'} state={building ? 'waiting' : built ? 'done' : 'waiting'} />
       </div>
 
       {state?.lastError && <p className="card-error">{state.lastError}</p>}
@@ -115,7 +116,7 @@ function AgentFull() {
       ) : (
         <section className="stack">
           <h4 className="section-label">{built ? `Last report · ${built}` : 'No report yet'}</h4>
-          {doc?.headline ? <p className="agent-built">{doc.headline}</p> : <p className="muted small">Build one to see the show's numbers.</p>}
+          {doc?.headline ? <p className="agent-built">{doc.headline}</p> : <p className="muted small">Build one to see the numbers so far.</p>}
         </section>
       )}
 
@@ -150,13 +151,14 @@ function useFigures() {
 
 function ReportFar() {
   const { doc } = useReport();
+  const { scenario } = useLive();
   const f = useFigures();
   return (
     <FarCard
       type="report"
       width="w-report"
       icon="ChartLine"
-      word="Show report"
+      word={scenario.report.title}
       big={<Money value={f.net} cents={false} />}
       line={doc ? `net income${f.margin !== null ? `, ${f.margin}% margin` : ''}` : 'net so far, no report yet'}
     />
@@ -169,6 +171,7 @@ function ReportViewer({ onClose, onDownload }: { onClose: () => void; onDownload
   const { doc } = useReport();
   const commentary = jsonList(doc?.commentary);
   const watch = jsonList(doc?.watch);
+  const title = useLive().scenario.report.title;
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', onKey);
@@ -177,10 +180,10 @@ function ReportViewer({ onClose, onDownload }: { onClose: () => void; onDownload
   if (!doc) return null;
   return createPortal(
     <div className="viewer-backdrop" onClick={onClose}>
-      <div className="viewer" role="dialog" aria-label="Show report" onClick={e => e.stopPropagation()}>
+      <div className="viewer" role="dialog" aria-label={title} onClick={e => e.stopPropagation()}>
         <header className="viewer-head">
           <span className="viewer-title">
-            <Icon name="ChartLine" /> Show report
+            <Icon name="ChartLine" /> {title}
             <span className="muted small">Built {clock(doc.updatedAt.toDate())} from settled rows</span>
           </span>
           <span className="viewer-actions">
@@ -214,7 +217,7 @@ function ReportViewer({ onClose, onDownload }: { onClose: () => void; onDownload
               </section>
             )}
           </aside>
-          <iframe className="viewer-frame" title="Show report, full size" sandbox="" srcDoc={doc.html} />
+          <iframe className="viewer-frame" title={`${title}, full size`} sandbox="" srcDoc={doc.html} />
         </div>
       </div>
     </div>,
@@ -229,6 +232,7 @@ function ReportFull() {
   const commentary = jsonList(doc?.commentary);
   const watch = jsonList(doc?.watch);
   const [viewing, setViewing] = useState(false);
+  const { scenario } = useLive();
 
   const download = () => {
     setError(null);
@@ -241,7 +245,7 @@ function ReportFull() {
     <Card
       type="report"
       icon="ChartLine"
-      title="Show report"
+      title={scenario.report.title}
       className="w-report-full"
       meta={
         <>
@@ -278,9 +282,9 @@ function ReportFull() {
           </div>
           <TeamCharts />
           <div className="workbook report-frame nodrag nowheel">
-            <iframe title="Show report" sandbox="" srcDoc={doc.html} />
+            <iframe title={scenario.report.title} sandbox="" srcDoc={doc.html} />
           </div>
-          <p className="muted small">Built {clock(doc.updatedAt.toDate())} from settled rows. The workbook has P&amp;L, cash flow, costs, vendors and tickets.</p>
+          <p className="muted small">Built {clock(doc.updatedAt.toDate())} from settled rows. The workbook has P&amp;L, cash flow, costs, vendors and {scenario.sales.title.toLowerCase()}.</p>
         </>
       ) : (
         <p className="muted">Built from settled ledger rows every 10 minutes while the pipeline runs, or now from the reports agent.</p>

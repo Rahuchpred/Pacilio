@@ -8,7 +8,6 @@
 const SANS = "Geist, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif";
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-export const SHOW = 'Oct 25 show';
 export const SENDER = 'Pacioli Bookkeeping';
 
 export interface Detail {

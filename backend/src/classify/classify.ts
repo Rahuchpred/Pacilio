@@ -1,6 +1,8 @@
 import { SenderError, t, type InferSchema, type ReducerCtx } from 'spacetimedb/server';
 import type spacetimedb from '../index';
 import { logAction } from '../learn/audit';
+import { activeScenario } from '../inbound/simulation';
+import { DEFAULT_SCENARIO } from '../scenarios';
 
 // Classification settings: the category list and auto/manual mode, shared by
 // everyone and read by the Bookkeeper's prompt on every run.
@@ -8,19 +10,8 @@ import { logAction } from '../learn/audit';
 type Schema = typeof spacetimedb;
 type Ctx = ReducerCtx<InferSchema<Schema>>;
 
-export const DEFAULT_CATEGORIES = [
-  'Revenue · Tickets',
-  'Revenue · Sponsorship',
-  'Production · Audio & lighting',
-  'Security',
-  'Catering',
-  'Labor & payroll',
-  'Marketing & printing',
-  'Permits & fees',
-  'Processor fees & refunds',
-  'Cash & transfers',
-  'Other',
-];
+// Each scenario has its own default list (../scenarios.ts)
+export const DEFAULT_CATEGORIES = DEFAULT_SCENARIO.categories;
 const MAX_CATEGORIES = 40;
 const MAX_NAME = 60;
 
@@ -38,7 +29,7 @@ function setMode(ctx: Ctx, mode: 'auto' | 'manual') {
 
 // Seed the defaults once, so the settings have something to show.
 export function ensureClassificationDefaults(ctx: Ctx) {
-  if (ctx.db.classification.count() === 0n) writeList(ctx, DEFAULT_CATEGORIES);
+  if (ctx.db.classification.count() === 0n) writeList(ctx, activeScenario(ctx).categories);
   if (!ctx.db.classificationMode.id.find(0)) setMode(ctx, 'auto');
 }
 
@@ -46,7 +37,13 @@ export function ensureClassificationDefaults(ctx: Ctx) {
 export function currentClassifying(ctx: Ctx): Classifying {
   const rows = [...ctx.db.classification.iter()].sort((a, b) => a.position - b.position).map(r => r.name);
   const mode = ctx.db.classificationMode.id.find(0)?.mode === 'manual' ? 'manual' : 'auto';
-  return { mode, categories: rows.length ? rows : DEFAULT_CATEGORIES };
+  return { mode, categories: rows.length ? rows : activeScenario(ctx).categories };
+}
+
+// A new scenario starts from its own list, in Auto.
+export function resetClassificationsTo(ctx: Ctx, categories: string[]) {
+  writeList(ctx, categories);
+  setMode(ctx, 'auto');
 }
 
 // Categories the agent has actually used, so switching to manual starts from
@@ -96,8 +93,7 @@ export function classify(stdb: Schema) {
   });
 
   const resetClassifications = stdb.reducer(ctx => {
-    writeList(ctx, DEFAULT_CATEGORIES);
-    setMode(ctx, 'auto');
+    resetClassificationsTo(ctx, activeScenario(ctx).categories);
     logAction(ctx, ctx.sender, 'classification', 'Reset the categories to the default list (Auto)', { learnable: true });
   });
 

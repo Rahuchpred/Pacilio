@@ -2,6 +2,7 @@ import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { rowState, type Row } from './live';
 import { useTable } from 'spacetimedb/react';
 import { tables } from '../module_bindings';
+import { scenarioByKey } from '../../../backend/src/scenarios';
 import type {
   AgentRun,
   AgentStep,
@@ -63,7 +64,9 @@ function useLiveTables() {
   const [patterns] = useTable(tables.pattern);
   const [patternStates] = useTable(tables.patternState);
   const [classificationModes] = useTable(tables.classificationMode);
+  const [scenarioRows] = useTable(tables.scenario);
   return {
+    scenarioRows,
     bills,
     invoices,
     payments,
@@ -211,7 +214,10 @@ function useDerived(t: ReturnType<typeof useLiveTables>) {
     () => new Set(t.threads.filter(x => x.status === 'waiting' || x.status === 'replied').map(x => x.eventId.toString())),
     [t.threads]
   );
+  // The business being simulated (the sidebar): names, labels, categories
+  const scenario = useMemo(() => scenarioByKey(t.scenarioRows[0]?.key), [t.scenarioRows]);
   return {
+    scenario,
     rows,
     rowBy,
     rowNumberBy,

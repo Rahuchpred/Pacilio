@@ -4,6 +4,7 @@
 // separately, when someone needs it (buildRenderPrompt).
 
 import { DEFAULT_CATEGORIES, type Classifying } from '../classify/classify';
+import { DEFAULT_SCENARIO, type Scenario } from '../scenarios';
 import { RENDER_PATH } from './renderScript';
 import type { MatchDoc } from './related';
 import { NO_BILL_ASK_MINOR, money } from '../books/paymentCheck';
@@ -68,15 +69,17 @@ export function buildPrompt(
   classifying: Classifying = { mode: 'auto', categories: DEFAULT_CATEGORIES },
   patterns: { id: string; text: string }[] = [],
   overdue: { docNumber: string; customer: string; balance: string; daysOverdue: number }[] = [],
-  context: PromptContext = { rows: [], documents: [] }
+  context: PromptContext = { rows: [], documents: [] },
+  scenario: Scenario = DEFAULT_SCENARIO
 ): string {
+  const customer = scenario.customerWord;
   const noBillLimit = money(NO_BILL_ASK_MINOR);
   const categories =
     classifying.mode === 'manual'
       ? `Categories (use exactly one of these; never anything else): ${classifying.categories.join('; ')}.`
       : `Categories: use one of these when it fits: ${classifying.categories.join('; ')}.
 If none fits, make a short new one in the same style (like "Production · Staging") and reuse it after that.`;
-  return `You are the Bookkeeper, Pacioli's bookkeeping agent for a concert promoter (the Oct 25 show).
+  return `You are the Bookkeeper, Pacioli's bookkeeping agent for ${scenario.business} (${scenario.context}).
 You keep the master ledger: one spreadsheet of every money movement, checked and explained.
 
 Work quickly: go straight to the files below. Don't look for AGENTS.md, skills or other context,
@@ -113,11 +116,11 @@ Amounts: positive = money in, negative = money out.
 
 ## Sources
 - nessie: the bank account (purchases, deposits, withdrawals, transfers, bill pay)
-- stripe: card payments for tickets (charges, refunds, chargebacks)
+- stripe: ${scenario.stripeSells} (charges, refunds, chargebacks)
 - ledger: the accounting system, QuickBooks. Typed by hand, so it has typos and double entries. In anything a person
   reads (notes, evidence, titles), call this source "QuickBooks". It records who owes whom, not money moving:
   a bill is what we owe a vendor (kind "bill", paid later from the bank, whose memo quotes the bill number);
-  an invoice is what a sponsor owes us (kind "invoice", paid later by a bank deposit "<sponsor> - payment for INV-…").
+  an invoice is what a ${customer} owes us (kind "invoice", paid later by a bank deposit "<${customer}> - payment for INV-…").
   Bills and invoices are normally "ok" (category as for the money they cover); flag one only if it is itself wrong
   (a duplicate entry, a mistyped amount).
 
@@ -145,11 +148,11 @@ Then do the work below. Your final JSON still decides; it may differ if you chan
    - Mismatch: a payment that disagrees with its bill or invoice (paid more or less than billed).
    - No bill: a bank payment to a vendor whose memo quotes no bill number and that matches no bill in its
      documents or related rows (same vendor, same amount). Money left with nothing in QuickBooks behind it.
-   When a bank or Stripe row pays one of our bills, or is a sponsor paying our invoice, put that bill or invoice
+   When a bank or Stripe row pays one of our bills, or is a ${customer} paying our invoice, put that bill or invoice
    number in "pays" (Pacioli records the payment in QuickBooks). A payment with no bill number that matches an
    open bill from the same vendor for the same amount pays that bill: put its number in "pays".
-   Normal, not problems (mark "ok"): our own money moving (cash float withdrawals, crew payroll transfers,
-   box office deposits, Stripe payouts); a payment whose memo quotes a bill number that isn't in QuickBooks yet
+   Normal, not problems (mark "ok"): our own money moving (${scenario.ownMoney});
+   a payment whose memo quotes a bill number that isn't in QuickBooks yet
    (bills often arrive after payment: note "Awaiting bill <number>"); separate bills or payments with different
    document numbers; a QuickBooks bill for a payment we already made with no bill (same vendor, same amount, a
    related row noted "No bill on file"): note "Paid by row <n>".
@@ -176,7 +179,7 @@ Then do the work below. Your final JSON still decides; it may differ if you chan
 - evidence: 2-4 short lines, each naming a row and its source. "Row 3 · Nessie · −$1,250.00 · Oct 20".
 - action: exactly one of
     "void"      - the row is a duplicate entry in our books; remove it. No money moves.
-    "refund"    - only for a Stripe ticket charge we should give back; Pacioli refunds it on Stripe.
+    "refund"    - only for a Stripe charge we should give back; Pacioli refunds it on Stripe.
     "follow_up" - we need the other party to act or explain (refund an overpayment, send a missing bill,
                   confirm a charge). Pacioli will email them.
     "keep"      - the row is fine on reflection; leave it.
@@ -205,7 +208,7 @@ existing row you change in "changes" (Pacioli writes them), and answer each mess
     : '- none'
 }
 
-## Overdue invoices (sponsors who owe us and are late; nobody is reminding them yet)
+## Overdue invoices (${customer}s who owe us and are late; nobody is reminding them yet)
 ${
   overdue.length
     ? overdue.map(o => `- ${o.docNumber} · ${o.customer} · ${o.balance} open · ${o.daysOverdue} days overdue`).join('\n') +

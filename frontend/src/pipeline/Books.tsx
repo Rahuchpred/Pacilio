@@ -7,8 +7,10 @@ import { Card, CardTabs } from './Card';
 import { DOC_STATUS, clock, daysOverdue, docState, dollars, openItem } from './live';
 import { useLive, type Doc } from './store';
 
+const capitalize = (word: string) => word.charAt(0).toUpperCase() + word.slice(1);
+
 // QuickBooks: who owes whom. Bills are what we owe vendors; invoices what
-// sponsors owe us. Payments come from the bank rows the Bookkeeper matched.
+// customers owe us. Payments come from the bank rows the Bookkeeper matched.
 // An overdue invoice can be reminded (Remind them), which the pattern learner
 // watches, so the Bookkeeper can learn to remind on its own.
 
@@ -193,17 +195,18 @@ function Column({
 function Full() {
   const books = useBooks();
   const { bills, invoices, open, overdue, reminding } = books;
+  const customer = useLive().scenario.customerWord;
   const lateInvoices = overdue
     .filter(d => d.kind === 'invoice')
     .sort((a, b) => a.dueDate.toDate().getTime() - b.dueDate.toDate().getTime());
-  // The one call waiting on a person: remind the sponsor who is latest
+  // The one call waiting on a person: remind the customer who is latest
   const first = lateInvoices.find(d => !reminding(d));
   const openBills = open(bills);
   const openInvoices = open(invoices);
   return (
     <Card type="books" icon="Document" title="QuickBooks" className="w-books-full">
       <p className="agent-built">
-        We owe <Money value={sum(openBills)} /> on {plural(openBills.length, 'open bill')}. Sponsors owe us{' '}
+        We owe <Money value={sum(openBills)} /> on {plural(openBills.length, 'open bill')}. {capitalize(customer)}s owe us{' '}
         <Money value={sum(openInvoices)} /> on {plural(openInvoices.length, 'open invoice')}
         {lateInvoices.length > 0 ? `, ${lateInvoices.length} of them overdue.` : '.'}
       </p>
@@ -218,7 +221,7 @@ function Full() {
         />
       </div>
       <p className="muted small">
-        The Bookkeeper matches each bank payment to its bill or invoice. Remind them emails the sponsor; after a few reminders the
+        The Bookkeeper matches each bank payment to its bill or invoice. Remind them emails the {customer}; after a few reminders the
         Bookkeeper sends them itself.
       </p>
     </Card>
@@ -229,7 +232,7 @@ export const quickbooks: CardLevels = { far: Far, full: Full };
 
 // In the item panel: a bill or invoice's money trail, or which document a bank row paid.
 export function BooksSection({ eventId }: { eventId: bigint }) {
-  const { docByEvent, paidByEvent, docs, paymentsByDoc, rowBy } = useLive();
+  const { docByEvent, paidByEvent, docs, paymentsByDoc, rowBy, scenario } = useLive();
   const doc = docByEvent.get(eventId.toString());
   const paid = paidByEvent.get(eventId.toString());
   const paidDoc = paid ? docs.find(d => d.kind === paid.kind && d.id === paid.docId) : undefined;
@@ -269,7 +272,7 @@ export function BooksSection({ eventId }: { eventId: bigint }) {
       <div className="bill-card-body">
         <dl className="bill-rows is-flush">
           <div>
-            <dt>{d.kind === 'bill' ? 'Vendor' : 'Sponsor'}</dt>
+            <dt>{d.kind === 'bill' ? 'Vendor' : capitalize(scenario.customerWord)}</dt>
             <dd>{d.party}</dd>
           </div>
           <div>

@@ -2,6 +2,8 @@ import { SenderError, t, type InferSchema, type ProcedureCtx, type ReducerCtx } 
 import type spacetimedb from '../index';
 import { enqueueAgentTask } from '../droid/agents';
 import { logAction } from './audit';
+import { activeScenario } from '../inbound/simulation';
+import type { Scenario } from '../scenarios';
 
 // The pattern learner. People's decisions and corrections land in the audit
 // log; a few seconds after new ones arrive, Droid reads them (no files, no
@@ -72,9 +74,9 @@ function clockOf(a: Audit): string {
   return `${d.getUTCHours()}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
 }
 
-function buildLearnPrompt(patterns: Pattern[], deleted: Pattern[], actions: Audit[], newFrom: bigint): string {
+function buildLearnPrompt(patterns: Pattern[], deleted: Pattern[], actions: Audit[], newFrom: bigint, scenario: Scenario): string {
   const owner = (p: Pattern) => (p.source === 'learned' ? 'learned' : 'set by a person; never change or remove');
-  return `You are Pacioli's pattern learner. Pacioli keeps a concert promoter's books for the Oct 25 show. Its Bookkeeper
+  return `You are Pacioli's pattern learner. Pacioli keeps the books for ${scenario.business} (${scenario.context}). Its Bookkeeper
 agent sorts every money movement into a category, posts it, and asks a person about anything that looks wrong.
 People then decide, or correct it. You turn what people do into short patterns the Bookkeeper follows from now on.
 Work quickly: everything you need is below. Don't look for files, don't run commands, don't use tools.
@@ -94,8 +96,8 @@ Find what people keep doing the same way and write it as a pattern the Bookkeepe
   "Mark Bay Venue Security payments under $500 as Security and don't ask about them."
 - Only from at least 2 actions that agree, unless a person stated a rule outright ("from now on ...").
 - When a person overruled the Bookkeeper, learn what they chose instead, not what it suggested.
-- When people remind sponsors about overdue invoices (Remind them), a pattern may let the Bookkeeper send such
-  reminders itself: "Remind sponsors when an invoice is more than 7 days overdue". Write it from at least 2 reminders
+- When people remind ${scenario.customerWord}s about overdue invoices (Remind them), a pattern may let the Bookkeeper send such
+  reminders itself: "Remind ${scenario.customerWord}s when an invoice is more than 7 days overdue". Write it from at least 2 reminders
   that agree, with the overdue threshold people actually used.
 - A pattern may let the Bookkeeper email the other party itself in a kind of case ("Email Golden Gate Catering
   when a payment has no bill, asking for the bill"). Write one only when people chose Email them for that kind of
@@ -199,7 +201,7 @@ export function learnTick(ctx: PCtx): boolean {
     const firstNew = all.find(a => a.id > snap.s.learnedThrough)?.id ?? newest.id;
     const patterns = activePatterns(tx);
     const deleted = [...tx.db.pattern.iter()].filter(p => p.status === 'deleted').slice(-20);
-    const taskId = enqueueAgentTask(tx, 'learn', buildLearnPrompt(patterns, deleted, actions, firstNew), 'high');
+    const taskId = enqueueAgentTask(tx, 'learn', buildLearnPrompt(patterns, deleted, actions, firstNew, activeScenario(tx)), 'high');
     update(tx, { taskId, pendingThrough: newest.id, lastRunAt: tx.timestamp, lastError: undefined });
   });
   return true;

@@ -4,7 +4,8 @@ import type spacetimedb from '../index';
 import { AgentMail, type AgentMailMessage } from './agentmail';
 import { emailTickSchedule } from './tables';
 import { logAction } from '../learn/audit';
-import { SENDER, SHOW, money, reference, renderEmail, shortDate, type Detail } from './template';
+import { SENDER, money, reference, renderEmail, shortDate, type Detail } from './template';
+import { activeScenario } from '../inbound/simulation';
 
 type Schema = typeof spacetimedb;
 type Ctx = ReducerCtx<InferSchema<Schema>>;
@@ -16,7 +17,7 @@ type Thread = NonNullable<ReturnType<Ctx['db']['emailThread']['id']['find']>>;
 // email_follow_up table); after the last one a thread shows "No reply".
 const DEFAULT_FOLLOW_UPS = [
   { delayMin: 10, message: 'Just following up on my note below. Could you take a look when you have a moment?' },
-  { delayMin: 30, message: "Following up again on the message below. We need this to close out the Oct 25 show's books." },
+  { delayMin: 30, message: 'Following up again on the message below. We need this to close out our books.' },
   { delayMin: 120, message: 'Checking in once more on the item below. A quick reply with where things stand would help.' },
   { delayMin: 1440, message: "Last follow-up from us on the item below. Please reply so we can settle it; we'll stop nudging after this." },
 ];
@@ -106,7 +107,7 @@ export function startFollowUp(ctx: PCtx, reviewItemId: bigint): string {
     const item = tx.db.reviewItem.id.find(reviewItemId);
     const detail = tx.db.reviewDetail.itemId.find(reviewItemId);
     const event = item && tx.db.inboundEvent.id.find(item.eventId);
-    return { item, detail, event };
+    return { item, detail, event, scenario: activeScenario(tx) };
   });
   if (!info.item) throw new SenderError('Item not found');
   const counterparty = info.detail?.followUpTo || info.event?.counterparty || 'the vendor';
@@ -123,7 +124,7 @@ export function startFollowUp(ctx: PCtx, reviewItemId: bigint): string {
   const event = info.event;
   const amount = event && event.amountMinor !== 0n ? money(event.amountMinor, event.currency) : undefined;
   const details: Detail[] = [
-    { label: 'Show', value: SHOW.replace(/ show$/, '') },
+    { label: info.scenario.periodLabel, value: info.scenario.periodValue },
     { label: 'Counterparty', value: counterparty },
     ...(event && amount ? [{ label: 'Amount', value: amount, tone: event.amountMinor > 0n ? ('in' as const) : undefined }] : []),
     ...(event?.reference ? [{ label: 'Their reference', value: event.reference }] : []),

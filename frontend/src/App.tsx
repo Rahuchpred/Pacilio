@@ -3,6 +3,7 @@ import { useSpacetimeDB } from 'spacetimedb/react';
 import { Pipeline } from './Pipeline';
 import { Icon } from '../../design-system/src/components';
 import { TopBar } from './TopBar';
+import { Scenarios } from './ui/Scenarios';
 import { PipelineActivityProvider } from './pipeline/activity';
 import { CanvasStateProvider, LiveProvider } from './pipeline/store';
 import '@xyflow/react/dist/style.css';
@@ -21,7 +22,10 @@ function App() {
         <CanvasStateProvider>
         <PipelineActivityProvider>
           <Pipeline />
-          <Brand />
+          <div className="top-left">
+            <Brand />
+            <Scenarios />
+          </div>
           <TopBar />
         </PipelineActivityProvider>
         </CanvasStateProvider>

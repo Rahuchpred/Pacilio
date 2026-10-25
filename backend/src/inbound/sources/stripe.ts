@@ -1,5 +1,5 @@
 import { getJson, last, parseState, queryString, requestJson, type Source, type SourceContext } from '../types';
-import { SHOW, TICKETS, pickWeighted } from '../simulation';
+import { pickWeighted } from '../simulation';
 
 // Payment processor: charges, refunds, fees and payouts in one ledger.
 // Uses a test-mode secret key (sk_test_...).
@@ -46,7 +46,7 @@ export const stripe: Source = {
     return JSON.stringify({ since: Math.floor(ctx.now().getTime() / 1000) });
   },
 
-  // Ticket buyers checking out: mostly sales, now and then a refund or a dispute
+  // Customers checking out: mostly sales, now and then a refund or a dispute
   simulate(ctx, state) {
     const roll = ctx.random();
     if (roll < 0.08) {
@@ -61,15 +61,16 @@ export const stripe: Source = {
         return state;
       }
     }
-    const ticket = pickWeighted(ctx.random, TICKETS);
-    const quantity = ticket.cents >= 10_000 ? 1 : ctx.random.integerInRange(1, 4);
+    const { scenario } = ctx;
+    const item = pickWeighted(ctx.random, scenario.sales.items);
+    const quantity = ctx.random.integerInRange(1, item.maxQty);
     stripePost(ctx, '/payment_intents', {
-      amount: ticket.cents * quantity,
+      amount: item.cents * quantity,
       currency: 'usd',
       payment_method: roll > 0.97 ? CARD_DISPUTED : CARD_OK,
       'payment_method_types[]': 'card',
       confirm: 'true',
-      description: `${quantity}x ${ticket.name} - ${SHOW}`,
+      description: `${quantity}x ${item.name} - ${scenario.period}`,
     });
     return state;
   },

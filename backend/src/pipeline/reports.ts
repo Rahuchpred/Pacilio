@@ -3,6 +3,8 @@ import type spacetimedb from '../index';
 import { enqueueAgentTask } from '../droid/agents';
 import { FactoryClient } from '../droid/factory';
 import { REPORT_PATH, REPORT_VERSION } from './reportScript';
+import { activeScenario } from '../inbound/simulation';
+import type { Scenario } from '../scenarios';
 import { finishMessages, markSent, promptId, queuedFor, requeueMessages, type Message } from '../settle/messages';
 import { logAction } from '../learn/audit';
 import { latestFiles, relative, setReportDir, uploadSnapshot } from './snapshot';
@@ -50,10 +52,10 @@ const MAX_CHART_ROWS = 30;
 const chartId = (c: Chart) => `c${c.id}`;
 
 // dir: this build's ledger snapshot folder; the tool writes the report there too
-function buildReportPrompt(requests: Message[], charts: Chart[], dir: string): string {
+function buildReportPrompt(requests: Message[], charts: Chart[], dir: string, scenario: Scenario): string {
   const WORKDIR = dir;
   const REPORT_CMD = `python3 /home/factory-user/${REPORT_PATH} ${dir}`;
-  return `You are Pacioli's reports agent for a concert promoter's Oct 25 show.
+  return `You are Pacioli's reports agent for ${scenario.business} (${scenario.context}).
 Work quickly: don't look for AGENTS.md, skills or other context.
 
 1. Run: ${REPORT_CMD}
@@ -239,7 +241,7 @@ export function reportsTick(ctx: PCtx) {
   ctx.withTx(tx => {
     const requests = queuedFor(tx, 'reports');
     const charts = [...tx.db.reportChart.iter()].sort((a, b) => (a.id < b.id ? -1 : 1));
-    const taskId = enqueueAgentTask(tx, 'report', buildReportPrompt(requests, charts, dir), 'high');
+    const taskId = enqueueAgentTask(tx, 'report', buildReportPrompt(requests, charts, dir, activeScenario(tx)), 'high');
     setReportDir(tx, dir);
     markSent(tx, requests, taskId);
     update(tx, {

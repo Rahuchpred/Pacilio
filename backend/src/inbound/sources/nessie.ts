@@ -11,7 +11,8 @@ import {
 } from '../types';
 import type { InferSchema, ReducerCtx } from 'spacetimedb/server';
 import type spacetimedb from '../../index';
-import { SHOW, VENDORS, addDays, amountBetween, isoDate, pick } from '../simulation';
+import { addDays, amountBetween, isoDate, pick } from '../simulation';
+import type { Vendor } from '../../scenarios';
 
 type Ctx = ReducerCtx<InferSchema<typeof spacetimedb>>;
 
@@ -99,7 +100,7 @@ interface NessieSim {
   // Ledger bill ids this account has already paid, so each is paid once
   // (except the deliberate double payments)
   paidBills: string[];
-  // Invoice ids a sponsor has already paid into this account
+  // Invoice ids a customer has already paid into this account
   paidInvoices?: string[];
 }
 
@@ -117,7 +118,7 @@ function nessiePost(ctx: SourceContext, path: string, body: object): string {
   return res.objectCreated?._id ?? res.objectCreated?.id ?? '';
 }
 
-function merchantId(ctx: SourceContext, sim: NessieSim, vendor: (typeof VENDORS)[number]): string {
+function merchantId(ctx: SourceContext, sim: NessieSim, vendor: Vendor): string {
   if (!sim.merchantIds[vendor.name]) {
     sim.merchantIds[vendor.name] = nessiePost(ctx, '/merchants', {
       name: vendor.name,
@@ -144,9 +145,11 @@ export const nessie: Source = {
     return this.poll(ctx, state, Number.MAX_SAFE_INTEGER).state;
   },
 
-  // The promoter's operating account: paying vendors, banking payouts,
+  // The business's operating account: paying vendors, banking payouts,
   // pulling a cash float, running payroll and scheduling bills
   simulate(ctx, rawState) {
+    const { scenario } = ctx;
+    const { bank } = scenario;
     const full = parseState<{ sim?: NessieSim }>(rawState, {});
     const sim: NessieSim = { merchantIds: {}, paidBills: [], ...full.sim };
 
@@ -164,7 +167,7 @@ export const nessie: Source = {
     const actions = ctx.random.integerInRange(1, 3);
     for (let action = 0; action < actions; action++) {
       const roll = ctx.random();
-      const vendor = pick(ctx.random, VENDORS);
+      const vendor = pick(ctx.random, scenario.vendors);
 
       if (roll < 0.5) {
         // Pay a vendor bill from the Ledger: usually exactly, sometimes not
@@ -187,7 +190,7 @@ export const nessie: Source = {
         const kind = ctx.random();
         let payee = vendor;
         let cents = amountBetween(ctx.random, vendor.min, vendor.max);
-        let memo = `${vendor.item} - ${SHOW}`;
+        let memo = `${vendor.item} - ${scenario.period}`;
         // Almost always a bill not yet paid from this account. Rarely a planted
         // problem: an overpayment (3%), a bill paid twice (3%), or no bill (4%).
         // With nothing to pay yet, skip the payment rather than plant a problem.
@@ -198,7 +201,7 @@ export const nessie: Source = {
         else continue;
         if (bill) {
           if (!paidByBank.has(bill.id.toString())) sim.paidBills.push(bill.id.toString());
-          payee = VENDORS.find(v => v.name === bill.vendor) ?? vendor;
+          payee = scenario.vendors.find(v => v.name === bill.vendor) ?? vendor;
           cents = Number(bill.totalMinor);
           memo = `${payee.item} - ${bill.docNumber}`;
           // Now and then the bank pays more than the bill says
@@ -214,7 +217,7 @@ export const nessie: Source = {
           description: memo,
         });
       } else if (roll < 0.58) {
-        // A sponsor pays one of our invoices into the bank, quoting its number:
+        // A customer pays one of our invoices into the bank, quoting its number:
         // usually in full, sometimes short. Only invoices already in the feed,
         // and some never get paid, so the books always have something overdue.
         const paid = new Set(sim.paidInvoices ?? []);
@@ -242,23 +245,23 @@ export const nessie: Source = {
           medium: 'balance',
           status: 'completed',
           transaction_date: today,
-          amount: dollars(amountBetween(ctx.random, fromStripe ? 100_000 : 30_000, fromStripe ? 800_000 : 150_000)),
-          description: fromStripe ? 'STRIPE PAYOUT' : 'BOX OFFICE CASH DEPOSIT',
+          amount: dollars(amountBetween(ctx.random, ...(fromStripe ? bank.payout : bank.cashDeposit.range))),
+          description: fromStripe ? 'STRIPE PAYOUT' : bank.cashDeposit.memo,
         });
       } else if (roll < 0.75) {
         nessiePost(ctx, `${base}/withdrawals`, {
           medium: 'balance',
           status: 'completed',
           transaction_date: today,
-          amount: dollars(amountBetween(ctx.random, 20_000, 60_000)),
-          description: 'Cash for box office float',
+          amount: dollars(amountBetween(ctx.random, ...bank.float.range)),
+          description: bank.float.memo,
         });
       } else if (roll < 0.87) {
         nessiePost(ctx, `${base}/transfers`, {
           status: 'completed',
           transaction_date: today,
-          amount: dollars(amountBetween(ctx.random, 150_000, 400_000)),
-          description: `Crew payroll - ${SHOW}`,
+          amount: dollars(amountBetween(ctx.random, ...bank.payroll.range)),
+          description: bank.payroll.memo,
         });
       } else {
         nessiePost(ctx, `${base}/bills`, {

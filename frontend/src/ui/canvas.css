@@ -178,10 +178,6 @@
 
 /* Top left: the Pacioli mark in the decide orange and the name in ink. */
 .brand {
-  position: fixed;
-  top: var(--space-lg);
-  left: var(--space-lg);
-  z-index: 20;
   display: flex;
   align-items: center;
   gap: var(--space-xs);
@@ -362,6 +358,8 @@
 .topbar,
 .ask-button,
 .ask-window,
+.scenario-toggle,
+.scenario-panel,
 .pipeline .react-flow__controls {
   border-color: transparent;
   background: linear-gradient(180deg, var(--color-bg-canvas) 60%, color-mix(in srgb, var(--color-bg-canvas) 97%, var(--color-action-decide)) 100%);

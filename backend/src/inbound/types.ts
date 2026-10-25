@@ -1,5 +1,6 @@
 import type { Random } from 'spacetimedb/server';
 import type { Http } from '../droid/factory';
+import type { Scenario } from '../scenarios';
 
 // Normalized shape every source emits, whatever API it came from.
 export type EventKind =
@@ -52,6 +53,8 @@ export interface SourceContext {
   withTx<T>(fn: (tx: unknown) => T): T;
   // SpacetimeDB's seeded RNG, for simulations
   random: Random;
+  // The business being simulated: its vendors, customers, sales and memos
+  scenario: Scenario;
 }
 
 export interface PollResult {

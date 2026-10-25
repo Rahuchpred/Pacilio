@@ -484,6 +484,12 @@ export const ToolInstall = __t.object("ToolInstall", {
 });
 export type ToolInstall = __Infer<typeof ToolInstall>;
 
+export const Scenario = __t.object("Scenario", {
+  id: __t.u32(),
+  key: __t.string(),
+});
+export type Scenario = __Infer<typeof Scenario>;
+
 export const User = __t.object("User", {
   identity: __t.identity(),
   name: __t.string(),

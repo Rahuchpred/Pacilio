@@ -26,6 +26,7 @@ import { learnTick, patternsForPrompt, recordPatternUses } from '../learn/learn'
 import { logAction } from '../learn/audit';
 import { RENDER_PATH, RENDER_SCRIPT, RENDER_VERSION } from './renderScript';
 import { REPORT_PATH, REPORT_SCRIPT, REPORT_VERSION } from './reportScript';
+import { activeScenario } from '../inbound/simulation';
 import { reports, reportsTick, resetReports } from './reports';
 
 // Fixed tools the agents run on the Factory computer; installed (or upgraded)
@@ -201,7 +202,8 @@ function startRun(ctx: Ctx, ledgerDir?: string, dryRun = false): boolean {
       currentClassifying(ctx),
       patternsForPrompt(ctx),
       overdueInvoices(ctx),
-      context
+      context,
+      activeScenario(ctx)
     ),
     'high'
   );

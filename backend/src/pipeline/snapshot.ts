@@ -1,6 +1,7 @@
 import type { InferSchema, ProcedureCtx, ReducerCtx } from 'spacetimedb/server';
 import type spacetimedb from '../index';
 import { FactoryClient } from '../droid/factory';
+import { activeScenario } from '../inbound/simulation';
 
 // The backend owns the ledger. The Bookkeeper used to append its rows to
 // ledger.json on the Factory computer and re-read the whole file every run,
@@ -94,11 +95,14 @@ export function ledgerRows(ctx: Ctx): LedgerRow[] {
   return rows;
 }
 
-// The ledger as JSON, one row per line, so it greps well.
+// The ledger as JSON, one row per line, so it greps well. "scenario" names
+// the business for the report tool's titles.
 export function buildLedgerJson(ctx: Ctx): { json: string; rows: number } {
   const lines = ledgerRows(ctx).map(r => JSON.stringify(r));
+  const { report, sales } = activeScenario(ctx);
+  const scenario = JSON.stringify({ report, sales: { title: sales.title, chart: sales.chart, unit: sales.unit } });
   // ASCII only (\uXXXX escapes): the upload declares its size in characters
-  const body = `{"rows": [\n${lines.join(',\n')}\n]}\n`.replace(
+  const body = `{"scenario": ${scenario},\n"rows": [\n${lines.join(',\n')}\n]}\n`.replace(
     /[\u0080-￿]/g,
     c => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`
   );

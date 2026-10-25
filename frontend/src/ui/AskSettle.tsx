@@ -5,6 +5,7 @@ import { reducers, tables } from '../module_bindings';
 import { logError } from '../throttle';
 import { MessageLine } from '../pipeline/AgentMessages';
 import { useLive } from '../pipeline/store';
+import type { Scenario } from '../../../backend/src/scenarios';
 import './ask.css';
 
 // Ask Pacioli: a small button in the corner that opens a mini window above it.
@@ -17,17 +18,18 @@ const QUESTION_MARK = '\nQuestion: ';
 // snapshots to their own folders; see backend pipeline/snapshot.ts)
 const WORKDIR = '/home/factory-user/settle';
 
-function askPrompt(question: string, ledgerDir = WORKDIR, reportDir = WORKDIR): string {
-  return `You are Pacioli, the assistant for a concert promoter's Oct 25 show. A teammate wrote to you (below).
+function askPrompt(question: string, scenario: Scenario, ledgerDir = WORKDIR, reportDir = WORKDIR): string {
+  const report = scenario.report.title.toLowerCase();
+  return `You are Pacioli, the assistant for ${scenario.business} (${scenario.context}). A teammate wrote to you (below).
 Work quickly: don't look for AGENTS.md, skills or other context. Only read files; never write, edit or delete anything.
 The master ledger is ${ledgerDir}/ledger.json (every event with its row number, status: ok, refunded, void, review or
 following_up, its category and a note; one row per line, so Grep it rather than reading it whole).
-${reportDir}/report.json has the show report figures if it exists.
+${reportDir}/report.json has the ${report} figures if it exists.
 
 You work with two agents:
 - "main": the Bookkeeper. It keeps the ledger (always call it "the Bookkeeper" when you mention it). Send it anything that should change the ledger or how it
   handles rows on its next run: recategorize rows, void a duplicate, fix a note, re-check something.
-- "reports": the reports agent. Send it anything about the show report: a new analysis or breakdown, a new chart
+- "reports": the reports agent. Send it anything about the ${report}: a new analysis or breakdown, a new chart
   (bar, line or table; it stays in the report and updates on every build), removing a chart, something to call out.
 Messages steer the agents: they follow them even where it changes how they normally work.
 If the teammate asks a question, answer it from the files. If they want something done, send it to the right agent as
@@ -71,7 +73,7 @@ export function AskSettle() {
   const ask = useReducer(reducers.requestAgentTask);
   const { identity } = useSpacetimeDB();
   const [tasks] = useTable(tables.agentTask.where(r => r.kind.eq('ask')));
-  const { messagesByAsk, ledgerFiles } = useLive();
+  const { messagesByAsk, ledgerFiles, scenario } = useLive();
   const files = ledgerFiles[0];
   // Your questions this session's identity asked, oldest first
   const mine = tasks
@@ -108,7 +110,7 @@ export function AskSettle() {
     const q = draft.trim();
     if (!q || waiting) return;
     setDraft('');
-    ask({ kind: 'ask', prompt: askPrompt(q, files?.latestDir || undefined, files?.reportDir || undefined), autonomy: 'high' }).catch(logError);
+    ask({ kind: 'ask', prompt: askPrompt(q, scenario, files?.latestDir || undefined, files?.reportDir || undefined), autonomy: 'high' }).catch(logError);
   };
 
   return (

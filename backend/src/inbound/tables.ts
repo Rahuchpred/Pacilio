@@ -101,7 +101,18 @@ export const pipelineCard = table(
   }
 );
 
+// Which business the simulation plays (singleton, id 0); absent = the concert.
+// Keys are in ../scenarios.ts.
+export const scenario = table(
+  { name: 'scenario', public: true },
+  {
+    id: t.u32().primaryKey(),
+    key: t.string(),
+  }
+);
+
 export const inboundTables = {
+  scenario,
   pipelineLayout,
   pipelineNodeSize,
   pipelineCard,

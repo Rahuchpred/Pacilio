@@ -42,6 +42,7 @@ import SetEmailFollowUpsReducer from "../set_email_follow_ups_reducer";
 import SetInboundSourceReducer from "../set_inbound_source_reducer";
 import SetNameReducer from "../set_name_reducer";
 import SetPipelineCardExpandedReducer from "../set_pipeline_card_expanded_reducer";
+import SetScenarioReducer from "../set_scenario_reducer";
 import SteerAgentTaskReducer from "../steer_agent_task_reducer";
 import TidyPipelineLayoutReducer from "../tidy_pipeline_layout_reducer";
 
@@ -81,6 +82,7 @@ export type SetEmailFollowUpsParams = __Infer<typeof SetEmailFollowUpsReducer>;
 export type SetInboundSourceParams = __Infer<typeof SetInboundSourceReducer>;
 export type SetNameParams = __Infer<typeof SetNameReducer>;
 export type SetPipelineCardExpandedParams = __Infer<typeof SetPipelineCardExpandedReducer>;
+export type SetScenarioParams = __Infer<typeof SetScenarioReducer>;
 export type SteerAgentTaskParams = __Infer<typeof SteerAgentTaskReducer>;
 export type TidyPipelineLayoutParams = __Infer<typeof TidyPipelineLayoutReducer>;
 

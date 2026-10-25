@@ -13,6 +13,9 @@ import { inboundTickSchedule } from './tables';
 import { resetPipeline, setPipelineEnabled } from '../pipeline/pipeline';
 import type { InboundEventDraft, Source, SourceContext } from './types';
 import { logAction } from '../learn/audit';
+import { activeScenario } from './simulation';
+import { SCENARIOS } from '../scenarios';
+import { resetClassificationsTo } from '../classify/classify';
 
 type Schema = typeof spacetimedb;
 type Ctx = ReducerCtx<InferSchema<Schema>>;
@@ -222,8 +225,7 @@ export function inbound(stdb: Schema) {
 
   // Start over: drop every stored event and label, rewind every source to its
   // beginning, then run. Sources replay with fresh corruption.
-  const restartInbound = stdb.reducer(ctx => {
-    logAction(ctx, ctx.sender, 'pipeline', 'Pressed Restart (cleared the events, ledger and report)');
+  function restart(ctx: Ctx) {
     for (const event of [...ctx.db.inboundEvent.iter()]) ctx.db.inboundEvent.id.delete(event.id);
     for (const label of [...ctx.db.inboundLabel.iter()]) ctx.db.inboundLabel.eventId.delete(label.eventId);
     for (const source of InboundHub.sources) {
@@ -239,6 +241,30 @@ export function inbound(stdb: Schema) {
       if (!InboundHub.get(status.name)) ctx.db.inboundSourceStatus.name.delete(status.name);
     }
     setAll(ctx, true);
+  }
+
+  const restartInbound = stdb.reducer(ctx => {
+    logAction(ctx, ctx.sender, 'pipeline', 'Pressed Restart (cleared the events, ledger and report)');
+    restart(ctx);
+  });
+
+  // Play a different business (the sidebar). Its vendors and customers are
+  // new, so the books start empty: QuickBooks, the email threads about the
+  // old vendors and the categories go too, then everything restarts.
+  const setScenario = stdb.reducer({ key: t.string() }, (ctx, { key }) => {
+    const scenario = SCENARIOS.find(s => s.key === key);
+    if (!scenario) throw new SenderError(`Unknown scenario "${key}". Expected one of: ${SCENARIOS.map(s => s.key).join(', ')}`);
+    logAction(ctx, ctx.sender, 'pipeline', `Switched to the ${scenario.name} scenario (cleared the books and replayed)`);
+    if (ctx.db.scenario.id.find(0)) ctx.db.scenario.id.update({ id: 0, key });
+    else ctx.db.scenario.insert({ id: 0, key });
+    for (const r of [...ctx.db.accountingPayment.iter()]) ctx.db.accountingPayment.id.delete(r.id);
+    for (const r of [...ctx.db.accountingExpense.iter()]) ctx.db.accountingExpense.id.delete(r.id);
+    for (const r of [...ctx.db.accountingBill.iter()]) ctx.db.accountingBill.id.delete(r.id);
+    for (const r of [...ctx.db.accountingInvoice.iter()]) ctx.db.accountingInvoice.id.delete(r.id);
+    for (const r of [...ctx.db.emailMessage.iter()]) ctx.db.emailMessage.id.delete(r.id);
+    for (const r of [...ctx.db.emailThread.iter()]) ctx.db.emailThread.id.delete(r.id);
+    resetClassificationsTo(ctx, scenario.categories);
+    restart(ctx);
   });
 
   // Polls every enabled source, applies its corruption profile to new events
@@ -266,6 +292,7 @@ export function inbound(stdb: Schema) {
         now: () => ctx.timestamp.toDate(),
         withTx: fn => ctx.withTx(tx => fn(tx)),
         random: ctx.random,
+        scenario: ctx.withTx(tx => activeScenario(tx)),
       };
 
       for (const row of rows) {
@@ -406,6 +433,7 @@ export function inbound(stdb: Schema) {
     runInbound,
     pauseInbound,
     restartInbound,
+    setScenario,
     inboundTick,
   };
 }
