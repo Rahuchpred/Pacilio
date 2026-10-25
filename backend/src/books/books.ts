@@ -2,6 +2,8 @@ import { SenderError, t, type InferSchema, type ReducerCtx } from 'spacetimedb/s
 import type spacetimedb from '../index';
 import { startFollowUp } from '../email/email';
 import { logAction } from '../learn/audit';
+import { docNumbersIn, type MatchDoc } from '../pipeline/related';
+import { checkBillPayment, paymentWriteUp, type PaymentWriteUp } from './paymentCheck';
 
 // QuickBooks as the record of who owes whom: bills are what we owe vendors,
 // invoices what sponsors owe us. Payments are recorded here when the
@@ -55,6 +57,70 @@ export function recordPayment(ctx: Ctx, eventId: bigint, docNumber: unknown) {
     method: event.source === 'stripe' ? 'card' : 'bank',
     reference: `event:${eventId}`,
   });
+}
+
+type Event = NonNullable<ReturnType<Ctx['db']['inboundEvent']['id']['find']>>;
+const SOURCE_LABEL: Record<string, string> = { nessie: 'Nessie', stripe: 'Stripe', ledger: 'QuickBooks', cord: 'CORD' };
+
+// The bill a bank payment's memo quotes ("PA system rental - AAV-1042"), so a
+// payment is checked even when the Bookkeeper didn't say what it pays
+export function billInMemo(ctx: Ctx, event: Event): string | undefined {
+  if (event.source !== 'nessie' || event.amountMinor >= 0n) return undefined;
+  return docNumbersIn(event.description).find(d => findDoc(ctx, d)?.kind === 'bill');
+}
+
+// Run before recordPayment: a payment of more than the bill has open, or of a
+// bill already paid, comes back as a write-up for a person
+export function checkPayment(
+  ctx: Ctx,
+  event: Event,
+  docNumber: string | undefined,
+  rowOf: (eventId: bigint) => number
+): { review: PaymentWriteUp; duplicateOf?: bigint } | undefined {
+  const found = docNumber ? findDoc(ctx, docNumber) : undefined;
+  if (!found || found.kind !== 'bill') return undefined;
+  const earlier = [...ctx.db.accountingPayment.iter()].filter(p => p.docType === 'bill' && p.docId === found.doc.id);
+  // Already recorded (the same row seen again): nothing new to check
+  if (earlier.some(p => p.reference === `event:${event.id}`)) return undefined;
+  const problem = checkBillPayment(event.amountMinor, found.doc.balanceMinor);
+  if (!problem) return undefined;
+  const earlierIds = earlier.flatMap(p => (p.reference.startsWith('event:') ? [BigInt(p.reference.slice(6))] : []));
+  const review = paymentWriteUp(problem, {
+    vendor: found.doc.vendor,
+    source: SOURCE_LABEL[event.source] ?? event.source,
+    amountMinor: event.amountMinor,
+    date: event.occurredAt.toDate(),
+    row: rowOf(event.id),
+    doc: found.doc.docNumber,
+    totalMinor: found.doc.totalMinor,
+    balanceMinor: found.doc.balanceMinor,
+    earlierRows: earlierIds.map(rowOf),
+  });
+  return { review, duplicateOf: problem.kind === 'paid_twice' ? earlierIds[0] : undefined };
+}
+
+// Every bill and invoice, with what is open and which rows paid it (for the Bookkeeper's prompt)
+export function documentsForMatching(ctx: Ctx, rowOf: (eventId: bigint) => number | undefined): MatchDoc[] {
+  const paidBy = new Map<string, number[]>();
+  for (const p of ctx.db.accountingPayment.iter()) {
+    const row = p.reference.startsWith('event:') ? rowOf(BigInt(p.reference.slice(6))) : undefined;
+    if (row === undefined) continue;
+    const key = `${p.docType}:${p.docId}`;
+    paidBy.set(key, [...(paidBy.get(key) ?? []), row]);
+  }
+  const doc = (kind: 'bill' | 'invoice', d: Bill | Invoice, party: string): MatchDoc => ({
+    doc: d.docNumber,
+    kind,
+    party,
+    total_cents: Number(d.totalMinor),
+    open_cents: Number(d.balanceMinor),
+    status: d.status,
+    paid_by_rows: paidBy.get(`${kind}:${d.id}`) ?? [],
+  });
+  return [
+    ...[...ctx.db.accountingBill.iter()].map(b => doc('bill', b, b.vendor)),
+    ...[...ctx.db.accountingInvoice.iter()].map(i => doc('invoice', i, i.customer)),
+  ];
 }
 
 function invoiceEventId(ctx: Ctx, invoice: Invoice): bigint | undefined {

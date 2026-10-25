@@ -36,9 +36,27 @@ function statusOf(item: Item | undefined, outcome: string | undefined): { status
   }
 }
 
+export interface LedgerRow {
+  row: number;
+  event_id: string;
+  date: string;
+  source: string;
+  kind: string;
+  counterparty: string;
+  description: string;
+  reference: string | null;
+  category: string;
+  amount_cents: number;
+  currency: string;
+  status: string;
+  note: string;
+  duplicate_of: string | null;
+  recommendation: string | null;
+}
+
 // Every checked event as a ledger row, numbered in arrival order (the same
-// numbers the board's spreadsheet shows). One row per line, so it greps well.
-export function buildLedgerJson(ctx: Ctx): { json: string; rows: number } {
+// numbers the board's spreadsheet shows).
+export function ledgerRows(ctx: Ctx): LedgerRow[] {
   const done = [...ctx.db.eventReview.iter()].filter(r => r.status === 'done').sort((a, b) => (a.eventId < b.eventId ? -1 : 1));
   // The newest question per event, and any duplicate it pointed at
   const latest = new Map<bigint, Item>();
@@ -48,33 +66,37 @@ export function buildLedgerJson(ctx: Ctx): { json: string; rows: number } {
     if (!prev || i.id > prev.id) latest.set(i.eventId, i);
     if (i.duplicateOf !== undefined) dupOf.set(i.eventId, i.duplicateOf);
   }
-  const lines: string[] = [];
+  const rows: LedgerRow[] = [];
   done.forEach((r, i) => {
     const e = ctx.db.inboundEvent.id.find(r.eventId);
     if (!e) return;
     const { status, recommendation } = statusOf(latest.get(e.id), r.outcome);
     const dup = dupOf.get(e.id);
-    lines.push(
-      JSON.stringify({
-        row: i + 1,
-        event_id: e.id.toString(),
-        date: e.occurredAt.toDate().toISOString().slice(0, 10),
-        source: e.source,
-        // "bill" / "invoice" are QuickBooks documents (who owes whom), not money moving
-        kind: e.kind,
-        counterparty: e.counterparty,
-        description: e.description,
-        reference: e.reference ?? null,
-        category: r.category ?? '',
-        amount_cents: Number(e.amountMinor),
-        currency: e.currency,
-        status,
-        note: r.note ?? '',
-        duplicate_of: dup !== undefined ? dup.toString() : null,
-        recommendation,
-      })
-    );
+    rows.push({
+      row: i + 1,
+      event_id: e.id.toString(),
+      date: e.occurredAt.toDate().toISOString().slice(0, 10),
+      source: e.source,
+      // "bill" / "invoice" are QuickBooks documents (who owes whom), not money moving
+      kind: e.kind,
+      counterparty: e.counterparty,
+      description: e.description,
+      reference: e.reference ?? null,
+      category: r.category ?? '',
+      amount_cents: Number(e.amountMinor),
+      currency: e.currency,
+      status,
+      note: r.note ?? '',
+      duplicate_of: dup !== undefined ? dup.toString() : null,
+      recommendation,
+    });
   });
+  return rows;
+}
+
+// The ledger as JSON, one row per line, so it greps well.
+export function buildLedgerJson(ctx: Ctx): { json: string; rows: number } {
+  const lines = ledgerRows(ctx).map(r => JSON.stringify(r));
   // ASCII only (\uXXXX escapes): the upload declares its size in characters
   const body = `{"rows": [\n${lines.join(',\n')}\n]}\n`.replace(
     /[\u0080-￿]/g,

@@ -19,11 +19,9 @@ const NOISE = /^(ran tools in parallel|updated plan|\/home\/)/i;
 
 function useAgent() {
   const look = useAgentLook();
-  const { agents, runsDesc } = useLive();
+  const { agents, runsDesc, stateCounts } = useLive();
   const rows = useRows();
-  const checking = rows.filter(r => r.state === 'checking').length;
-  const waiting = rows.filter(r => r.state === 'waiting').length;
-  const done = rows.length - checking - waiting;
+  const { checking, waiting, done } = stateCounts;
   return { look, agent: agents[0], runs: runsDesc, rows, checking, waiting, done };
 }
 

@@ -294,6 +294,8 @@ export function toEvents(messages: Message[]): AgentEvent[] {
 export function finalReply(messages: Message[]): string | undefined {
   const last = messages[messages.length - 1];
   if (!last || last.role !== 'assistant') return undefined;
-  const text = last.content.find(b => b.type === 'text' && b.text)?.text;
-  return text ?? undefined;
+  // The last text block: a turn with no tool calls can open with other text
+  // (like the Bookkeeper's CLASSIFY lines) before the answer
+  const texts = last.content.filter(b => b.type === 'text' && b.text);
+  return texts[texts.length - 1]?.text ?? undefined;
 }

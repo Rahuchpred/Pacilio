@@ -51,8 +51,6 @@ function useLiveTables() {
   const [ledgerDocs] = useTable(tables.ledgerDocument);
   const [reportStates] = useTable(tables.reportState);
   const [reportDocs] = useTable(tables.reportDocument);
-  const [cards] = useTable(tables.pipelineCard);
-  const [layout] = useTable(tables.pipelineLayout);
   const [agentMessages] = useTable(tables.agentMessage);
   const [reportCharts] = useTable(tables.reportChart);
   const [classifications] = useTable(tables.classification);
@@ -94,8 +92,6 @@ function useLiveTables() {
     ledgerDocs,
     reportStates,
     reportDocs,
-    cards,
-    layout,
   };
 }
 
@@ -194,9 +190,33 @@ function useDerived(t: ReturnType<typeof useLiveTables>) {
     }
     return m;
   }, [t.payments]);
+  // Each checked row's number in the ledger (arrival order), and counts by state
+  const rowNumberBy = useMemo(() => {
+    const m = new Map<string, number>();
+    let n = 0;
+    for (const r of rows) if (r.state !== 'waiting' && r.state !== 'checking') m.set(r.event.id.toString(), ++n);
+    return m;
+  }, [rows]);
+  const stateCounts = useMemo(() => {
+    let checking = 0;
+    let waiting = 0;
+    for (const r of rows) {
+      if (r.state === 'checking') checking++;
+      else if (r.state === 'waiting') waiting++;
+    }
+    return { checking, waiting, done: rows.length - checking - waiting };
+  }, [rows]);
+  // Events with an email thread still going (so Remind them shows "sent")
+  const remindingEvents = useMemo(
+    () => new Set(t.threads.filter(x => x.status === 'waiting' || x.status === 'replied').map(x => x.eventId.toString())),
+    [t.threads]
+  );
   return {
     rows,
     rowBy,
+    rowNumberBy,
+    stateCounts,
+    remindingEvents,
     docByEvent,
     docs,
     paymentsByDoc,
@@ -233,4 +253,29 @@ export function useLive() {
   const live = useContext(LiveCtx);
   if (!live) throw new Error('useLive must be used inside LiveProvider');
   return live;
+}
+
+// The canvas's own shared state: where cards sit and which are open. Kept out
+// of the live store so dragging or opening a card (many updates a second)
+// doesn't redraw every card.
+type Canvas = { cards: ReturnType<typeof useCanvasTables>['cards']; layout: ReturnType<typeof useCanvasTables>['layout'] };
+
+function useCanvasTables() {
+  const [cards] = useTable(tables.pipelineCard);
+  const [layout] = useTable(tables.pipelineLayout);
+  return { cards, layout };
+}
+
+const CanvasCtx = createContext<Canvas | null>(null);
+
+export function CanvasStateProvider({ children }: { children: ReactNode }) {
+  const { cards, layout } = useCanvasTables();
+  const value = useMemo(() => ({ cards, layout }), [cards, layout]);
+  return <CanvasCtx.Provider value={value}>{children}</CanvasCtx.Provider>;
+}
+
+export function useCanvasState() {
+  const c = useContext(CanvasCtx);
+  if (!c) throw new Error('useCanvasState must be used inside CanvasStateProvider');
+  return c;
 }

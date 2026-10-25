@@ -5,8 +5,17 @@ import { FactoryClient, FactoryError } from '../droid/factory';
 import { LEDGER_HTML, LEDGER_XLSX, MAX_AUTO_EMAILS, buildPrompt, buildRenderPrompt, type PromptDecision, type PromptEvent } from './prompt';
 import { finishMessages, markSent, promptId, queuedFor, requeueMessages } from '../settle/messages';
 import { currentClassifying } from '../classify/classify';
-import { latestFiles, relative, setRenderDir, uploadSnapshot } from './snapshot';
-import { MAX_AUTO_REMINDERS, createReminder, overdueInvoices, recordPayment } from '../books/books';
+import { latestFiles, ledgerRows, relative, setRenderDir, uploadSnapshot } from './snapshot';
+import {
+  MAX_AUTO_REMINDERS,
+  billInMemo,
+  checkPayment,
+  createReminder,
+  documentsForMatching,
+  overdueInvoices,
+  recordPayment,
+} from '../books/books';
+import { docsFor, findRelated, type MatchRow } from './related';
 import { learnTick, patternsForPrompt, recordPatternUses } from '../learn/learn';
 import { logAction } from '../learn/audit';
 import { RENDER_PATH, RENDER_SCRIPT, RENDER_VERSION } from './renderScript';
@@ -133,9 +142,9 @@ function startRun(ctx: Ctx, ledgerDir?: string, dryRun = false): boolean {
   if (!decided.length && !messages.length && waiting.length < MIN_BATCH && oldestWaitedMicros < MAX_WAIT_MICROS) return false;
   if (dryRun || !ledgerDir) return true;
 
-  // Settle numbers rows in arrival order; these come right after the rows so far
-  let rowsSoFar = 0;
-  for (const r of ctx.db.eventReview.iter()) if (r.status === 'done') rowsSoFar++;
+  // Pacioli numbers rows in arrival order; these come right after the rows so far
+  const ledger = ledgerRows(ctx);
+  const rowsSoFar = ledger.length;
   const events: PromptEvent[] = waiting.map((e, i) => ({
     row: rowsSoFar + i + 1,
     id: e.id.toString(),
@@ -148,6 +157,22 @@ function startRun(ctx: Ctx, ledgerDir?: string, dryRun = false): boolean {
     description: e.description,
     reference: e.reference ?? null,
   }));
+  // The rows and QuickBooks documents each new event should be compared with
+  const fresh: MatchRow[] = events.map(e => ({ ...e, event_id: e.id, amount_cents: Number(e.amount_cents) }));
+  const related = findRelated(fresh, ledger);
+  const rowById = new Map([...ledger, ...fresh].map(r => [r.event_id, r.row]));
+  const documents = documentsForMatching(ctx, id => rowById.get(id.toString()));
+  const named = docsFor(fresh, documents);
+  for (const e of events) {
+    e.related_rows = related.get(e.id) ?? [];
+    e.documents = named.get(e.id) ?? [];
+  }
+  const relatedRows = new Set(events.flatMap(e => e.related_rows ?? []));
+  const namedDocs = new Set(events.flatMap(e => e.documents ?? []));
+  const context = {
+    rows: ledger.filter(r => relatedRows.has(r.row)),
+    documents: documents.filter(d => namedDocs.has(d.doc.toUpperCase())),
+  };
   const decisions: PromptDecision[] = decided.map(r => ({
     event_id: r.eventId.toString(),
     action: r.decision ?? 'keep',
@@ -167,7 +192,8 @@ function startRun(ctx: Ctx, ledgerDir?: string, dryRun = false): boolean {
       messages.map(m => ({ id: promptId(m), text: m.text })),
       currentClassifying(ctx),
       patternsForPrompt(ctx),
-      overdueInvoices(ctx)
+      overdueInvoices(ctx),
+      context
     ),
     'high'
   );
@@ -303,6 +329,16 @@ function emailAllowed(ctx: Ctx, d: Decision): string | null {
   return pattern.text;
 }
 
+// An event's ledger row number while its run is applied: rows are numbered in
+// event order, counting this run's events as if already done
+function rowOf(ctx: Ctx, run: Run, eventId: bigint): number {
+  let row = 1;
+  for (const r of ctx.db.eventReview.iter()) {
+    if (r.eventId < eventId && (r.status === 'done' || r.runId === run.id)) row++;
+  }
+  return row;
+}
+
 // Returns the review items the Bookkeeper decided to email about (problems
 // and invoice reminders), to send after this transaction.
 function applyDecisions(ctx: Ctx, run: Run, reply: Reply): bigint[] {
@@ -322,7 +358,19 @@ function applyDecisions(ctx: Ctx, run: Run, reply: Reply): bigint[] {
     const emailBecause = d.status === 'follow_up' && autoEmails.length < MAX_AUTO_EMAILS ? emailAllowed(ctx, d) : null;
     // Either way the write-up is an email (sent now, or drafted for a person to send)
     if (d.status === 'follow_up') d.review = { ...(d.review ?? {}), action: 'follow_up' };
-    const outcome = (OUTCOMES as readonly string[]).includes(d.status) ? d.status : 'review';
+    let outcome = (OUTCOMES as readonly string[]).includes(d.status) ? d.status : 'review';
+    // The bill this row pays: as the Bookkeeper said, or as the bank memo quotes it
+    const event = ctx.db.inboundEvent.id.find(BigInt(id));
+    const pays = clip(d.pays, 40) || (event && billInMemo(ctx, event)) || undefined;
+    // Pacioli's own check: an overpaid bill or a bill paid twice goes to a person,
+    // even when the Bookkeeper let it through
+    const caught = event && outcome === 'ok' ? checkPayment(ctx, event, pays, eventId => rowOf(ctx, run, eventId)) : undefined;
+    if (caught) {
+      outcome = 'review';
+      d.review = caught.review;
+      d.note = caught.review.title;
+      d.duplicate_of = caught.duplicateOf?.toString() ?? null;
+    }
     const review = ctx.db.eventReview.eventId.find(BigInt(id));
     if (review) {
       ctx.db.eventReview.eventId.update({
@@ -335,7 +383,7 @@ function applyDecisions(ctx: Ctx, run: Run, reply: Reply): bigint[] {
       });
     }
     // A bank or Stripe row that pays a bill (or a sponsor paying an invoice): record it in QuickBooks
-    if (outcome !== 'void') recordPayment(ctx, BigInt(id), d.pays);
+    if (outcome !== 'void') recordPayment(ctx, BigInt(id), pays);
     if (outcome === 'review') {
       const r = d.review ?? {};
       const action = normalizeAction(r.action ?? d.recommendation);

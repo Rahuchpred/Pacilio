@@ -42,7 +42,7 @@ import './ui/canvas.css';
 import './pipeline/pipeline.css';
 import './canvas/levels.css';
 import './pipeline/cards.css';
-import { useLive } from './pipeline/store';
+import { useCanvasState, useLive } from './pipeline/store';
 
 const SYNC_INTERVAL_MS = 40;
 const MOVE_SYNC_MS = 50;
@@ -164,7 +164,7 @@ function useEdges(): Edge[] {
 
 // Where everyone has put each card (shared), falling back to the default layout.
 function useSharedBase(): Record<string, Point> {
-  const rows = useLive().layout;
+  const rows = useCanvasState().layout;
   return useMemo(() => {
     const placed = new Map(rows.map(r => [localId(r.nodeId), { x: r.x, y: r.y }]));
     return Object.fromEntries(Object.entries(LAYOUT).map(([id, n]) => [id, placed.get(id) ?? { x: n.x, y: n.y }]));
@@ -215,17 +215,38 @@ export function Pipeline() {
     [base, sizes, open, drag?.id]
   );
 
+  // Reuse each card's node object while nothing about it changed, so a drag
+  // (or one card opening) only redraws the cards that actually moved
+  const nodeCache = useRef(new Map<string, Node>());
   const nodes: Node[] = useMemo(
     () =>
-      Object.keys(LAYOUT).map(id => ({
-        id,
-        type: typeOf(id),
-        position: drag?.id === id ? drag.at : arranged[id],
-        data: { expanded: expanded.has(id) },
-        // Open cards sit above the lines and their neighbours
-        zIndex: expanded.has(id) ? 10 : 0,
-        ...(sizes[id] ? { measured: sizes[id] } : {}),
-      })),
+      Object.keys(LAYOUT).map(id => {
+        const position = drag?.id === id ? drag.at : arranged[id];
+        const open = expanded.has(id);
+        const measured = sizes[id];
+        const prev = nodeCache.current.get(id);
+        if (
+          prev &&
+          prev.position.x === position.x &&
+          prev.position.y === position.y &&
+          (prev.data as { expanded: boolean }).expanded === open &&
+          prev.measured?.width === measured?.width &&
+          prev.measured?.height === measured?.height
+        ) {
+          return prev;
+        }
+        const node: Node = {
+          id,
+          type: typeOf(id),
+          position,
+          data: { expanded: open },
+          // Open cards sit above the lines and their neighbours
+          zIndex: open ? 10 : 0,
+          ...(measured ? { measured } : {}),
+        };
+        nodeCache.current.set(id, node);
+        return node;
+      }),
     [arranged, drag, expanded, sizes]
   );
 

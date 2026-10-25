@@ -5,6 +5,8 @@
 
 import { DEFAULT_CATEGORIES, type Classifying } from '../classify/classify';
 import { RENDER_PATH } from './renderScript';
+import type { MatchDoc } from './related';
+import type { LedgerRow } from './snapshot';
 
 export const WORKDIR = '/home/factory-user/settle';
 // Building the workbook is its own small task, run between Bookkeeper runs,
@@ -28,6 +30,15 @@ export interface PromptEvent {
   counterparty: string;
   description: string;
   reference: string | null;
+  // Filled by Pacioli (related.ts): rows to compare with, and QuickBooks documents named
+  related_rows?: number[];
+  documents?: string[];
+}
+
+// What Pacioli found for this run's events: the related rows and documents, in full
+export interface PromptContext {
+  rows: LedgerRow[];
+  documents: MatchDoc[];
 }
 
 export interface PromptDecision {
@@ -53,7 +64,8 @@ export function buildPrompt(
   messages: PromptMessage[] = [],
   classifying: Classifying = { mode: 'auto', categories: DEFAULT_CATEGORIES },
   patterns: { id: string; text: string }[] = [],
-  overdue: { docNumber: string; customer: string; balance: string; daysOverdue: number }[] = []
+  overdue: { docNumber: string; customer: string; balance: string; daysOverdue: number }[] = [],
+  context: PromptContext = { rows: [], documents: [] }
 ): string {
   const categories =
     classifying.mode === 'manual'
@@ -70,12 +82,20 @@ don't re-verify your output, and don't use TodoWrite or write a plan: just do th
 ${ledgerDir}/ledger.json holds every row so far, one row per line. Pacioli keeps it: it writes your new rows and
 changes from your reply, so don't create, edit or write any file, and don't touch ${WORKDIR}/tools.
 
-## Search the ledger, don't read it
-The ledger is large, so never Read the whole file and never print every row. Instead, find rows related to the new
-events with Grep (case-insensitive) on ${ledgerDir}/ledger.json: one Grep with a pattern joining, with |, a short
-distinctive part of each new event's counterparty (like "acme" or "golden gate", so typos still match), each
-reference or document number, and each amount in cents. Run a second, narrower Grep only if something needs a
-closer look.
+## Related rows: already found for you
+Pacioli has matched every new event against the whole ledger and QuickBooks. Each new event lists
+"related_rows" (rows that share a document number, a similar counterparty name, typos included, or a close amount)
+and "documents" (the QuickBooks bills and invoices its memo or reference names). Both are printed in full below.
+Work from them. Never Read the whole ledger; Grep ${ledgerDir}/ledger.json only if you need a row that isn't listed.
+
+### Related ledger rows
+${context.rows.length ? context.rows.map(r => JSON.stringify(r)).join('\n') : '- none'}
+
+### QuickBooks documents
+${context.documents.length ? context.documents.map(d => JSON.stringify(d)).join('\n') : '- none'}
+"open_cents" is what is still unpaid before this run; "paid_by_rows" are the rows that already paid it.
+A payment bigger than its bill's open_cents is an overpayment (a mismatch). A payment for a bill whose open_cents
+is 0 is a double payment.
 
 ## Ledger rows
 Each row in ledger.json "rows":
@@ -115,7 +135,7 @@ Then do the work below. Your final JSON still decides; it may differ if you chan
 
 ## For each new event
 1. Classify it. Its row number is given with it (Pacioli adds it as that row).
-2. Compare it with the related rows your Grep found (and with the other new events). Look for:
+2. Compare it with its related rows and documents (and with the other new events). Look for:
    - Data-entry duplicate: the same document recorded twice with small differences (typo, casing, a date off by a day or two, an amount off a little or rounded). Money did not move twice.
    - Double payment: money actually left twice for one thing (e.g. two bank payments for the same bill).
    - Mismatch: a payment that disagrees with its bill, invoice or receipt (paid more or less than billed).

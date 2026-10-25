@@ -4,7 +4,7 @@ import { Pipeline } from './Pipeline';
 import { Icon } from '../../design-system/src/components';
 import { TopBar } from './TopBar';
 import { PipelineActivityProvider } from './pipeline/activity';
-import { LiveProvider } from './pipeline/store';
+import { CanvasStateProvider, LiveProvider } from './pipeline/store';
 import '@xyflow/react/dist/style.css';
 import './App.css';
 
@@ -18,11 +18,13 @@ function App() {
   return (
     <ReactFlowProvider>
       <LiveProvider>
+        <CanvasStateProvider>
         <PipelineActivityProvider>
           <Pipeline />
           <Brand />
           <TopBar />
         </PipelineActivityProvider>
+        </CanvasStateProvider>
       </LiveProvider>
     </ReactFlowProvider>
   );

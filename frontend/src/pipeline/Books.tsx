@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { useProcedure } from 'spacetimedb/react';
 import { Button, Icon, Money, Status } from '../../../design-system/src/components';
 import { procedures } from '../module_bindings';
@@ -18,20 +18,21 @@ function sum(docs: Doc[]): number {
   return docs.reduce((t, d) => t + dollars(d.balanceMinor, d.currency), 0);
 }
 
+// Everything here is worked out once per card (and once per data change), not
+// per row: a card can list hundreds of bills and invoices.
 function useBooks() {
-  const { docs, paymentsByDoc, rowBy, rows, threads } = useLive();
-  const bills = docs.filter(d => d.kind === 'bill');
-  const invoices = docs.filter(d => d.kind === 'invoice');
-  const open = (list: Doc[]) => list.filter(d => d.balanceMinor > 0n);
-  const overdue = docs.filter(d => docState(d) === 'overdue');
-  // Row number of a bank row, as the ledger shows it (checked rows in arrival order)
-  const rowNumber = new Map<string, number>();
-  let n = 0;
-  for (const r of rows) if (r.state !== 'waiting' && r.state !== 'checking') rowNumber.set(r.event.id.toString(), ++n);
-  const reminding = (d: Doc) =>
-    d.eventId !== undefined && threads.some(t => t.eventId === d.eventId && (t.status === 'waiting' || t.status === 'replied'));
-  return { bills, invoices, open, overdue, paymentsByDoc, rowBy, rowNumber, reminding };
+  const { docs, paymentsByDoc, rowNumberBy, remindingEvents } = useLive();
+  return useMemo(() => {
+    const bills = docs.filter(d => d.kind === 'bill');
+    const invoices = docs.filter(d => d.kind === 'invoice');
+    const open = (list: Doc[]) => list.filter(d => d.balanceMinor > 0n);
+    const overdue = docs.filter(d => docState(d) === 'overdue');
+    const reminding = (d: Doc) => d.eventId !== undefined && remindingEvents.has(d.eventId.toString());
+    return { bills, invoices, open, overdue, paymentsByDoc, rowNumber: rowNumberBy, reminding };
+  }, [docs, paymentsByDoc, rowNumberBy, remindingEvents]);
 }
+
+type BooksData = ReturnType<typeof useBooks>;
 
 function Far() {
   const { bills, invoices, open, overdue } = useBooks();
@@ -54,8 +55,8 @@ function Far() {
   );
 }
 
-function DocRow({ d }: { d: Doc }) {
-  const { paymentsByDoc, rowNumber, reminding } = useBooks();
+const DocRow = memo(function DocRow({ d, books }: { d: Doc; books: BooksData }) {
+  const { paymentsByDoc, rowNumber, reminding } = books;
   const remind = useProcedure(procedures.remindInvoice);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -124,9 +125,9 @@ function DocRow({ d }: { d: Doc }) {
       )}
     </li>
   );
-}
+});
 
-function Column({ title, docs, empty }: { title: string; docs: Doc[]; empty: string }) {
+function Column({ title, docs, empty, books }: { title: string; docs: Doc[]; empty: string; books: BooksData }) {
   const [filter, setFilter] = useState<Filter>('open');
   const shown = docs
     .filter(d => (filter === 'paid' ? docState(d) === 'paid' : filter === 'overdue' ? docState(d) === 'overdue' : d.balanceMinor > 0n))
@@ -148,7 +149,7 @@ function Column({ title, docs, empty }: { title: string; docs: Doc[]; empty: str
       </div>
       <ul className="docs nodrag nowheel">
         {shown.map(d => (
-          <DocRow key={`${d.kind}:${d.id}`} d={d} />
+          <DocRow key={`${d.kind}:${d.id}`} d={d} books={books} />
         ))}
         {!shown.length && <li className="muted small">{empty}</li>}
       </ul>
@@ -157,7 +158,8 @@ function Column({ title, docs, empty }: { title: string; docs: Doc[]; empty: str
 }
 
 function Full() {
-  const { bills, invoices, open, overdue } = useBooks();
+  const books = useBooks();
+  const { bills, invoices, open, overdue } = books;
   const lateInvoices = overdue.filter(d => d.kind === 'invoice');
   return (
     <Card type="books" icon="Document" title="QuickBooks" className="w-books-full" meta={<span className="muted small">Who owes whom · {clock(new Date())}</span>}>
@@ -182,8 +184,8 @@ function Full() {
         </div>
       </dl>
       <div className="books-cols">
-        <Column title="We owe (bills)" docs={bills} empty="Nothing here." />
-        <Column title="Owed to us (invoices)" docs={invoices} empty="Nothing here." />
+        <Column title="We owe (bills)" docs={bills} empty="Nothing here." books={books} />
+        <Column title="Owed to us (invoices)" docs={invoices} empty="Nothing here." books={books} />
       </div>
       <p className="muted small">
         Bills are paid from the bank and invoices into it; the Bookkeeper matches each payment and Settle records it here.
