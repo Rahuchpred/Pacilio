@@ -10,6 +10,18 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 
 export const SENDER = 'Pacioli Bookkeeping';
 
+// The logo (frontend/public/favicon.svg as a 66px PNG, shown at 22px). Mail
+// apps block SVG and data: images, so it travels with each email as an inline
+// attachment and the header points at it by content id.
+const LOGO_CID = 'pacioli-logo';
+export const LOGO_ATTACHMENT = {
+  filename: 'pacioli.png',
+  content_type: 'image/png',
+  content_disposition: 'inline' as const,
+  content_id: LOGO_CID,
+  content: 'iVBORw0KGgoAAAANSUhEUgAAAEIAAABCCAYAAADjVADoAAACFElEQVR42u2bQbGEMBBEkcB1b0iIhEhAQiREAg6QgAQkIAEJSEACu7/qH9nh988MkyE5zG2hildN00wvzRFfTZ1XUyFUEBVEBXE3iPkzy5dxpYDwnzm+zF6SIiYCxFQSiJ0A4UsBEQgIW0lmORMgxlJAtASEn+lKAUHdFmtJOWIlQMST3w/EdFZBdOBt0eeYNThOMhAXNlvJGhwn2YgLCyemSmUNZxWEu5B5ayVrpJ5gBGVOZY3BMghK5r2lrJFyMOr+EcwaPfGI9TmBmMBIjWYNRG1qIK5k7sCs0WpnjbveNEfGrDHmBGIGZY5mjePurHFHpHagzFWyxn8OQt1/YswaEVwWe0kQKyBz1P2l1cYGwjG6/6agNjYQqPvPjFkjSGYNzjfNPtH9pdXmiaQaJMsbdH2nqjbJ8mZhzBriapMqb1D3V1ebVKSm3H/JUW1S5c3G6P6pamsvtuZ/fmq0jCHnYFjfoWpje3xy3o+TgtrYQKyK7p+qNjYQ0uUNqrZAvGANkm+f0uUNqja15a1keYOqTQ2EdHmDqk0NhHR5I+L+EiB2JfffU9yfG4R0edP9JsazUSmCtcobE/+YkS5vzICQLm/MgJAsb8yAUFun5wZCbZ2eGwh0nR6JhYezCsI9wf05QDzC/TlAIAuVx4LwT3H/VBCPcf9UEGa/vOEEYfrLG04QA7EQjSWBqFNBVBAVRAVxMW+WLO6E3e7BnwAAAABJRU5ErkJggg==',
+};
+
 export interface Detail {
   label: string;
   value: string;
@@ -107,7 +119,7 @@ function detailRows(details: Detail[]): string {
 }
 
 function mark(): string {
-  return `<span style="display:inline-block;width:22px;height:22px;line-height:22px;border-radius:0;background:${C.primary};color:${C.card};text-align:center;font-family:${SANS};font-size:13px;font-weight:600;vertical-align:middle;">P</span>`;
+  return `<img src="cid:${LOGO_CID}" width="22" height="22" alt="Pacioli" style="display:inline-block;width:22px;height:22px;border:0;vertical-align:middle;">`;
 }
 
 function shell(c: EmailContent, inner: string): string {

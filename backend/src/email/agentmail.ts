@@ -15,6 +15,16 @@ export interface AgentMailMessage {
   extracted_text?: string;
 }
 
+// An attached file; inline ones are shown in the HTML by content id (cid:)
+export interface Attachment {
+  filename: string;
+  content_type: string;
+  content_disposition: 'inline' | 'attachment';
+  content_id?: string;
+  // Base64
+  content: string;
+}
+
 export class AgentMailError extends Error {}
 
 export class AgentMail {
@@ -45,17 +55,17 @@ export class AgentMail {
   }
 
   // `text` is the plain fallback; `html` is what most inboxes show
-  send(inboxId: string, to: string, subject: string, text: string, html?: string): { message_id: string; thread_id: string } {
-    return this.request('POST', `/inboxes/${encodeURIComponent(inboxId)}/messages/send`, { to: [to], subject, text, html });
+  send(inboxId: string, to: string, subject: string, text: string, html?: string, attachments?: Attachment[]): { message_id: string; thread_id: string } {
+    return this.request('POST', `/inboxes/${encodeURIComponent(inboxId)}/messages/send`, { to: [to], subject, text, html, attachments });
   }
 
   // Answer a message in its thread. Without `to`, AgentMail replies to that
   // message's sender, which is us when the message is our own last email.
-  reply(inboxId: string, messageId: string, to: string, text: string, html?: string): { message_id: string; thread_id: string } {
+  reply(inboxId: string, messageId: string, to: string, text: string, html?: string, attachments?: Attachment[]): { message_id: string; thread_id: string } {
     return this.request(
       'POST',
       `/inboxes/${encodeURIComponent(inboxId)}/messages/${encodeURIComponent(messageId)}/reply`,
-      { to: [to], text, html }
+      { to: [to], text, html, attachments }
     );
   }
 

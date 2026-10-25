@@ -4,7 +4,7 @@ import type spacetimedb from '../index';
 import { AgentMail, type AgentMailMessage } from './agentmail';
 import { emailTickSchedule } from './tables';
 import { logAction } from '../learn/audit';
-import { SENDER, money, reference, renderEmail, shortDate, type Detail } from './template';
+import { LOGO_ATTACHMENT, SENDER, money, reference, renderEmail, shortDate, type Detail } from './template';
 import { activeScenario } from '../inbound/simulation';
 
 type Schema = typeof spacetimedb;
@@ -177,7 +177,7 @@ export function startFollowUp(ctx: PCtx, reviewItemId: bigint): string {
       message: text,
       replyTo: box.address,
     });
-    const sent = mail.send(box.inboxId, to, subjectClean, body, html);
+    const sent = mail.send(box.inboxId, to, subjectClean, body, html, [LOGO_ATTACHMENT]);
     ctx.withTx(tx => {
       tx.db.emailMessage.insert({
         id: 0n,
@@ -219,7 +219,7 @@ function sendInThread(ctx: PCtx, thread: Thread, raw: string, kind: 'follow_up' 
     message,
     replyTo: box.address,
   });
-  const sent = mail.reply(box.inboxId, thread.lastMessageId, thread.toAddress, text, html);
+  const sent = mail.reply(box.inboxId, thread.lastMessageId, thread.toAddress, text, html, [LOGO_ATTACHMENT]);
   ctx.withTx(tx => {
     tx.db.emailMessage.insert({
       id: 0n,

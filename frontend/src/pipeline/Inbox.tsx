@@ -63,7 +63,7 @@ function Far() {
       icon="download"
       word="Sources"
       big={total}
-      line={running ? `events from ${running} of 4 sources` : 'events, sources paused'}
+      line={running ? `events from ${running} of ${SOURCES.length} sources` : 'events, sources paused'}
     />
   );
 }
