@@ -16,7 +16,8 @@ import { useLive } from './store';
 // a blue dot.
 
 // Matches the current signature and the older one with a leading dash.
-const SIGNATURE = /\n\n(?:\u2014 Settle, bookkeeping|Settle\nBookkeeping) for the Oct 24 show$/;
+// Older emails ended with a signature; new ones are sent exactly as written
+const SIGNATURE = /\n\n(?:\u2014 Settle, bookkeeping for the|Settle\nBookkeeping for the|Settle Bookkeeping\nSettlement for the) Oct 2[45] show$/;
 
 const THREAD_STATUS: Record<string, { kind: StatusKind; label: string }> = {
   waiting: { kind: 'held', label: 'Waiting' },

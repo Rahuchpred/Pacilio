@@ -1,4 +1,4 @@
-// Evidence lines read "Row 5 · Ledger · +$4,687.00 · Oct 24, 2026 · INV-2497".
+// Evidence lines read "Row 5 · Ledger · +$4,687.00 · Oct 25, 2026 · INV-2497".
 // Shown as a small table: the row, its source, what it is, the amount.
 export function Evidence({ lines }: { lines: string[] }) {
   return (

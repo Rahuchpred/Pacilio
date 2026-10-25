@@ -16,7 +16,7 @@ const QUESTION_MARK = '\nQuestion: ';
 const WORKDIR = '/home/factory-user/settle';
 
 function askPrompt(question: string): string {
-  return `You are Settle, the assistant for a concert promoter's Oct 24 show. A teammate wrote to you (below).
+  return `You are Settle, the assistant for a concert promoter's Oct 25 show. A teammate wrote to you (below).
 Work quickly: don't look for AGENTS.md, skills or other context. Only read files; never write, edit or delete anything.
 The master ledger is ${WORKDIR}/ledger.json (every event with its row number, status: ok, refunded, void, review or
 following_up, its category and a note). ${WORKDIR}/report.json has the show report figures if it exists.

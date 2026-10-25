@@ -6,17 +6,15 @@
 // the orange accent in tokens.css.
 
 const SANS = "Geist, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif";
-const MONO = "'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-export const SHOW = 'Oct 24 show';
+export const SHOW = 'Oct 25 show';
 export const SENDER = 'Settle Bookkeeping';
 
 export interface Detail {
   label: string;
   value: string;
   tone?: 'in' | 'out';
-  mono?: boolean;
 }
 
 export interface EmailContent {
@@ -28,7 +26,7 @@ export interface EmailContent {
   details?: Detail[];
   // The amount in question, set large at the top
   amount?: string;
-  // e.g. Oct 24, 2026
+  // e.g. Oct 25, 2026
   sentOn?: string;
   // Plain text: blank lines split paragraphs
   message: string;
@@ -98,7 +96,8 @@ function detailRows(details: Detail[]): string {
   const rows = details
     .map(d => {
       const color = d.tone === 'in' ? C.in : C.primary;
-      const font = d.mono ? `${MONO};font-size:12px` : `${SANS};font-size:14px`;
+      // One font for everything: the reference and ids too
+      const font = `${SANS};font-size:14px`;
       return `<tr>
   <td style="${top}padding:${pad};font-family:${SANS};font-size:13px;line-height:18px;color:${C.secondary};width:42%;" valign="top">${esc(d.label)}</td>
   <td style="${top}padding:${pad};font-family:${font};line-height:18px;color:${color};font-weight:500;text-align:right;font-variant-numeric:tabular-nums;" valign="top">${esc(d.value)}</td>
@@ -112,18 +111,6 @@ function mark(): string {
   return `<span style="display:inline-block;width:22px;height:22px;line-height:22px;border-radius:6px;background:${C.primary};color:${C.card};text-align:center;font-family:${SANS};font-size:13px;font-weight:600;vertical-align:middle;">S</span>`;
 }
 
-function footer(c: EmailContent): string {
-  return `<tr><td align="center" style="padding:20px 4px 0;font-family:${SANS};font-size:12px;line-height:18px;color:${C.tertiary};text-align:center;">
-  Reply to this email to reach us. Please keep <span style="font-family:${MONO};color:${C.secondary};">${esc(c.reference)}</span> in the thread so we can match your answer to the right item.<br>
-  Sent by Settle on behalf of the promoter, from ${esc(c.replyTo)}. We will never ask for passwords or card numbers by email.
-</td></tr>`;
-}
-
-function signature(): string {
-  return `<span style="font-family:${SANS};font-size:14px;line-height:20px;font-weight:500;color:${C.primary};">${SENDER}</span><br>
-<span style="font-family:${SANS};font-size:14px;line-height:20px;color:${C.secondary};">Settlement for the ${SHOW}</span>`;
-}
-
 function shell(c: EmailContent, inner: string): string {
   const page = C.page;
   return `<!doctype html>
@@ -134,10 +121,10 @@ function shell(c: EmailContent, inner: string): string {
 <meta name="color-scheme" content="light only">
 <meta name="supported-color-schemes" content="light">
 <title>${esc(c.title ?? SENDER)}</title>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
 </head>
-<body style="margin:0;padding:0;background:${page};-webkit-text-size-adjust:100%;">
-<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:${page};">${esc(c.preheader)}&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;</div>
+<body style="margin:0;padding:0;background:${page};font-family:${SANS};-webkit-text-size-adjust:100%;">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;font-family:${SANS};color:${page};">${esc(c.preheader)}&#8199;&#847;&#8199;&#847;&#8199;&#847;&#8199;&#847;</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${page}" style="background:${page};">
 <tr><td align="center" style="padding:32px 16px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;">
@@ -158,7 +145,7 @@ export function renderEmail(c: EmailContent): string {
   const title = c.title
     ? `<p style="margin:10px 0 4px;font-family:${SANS};font-size:15px;line-height:22px;color:${k.primary};text-align:center;">${esc(c.title)}</p>`
     : '';
-  const meta = `<p style="margin:0 0 28px;font-family:${SANS};font-size:13px;line-height:18px;color:${k.tertiary};text-align:center;">${c.sentOn ? `${esc(c.sentOn)} &middot; ` : ''}<span style="font-family:${MONO};font-size:12px;">${esc(c.reference)}</span></p>`;
+  const meta = `<p style="margin:0 0 28px;font-family:${SANS};font-size:13px;line-height:18px;color:${k.tertiary};text-align:center;">${c.sentOn ? `${esc(c.sentOn)} &middot; ` : ''}<span>${esc(c.reference)}</span></p>`;
   const summary = c.details?.length
     ? `<p style="margin:0 0 4px;font-family:${SANS};font-size:11px;line-height:16px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:${k.tertiary};">Summary</p>${detailRows(c.details)}`
     : '';
@@ -168,11 +155,9 @@ export function renderEmail(c: EmailContent): string {
   ${table(`<tr><td height="4" bgcolor="#ff7019" style="background:${ORANGE_FILL};font-size:0;line-height:0;">&nbsp;</td></tr>
   <tr><td style="padding:32px 36px 36px;">
     ${head}${amount}${title}${meta}${summary}
-    ${table(`<tr><td bgcolor="${k.surface}" style="background:${k.surface};border-radius:10px;padding:20px 20px 4px;">${p(c.message, k.primary, 14, 21)}</td></tr>`, 'margin:0 0 24px;')}
-    ${signature()}
+    ${table(`<tr><td bgcolor="${k.surface}" style="background:${k.surface};border-radius:10px;padding:20px 20px 4px;">${p(c.message, k.primary, 14, 21)}</td></tr>`)}
   </td></tr>`)}
-</td></tr>
-${footer(c)}`
+</td></tr>`
   );
 }
 

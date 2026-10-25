@@ -11,11 +11,11 @@
 // (money in), warm grey (money out) and secondary ink (totals), so no hue
 // competes with the decide orange.
 
-export const REPORT_VERSION = 'v2';
+export const REPORT_VERSION = 'v3';
 export const REPORT_PATH = `settle/tools/report-${REPORT_VERSION}.py`;
 
-export const REPORT_SCRIPT = String.raw`# settle-report v2 -- provided by Settle. Do not edit.
-# Run: python3 /home/factory-user/settle/tools/report-v2.py /home/factory-user/settle
+export const REPORT_SCRIPT = String.raw`# settle-report v3 -- provided by Settle. Do not edit.
+# Run: python3 /home/factory-user/settle/tools/report-v3.py /home/factory-user/settle
 """Build report.json, report.html and report.xlsx from the settled rows of ledger.json."""
 import datetime
 import html
@@ -319,7 +319,7 @@ def render_html(s):
     ]
     body = "".join('<section class="card"><h2>%s</h2><p class="sub">%s</p>%s</section>' % (esc(t), esc(sub), html_) for t, sub, html_ in cards)
     return ("<!doctype html><html><head><meta charset='utf-8'><title>Show report</title><style>%s</style></head><body>"
-            "<h1>Show report \u00b7 Oct 24</h1><p class='headline'>%s</p><div class='grid'>%s</div></body></html>"
+            "<h1>Show report \u00b7 Oct 25</h1><p class='headline'>%s</p><div class='grid'>%s</div></body></html>"
             % (CSS, esc(headline), body))
 
 

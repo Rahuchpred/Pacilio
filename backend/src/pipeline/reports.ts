@@ -51,7 +51,7 @@ const MAX_CHART_ROWS = 30;
 const chartId = (c: Chart) => `c${c.id}`;
 
 function buildReportPrompt(requests: Message[], charts: Chart[]): string {
-  return `You are Settle's reports agent for a concert promoter's Oct 24 show.
+  return `You are Settle's reports agent for a concert promoter's Oct 25 show.
 Work quickly: don't look for AGENTS.md, skills or other context.
 
 1. Run: ${REPORT_CMD}
@@ -79,7 +79,7 @@ ${charts.map(c => `- ${chartId(c)}: ${JSON.stringify(c.title)} (${c.kind}, ${c.u
 Add a chart (id null) when a request asks for a chart, graph, breakdown, trend or anything visual. Remove one (its id
 in "remove", and leave it out of "charts") only when a request asks for that. Pick the kind that fits: "bar" to
 compare things (up to 12 rows, largest first unless the order means something), "line" for change over time (rows in
-time order, up to 30 points, short labels like "Oct 24 9 pm"), "table" when exact figures matter more than shape.
+time order, up to 30 points, short labels like "Oct 25 9 pm"), "table" when exact figures matter more than shape.
 Values are plain numbers (whole dollars for "usd"); spending is positive. Build them from ${WORKDIR}/ledger.json
 (settled rows only unless asked otherwise) without editing any file.
 ${

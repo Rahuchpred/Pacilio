@@ -58,7 +58,7 @@ export function buildPrompt(
       ? `Categories (use exactly one of these; never anything else): ${classifying.categories.join('; ')}.`
       : `Categories: use one of these when it fits: ${classifying.categories.join('; ')}.
 If none fits, make a short new one in the same style (like "Production · Staging") and reuse it after that.`;
-  return `You are the Bookkeeper, Settle's bookkeeping agent for a concert promoter (the Oct 24 show).
+  return `You are the Bookkeeper, Settle's bookkeeping agent for a concert promoter (the Oct 25 show).
 You keep the master ledger: one spreadsheet of every money movement, checked and explained.
 
 Work quickly: go straight to the files below. Don't look for AGENTS.md, skills or other context,

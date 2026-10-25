@@ -16,7 +16,7 @@ type Thread = NonNullable<ReturnType<Ctx['db']['emailThread']['id']['find']>>;
 // email_follow_up table); after the last one a thread shows "No reply".
 const DEFAULT_FOLLOW_UPS = [
   { delayMin: 10, message: 'Just following up on my note below. Could you take a look when you have a moment?' },
-  { delayMin: 30, message: "Following up again on the message below. We need this to close out the Oct 24 show's books." },
+  { delayMin: 30, message: "Following up again on the message below. We need this to close out the Oct 25 show's books." },
   { delayMin: 120, message: 'Checking in once more on the item below. A quick reply with where things stand would help.' },
   { delayMin: 1440, message: "Last follow-up from us on the item below. Please reply so we can settle it; we'll stop nudging after this." },
 ];
@@ -26,7 +26,6 @@ const MAX_MESSAGE = 1000;
 const TICK_INTERVAL_MICROS = 30_000_000n;
 const MINUTE_MICROS = 60_000_000n;
 const INBOX_NAME = SENDER;
-const SIGNATURE = `\n\n${SENDER}\nSettlement for the ${SHOW}`;
 
 // No em or en dashes in anything we email: number ranges get a hyphen, any
 // other dash becomes a comma.
@@ -116,7 +115,8 @@ export function startFollowUp(ctx: PCtx, reviewItemId: bigint): string {
     info.detail?.followUpMessage ||
       `Hello ${counterparty},\n\n${info.detail?.whatHappened || info.item.reason}\n\n${info.detail?.fix || ''}`
   );
-  const body = text + SIGNATURE;
+  // Exactly what was written: nothing added after it
+  const body = text;
   const subjectClean = noDashes(subject);
   const to = ctx.env.FOLLOWUP_EMAIL_TO ?? '';
   const ref = reference(reviewItemId);
@@ -126,9 +126,9 @@ export function startFollowUp(ctx: PCtx, reviewItemId: bigint): string {
     { label: 'Show', value: SHOW.replace(/ show$/, '') },
     { label: 'Counterparty', value: counterparty },
     ...(event && amount ? [{ label: 'Amount', value: amount, tone: event.amountMinor > 0n ? ('in' as const) : undefined }] : []),
-    ...(event?.reference ? [{ label: 'Their reference', value: event.reference, mono: true }] : []),
+    ...(event?.reference ? [{ label: 'Their reference', value: event.reference }] : []),
     ...(event ? [{ label: 'Dated', value: shortDate(event.occurredAt.toDate()) }] : []),
-    { label: 'Our reference', value: ref, mono: true },
+    { label: 'Our reference', value: ref },
   ];
 
   const threadId = ctx.withTx(tx => {
@@ -193,11 +193,11 @@ export function startFollowUp(ctx: PCtx, reviewItemId: bigint): string {
   }
 }
 
-// Send something in a thread from us (signed in both versions) and
+// Send something in a thread from us (exactly as written, nothing added) and
 // (re)start waiting for an answer.
 function sendInThread(ctx: PCtx, thread: Thread, raw: string, kind: 'follow_up' | 'reply', followUps: number) {
   const message = noDashes(raw);
-  const text = message + SIGNATURE;
+  const text = message;
   const mail = client(ctx);
   const box = inbox(ctx, mail);
   if (!thread.lastMessageId) throw new Error('This thread has no message to reply to');

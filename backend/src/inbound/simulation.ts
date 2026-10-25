@@ -4,7 +4,7 @@ import type { Random } from 'spacetimedb/server';
 // be matched against each other: the vendor billed in the Ledger is the one
 // paid from the Nessie bank account, the ticket buyers pay through Stripe.
 
-export const SHOW = 'Oct 24 show';
+export const SHOW = 'Oct 25 show';
 
 export interface Vendor {
   name: string;
