@@ -58,7 +58,6 @@ export function Decide({ item, event }: { item: ReviewItem; event: InboundEvent 
           </Button>
         ))}
       </div>
-      <p className="muted small">Nothing posts until you answer. Your call goes to the agent on its next run.</p>
       {error && <p className="card-error">{error}</p>}
     </div>
   );
@@ -127,7 +126,7 @@ function DecideKind({ kind, onDone }: { kind: Kind; onDone: () => void }) {
 
   if (run) {
     return (
-      <div className="triage-bulk is-running nodrag">
+      <div className="ask-buttons triage-running">
         <span className="spinner" aria-hidden="true" />
         <span>
           {run.action === 'void' ? 'Voiding' : 'Keeping'} {run.done} of {kind.items.length}
@@ -138,15 +137,40 @@ function DecideKind({ kind, onDone }: { kind: Kind; onDone: () => void }) {
       </div>
     );
   }
+  // The agent's pick keeps the orange when it is one of the safe answers
+  const pick = BULK_SAFE.includes(kind.suggestion) ? kind.suggestion : null;
   return (
-    <div className="triage-bulk nodrag">
-      <span className="muted small">All {kind.items.length} like this:</span>
-      {actions.map(a => (
-        <Button key={a} kind="secondary" size="sm" onClick={() => go(a)}>
-          {a === 'void' ? `Void all ${kind.items.length}` : `Keep all ${kind.items.length}`}
-        </Button>
-      ))}
+    <div className="ask-decide">
+      <div className="ask-buttons">
+        {actions.map(a => (
+          <Button key={a} kind={a === pick ? 'decide' : 'secondary'} size="sm" onClick={() => go(a)}>
+            {a === 'void' ? 'Void all' : 'Keep all'}
+          </Button>
+        ))}
+      </div>
       {error && <p className="card-error">{error}</p>}
+    </div>
+  );
+}
+
+// Your call: the answers, and when there are more like this, one switch to
+// answer this question or all of its kind. The count shows once, on the switch.
+function TriageCall({ item, event, kind, onDone }: { item: ReviewItem; event: InboundEvent | undefined; kind: Kind; onDone: () => void }) {
+  const [all, setAll] = useState(false);
+  const n = kind.items.length;
+  return (
+    <div className="triage-call-row nodrag">
+      {all && n > 1 ? <DecideKind kind={kind} onDone={onDone} /> : <Decide item={item} event={event} />}
+      {n > 1 && (
+        <div className="triage-scope" role="tablist" aria-label="Answer for">
+          <button type="button" role="tab" aria-selected={!all} onClick={() => setAll(false)}>
+            This one
+          </button>
+          <button type="button" role="tab" aria-selected={all} onClick={() => setAll(true)}>
+            All {n}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -291,15 +315,7 @@ function Triage() {
 
           </div>
           <footer className="triage-call">
-            <Decide item={item} event={event} />
-            {kind.items.length > 1 ? (
-              <DecideKind key={kind.key} kind={kind} onDone={() => setAt(0)} />
-            ) : (
-              // Same row, same height, so the buttons above never move
-              <div className="triage-bulk is-single">
-                <span className="muted small">Only one question like this.</span>
-              </div>
-            )}
+            <TriageCall key={kind.key} item={item} event={event} kind={kind} onDone={() => setAt(0)} />
           </footer>
         </section>
       </div>
