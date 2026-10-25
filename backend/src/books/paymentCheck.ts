@@ -87,3 +87,46 @@ export function paymentWriteUp(problem: PaymentProblem, f: PaymentFacts): Paymen
     follow_up_message: `Hello ${f.vendor},\n\nOn ${day(f.date)} we paid ${paid} against bill ${f.doc}, but that bill for ${money(f.totalMinor)} had already been paid in full. Could you refund the second payment of ${paid}?\n\nThank you.`,
   };
 }
+
+// ─── Payments with no bill ──────────────────────────────────────────────────
+
+// A payment with no bill at or above this goes to a person before anything
+// else; below it, to a vendor we already have bills from, it is just recorded
+export const NO_BILL_ASK_MINOR = 100_000n;
+
+export function noBillNeedsPerson(amountMinor: bigint, knownVendor: boolean): boolean {
+  const paid = amountMinor < 0n ? -amountMinor : amountMinor;
+  return paid >= NO_BILL_ASK_MINOR || !knownVendor;
+}
+
+export interface NoBillFacts {
+  vendor: string;
+  source: string;
+  amountMinor: bigint;
+  date: Date;
+  row: number;
+  memo: string;
+  knownVendor: boolean;
+}
+
+export function noBillWriteUp(f: NoBillFacts): PaymentWriteUp {
+  const paid = money(f.amountMinor);
+  const why = f.knownVendor
+    ? `That is ${money(NO_BILL_ASK_MINOR)} or more, so someone should confirm it was approved.`
+    : `We have never had a bill from ${f.vendor}, so someone should confirm it was approved.`;
+  return {
+    title: `${f.vendor} paid ${paid} with no bill`,
+    what_happened: `The bank paid ${f.vendor} ${paid} on ${day(f.date)} (row ${f.row}) for "${f.memo}", and QuickBooks has no bill for it. It is recorded as an expense with no bill on file. ${why}`,
+    evidence: [
+      `Row ${f.row} · ${f.source} · −${paid} · ${day(f.date)}`,
+      `QuickBooks · no bill from ${f.vendor} for ${paid}`,
+      'Flagged by Pacioli’s payment check',
+    ],
+    action: 'follow_up',
+    fix: `Ask ${f.vendor} to send the bill for the ${paid} payment.`,
+    question: `Email ${f.vendor} for the bill behind the ${paid} payment?`,
+    follow_up_to: f.vendor,
+    follow_up_subject: `Bill for our ${paid} payment on ${day(f.date)}`,
+    follow_up_message: `Hello ${f.vendor},\n\nOn ${day(f.date)} we paid you ${paid} for ${f.memo}, but we don't have a bill for it on file. Could you send the bill or invoice for this payment so we can match it in our books?\n\nThank you.`,
+  };
+}

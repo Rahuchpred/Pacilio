@@ -83,6 +83,7 @@ import * as SendEmailReplyProcedure from "./send_email_reply_procedure";
 
 // Import all table schema definitions
 import AccountingBillRow from "./accounting_bill_table";
+import AccountingExpenseRow from "./accounting_expense_table";
 import AccountingInvoiceRow from "./accounting_invoice_table";
 import AccountingPaymentRow from "./accounting_payment_table";
 import AgentMessageRow from "./agent_message_table";
@@ -133,6 +134,21 @@ const tablesSchema = __schema({
       { name: 'accounting_bill_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, AccountingBillRow),
+  accountingExpense: __table({
+    name: 'accounting_expense',
+    indexes: [
+      { accessor: 'eventId', name: 'accounting_expense_event_id_idx_btree', algorithm: 'btree', columns: [
+        'eventId',
+      ] },
+      { accessor: 'id', name: 'accounting_expense_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'accounting_expense_event_id_key', constraint: 'unique', columns: ['eventId'] },
+      { name: 'accounting_expense_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, AccountingExpenseRow),
   accountingInvoice: __table({
     name: 'accounting_invoice',
     indexes: [

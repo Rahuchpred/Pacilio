@@ -2,8 +2,8 @@ import { SenderError, t, type InferSchema, type ReducerCtx } from 'spacetimedb/s
 import type spacetimedb from '../index';
 import { startFollowUp } from '../email/email';
 import { logAction } from '../learn/audit';
-import { docNumbersIn, type MatchDoc } from '../pipeline/related';
-import { checkBillPayment, paymentWriteUp, type PaymentWriteUp } from './paymentCheck';
+import { docNumbersIn, normalizeName, similarNames, type MatchDoc } from '../pipeline/related';
+import { checkBillPayment, noBillNeedsPerson, noBillWriteUp, paymentWriteUp, type PaymentWriteUp } from './paymentCheck';
 
 // QuickBooks as the record of who owes whom: bills are what we owe vendors,
 // invoices what sponsors owe us. Payments are recorded here when the
@@ -97,6 +97,104 @@ export function checkPayment(
     earlierRows: earlierIds.map(rowOf),
   });
   return { review, duplicateOf: problem.kind === 'paid_twice' ? earlierIds[0] : undefined };
+}
+
+// ─── Payments with no bill ──────────────────────────────────────────────────
+
+const sameVendor = (a: string, b: string) => similarNames(normalizeName(a), normalizeName(b));
+// "Security staff - Oct 25 show · balance · completed" → "Security staff - Oct 25 show"
+const memoOf = (event: Event) => event.description.split(' · ')[0];
+
+// A bank payment to a vendor (a Nessie purchase) whose memo quotes no bill number
+function unnumberedVendorPayment(event: Event): boolean {
+  return event.source === 'nessie' && event.kind === 'card_transaction' && event.amountMinor < 0n && !docNumbersIn(event.description).length;
+}
+
+// The open bill an unnumbered payment pays: same vendor (typos allowed), same amount
+export function openBillFor(ctx: Ctx, event: Event): string | undefined {
+  if (!unnumberedVendorPayment(event)) return undefined;
+  for (const b of ctx.db.accountingBill.iter()) {
+    if (b.balanceMinor === -event.amountMinor && sameVendor(b.vendor, event.counterparty)) return b.docNumber;
+  }
+  return undefined;
+}
+
+// Money paid to a vendor with no bill behind it. A memo that quotes a bill
+// number we don't have yet is waiting for that bill, not missing one.
+export function isNoBillPayment(ctx: Ctx, event: Event, docNumber: string | undefined): boolean {
+  return unnumberedVendorPayment(event) && !(docNumber && findDoc(ctx, docNumber));
+}
+
+function knownVendor(ctx: Ctx, vendor: string): boolean {
+  for (const b of ctx.db.accountingBill.iter()) if (sameVendor(b.vendor, vendor)) return true;
+  return false;
+}
+
+// Run with checkPayment: a no-bill payment that is large, or to a vendor we've
+// never had a bill from, goes to a person even when the Bookkeeper said ok
+export function checkNoBill(
+  ctx: Ctx,
+  event: Event,
+  docNumber: string | undefined,
+  rowOf: (eventId: bigint) => number
+): { review: PaymentWriteUp } | undefined {
+  if (!isNoBillPayment(ctx, event, docNumber)) return undefined;
+  const known = knownVendor(ctx, event.counterparty);
+  if (!noBillNeedsPerson(event.amountMinor, known)) return undefined;
+  return {
+    review: noBillWriteUp({
+      vendor: event.counterparty,
+      source: SOURCE_LABEL[event.source] ?? event.source,
+      amountMinor: event.amountMinor,
+      date: event.occurredAt.toDate(),
+      row: rowOf(event.id),
+      memo: memoOf(event),
+      knownVendor: known,
+    }),
+  };
+}
+
+// Record a no-bill payment in QuickBooks as an expense, once per bank row
+export function recordExpense(ctx: Ctx, event: Event, category: string | undefined) {
+  if (ctx.db.accountingExpense.eventId.find(event.id)) return;
+  ctx.db.accountingExpense.insert({
+    id: 0n,
+    vendor: event.counterparty,
+    amountMinor: -event.amountMinor,
+    currency: event.currency,
+    txnDate: event.occurredAt,
+    category: category ?? '',
+    memo: memoOf(event),
+    eventId: event.id,
+    status: 'no_bill',
+    billId: undefined,
+    createdAt: ctx.timestamp,
+  });
+}
+
+// A vendor bill that arrives after we already paid it with no bill: link it to
+// that expense and mark it paid by the same bank row, so it isn't paid twice.
+// Returns the bank row's event id when it linked one.
+export function linkLateBill(ctx: Ctx, event: Event): bigint | undefined {
+  const m = event.source === 'ledger' ? /^bill:(\d+)$/.exec(event.sourceId) : null;
+  const bill = m ? ctx.db.accountingBill.id.find(BigInt(m[1])) : undefined;
+  if (!bill || bill.balanceMinor <= 0n) return undefined;
+  const expense = [...ctx.db.accountingExpense.iter()].find(
+    e => e.status === 'no_bill' && e.amountMinor === bill.totalMinor && sameVendor(e.vendor, bill.vendor)
+  );
+  if (!expense) return undefined;
+  ctx.db.accountingExpense.id.update({ ...expense, status: 'matched', billId: bill.id });
+  ctx.db.accountingBill.id.update({ ...bill, balanceMinor: 0n, status: 'paid' });
+  ctx.db.accountingPayment.insert({
+    id: 0n,
+    docType: 'bill',
+    docId: bill.id,
+    amountMinor: bill.balanceMinor,
+    paidAt: ctx.timestamp,
+    method: 'bank',
+    reference: `event:${expense.eventId}`,
+  });
+  return expense.eventId;
 }
 
 // Every bill and invoice, with what is open and which rows paid it (for the Bookkeeper's prompt)

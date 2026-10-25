@@ -28,6 +28,21 @@ export const AccountingBill = __t.object("AccountingBill", {
 });
 export type AccountingBill = __Infer<typeof AccountingBill>;
 
+export const AccountingExpense = __t.object("AccountingExpense", {
+  id: __t.u64(),
+  vendor: __t.string(),
+  amountMinor: __t.i64(),
+  currency: __t.string(),
+  txnDate: __t.timestamp(),
+  category: __t.string(),
+  memo: __t.string(),
+  eventId: __t.u64(),
+  status: __t.string(),
+  billId: __t.option(__t.u64()),
+  createdAt: __t.timestamp(),
+});
+export type AccountingExpense = __Infer<typeof AccountingExpense>;
+
 export const AccountingInvoice = __t.object("AccountingInvoice", {
   id: __t.u64(),
   docNumber: __t.string(),

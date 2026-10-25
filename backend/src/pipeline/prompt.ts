@@ -6,6 +6,7 @@
 import { DEFAULT_CATEGORIES, type Classifying } from '../classify/classify';
 import { RENDER_PATH } from './renderScript';
 import type { MatchDoc } from './related';
+import { NO_BILL_ASK_MINOR, money } from '../books/paymentCheck';
 import type { LedgerRow } from './snapshot';
 
 export const WORKDIR = '/home/factory-user/settle';
@@ -33,6 +34,8 @@ export interface PromptEvent {
   // Filled by Pacioli (related.ts): rows to compare with, and QuickBooks documents named
   related_rows?: number[];
   documents?: string[];
+  // QuickBooks bills we have from this counterparty
+  vendor_bills?: number;
 }
 
 // What Pacioli found for this run's events: the related rows and documents, in full
@@ -67,6 +70,7 @@ export function buildPrompt(
   overdue: { docNumber: string; customer: string; balance: string; daysOverdue: number }[] = [],
   context: PromptContext = { rows: [], documents: [] }
 ): string {
+  const noBillLimit = money(NO_BILL_ASK_MINOR);
   const categories =
     classifying.mode === 'manual'
       ? `Categories (use exactly one of these; never anything else): ${classifying.categories.join('; ')}.`
@@ -84,8 +88,9 @@ changes from your reply, so don't create, edit or write any file, and don't touc
 
 ## Related rows: already found for you
 Pacioli has matched every new event against the whole ledger and QuickBooks. Each new event lists
-"related_rows" (rows that share a document number, a similar counterparty name, typos included, or a close amount)
-and "documents" (the QuickBooks bills and invoices its memo or reference names). Both are printed in full below.
+"related_rows" (rows that share a document number, a similar counterparty name, typos included, or a close amount),
+"documents" (the QuickBooks bills and invoices its memo or reference names) and "vendor_bills" (how many
+QuickBooks bills we have from that counterparty, typos included). The rows and documents are printed in full below.
 Work from them. Never Read the whole ledger; Grep ${ledgerDir}/ledger.json only if you need a row that isn't listed.
 
 ### Related ledger rows
@@ -139,14 +144,21 @@ Then do the work below. Your final JSON still decides; it may differ if you chan
    - Data-entry duplicate: the same document recorded twice with small differences (typo, casing, a date off by a day or two, an amount off a little or rounded). Money did not move twice.
    - Double payment: money actually left twice for one thing (e.g. two bank payments for the same bill).
    - Mismatch: a payment that disagrees with its bill, invoice or receipt (paid more or less than billed).
-   - Missing paperwork: money moved with no bill, invoice or receipt behind it.
+   - No bill: a bank payment to a vendor whose memo quotes no bill number and that matches no bill in its
+     documents or related rows (same vendor, same amount). Money left with nothing in QuickBooks behind it.
    When a bank or Stripe row pays one of our bills, or is a sponsor paying our invoice, put that bill or invoice
-   number in "pays" (Settle records the payment in QuickBooks).
+   number in "pays" (Pacioli records the payment in QuickBooks). A payment with no bill number that matches an
+   open bill from the same vendor for the same amount pays that bill: put its number in "pays".
    Normal, not problems (mark "ok"): our own money moving (cash float withdrawals, crew payroll transfers,
-   box office deposits, Stripe payouts); a payment whose bill hasn't reached the ledger yet (bills often arrive
-   after payment: note "Awaiting bill <number>"); separate bills or payments with different document numbers.
+   box office deposits, Stripe payouts); a payment whose memo quotes a bill number that isn't in QuickBooks yet
+   (bills often arrive after payment: note "Awaiting bill <number>"); separate bills or payments with different
+   document numbers; a QuickBooks bill for a payment we already made with no bill (same vendor, same amount, a
+   related row noted "No bill on file"): note "Paid by row <n>".
+   No bill: Pacioli records the payment in QuickBooks as an expense marked "no bill on file", whatever you decide.
+   Under ${noBillLimit} to a vendor we already have bills from ("vendor_bills" above 0): status "ok", note "No bill on file".
+   ${noBillLimit} or more, or a vendor we have no bills from ("vendor_bills" 0): status "review", action "follow_up", asking the vendor for the bill.
    Only ask a person when something is actually wrong: money left twice for one document, an amount that
-   disagrees with its bill, invoice or receipt, or a duplicate entry you aren't sure about.
+   disagrees with its bill, invoice or receipt, a no-bill payment as above, or a duplicate entry you aren't sure about.
 3. Decide:
    - status "ok": nothing wrong. Put a short match in "note" if there is one, e.g. "Pays bill AV-0423".
    - status "void": an obvious data-entry duplicate (same counterparty, same document, tiny differences). Set duplicate_of.

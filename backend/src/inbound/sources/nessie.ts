@@ -172,25 +172,30 @@ export const nessie: Source = {
         // Restart); paying an older one would look like a payment with no bill
         const bills = ctx.withTx(raw => {
           const tx = raw as Ctx;
-          return [...tx.db.accountingBill.iter()].filter(b => tx.db.inboundEvent.dedupeKey.find(`ledger:bill:${b.id}`));
+          // A late bill for a payment already made with no bill is never paid: Pacioli links it
+          const expenses = [...tx.db.accountingExpense.iter()];
+          return [...tx.db.accountingBill.iter()].filter(
+            b =>
+              tx.db.inboundEvent.dedupeKey.find(`ledger:bill:${b.id}`) &&
+              !expenses.some(e => e.vendor === b.vendor && e.amountMinor === b.totalMinor)
+          );
         });
         const paidByBank = new Set(sim.paidBills);
-        const unpaid = bills.filter(b => !paidByBank.has(b.id.toString()));
+        // A bill already marked paid in QuickBooks isn't paid again
+        const unpaid = bills.filter(b => !paidByBank.has(b.id.toString()) && b.balanceMinor > 0n);
         const alreadyPaid = bills.filter(b => paidByBank.has(b.id.toString()));
         const kind = ctx.random();
         let payee = vendor;
         let cents = amountBetween(ctx.random, vendor.min, vendor.max);
         let memo = `${vendor.item} - ${SHOW}`;
         // Almost always a bill not yet paid from this account. Rarely a planted
-        // problem: an overpayment (3%), a bill paid twice (3%), or no bill (4%)
-        const bill =
-          kind < 0.9 && unpaid.length
-            ? pick(ctx.random, unpaid)
-            : kind < 0.93 && alreadyPaid.length
-              ? pick(ctx.random, alreadyPaid)
-              : kind >= 0.96 || !unpaid.length
-                ? undefined
-                : pick(ctx.random, unpaid);
+        // problem: an overpayment (3%), a bill paid twice (3%), or no bill (4%).
+        // With nothing to pay yet, skip the payment rather than plant a problem.
+        let bill: (typeof bills)[number] | undefined;
+        if (kind >= 0.96) bill = undefined;
+        else if (kind >= 0.9 && kind < 0.93 && alreadyPaid.length) bill = pick(ctx.random, alreadyPaid);
+        else if (unpaid.length) bill = pick(ctx.random, unpaid);
+        else continue;
         if (bill) {
           if (!paidByBank.has(bill.id.toString())) sim.paidBills.push(bill.id.toString());
           payee = VENDORS.find(v => v.name === bill.vendor) ?? vendor;
@@ -199,7 +204,7 @@ export const nessie: Source = {
           // Now and then the bank pays more than the bill says
           if (kind > 0.87 && kind < 0.9) cents = Math.round(cents * (1 + ctx.random.integerInRange(2, 8) / 100));
         }
-        // No bill picked (planted, or none sent yet): a charge with no bill behind it
+        // No bill picked (planted): a charge with no bill behind it
         nessiePost(ctx, `${base}/purchases`, {
           merchant_id: merchantId(ctx, sim, payee),
           medium: 'balance',

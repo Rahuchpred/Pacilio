@@ -9,13 +9,18 @@ import { latestFiles, ledgerRows, relative, setRenderDir, uploadSnapshot } from 
 import {
   MAX_AUTO_REMINDERS,
   billInMemo,
+  checkNoBill,
   checkPayment,
   createReminder,
   documentsForMatching,
+  isNoBillPayment,
+  linkLateBill,
+  openBillFor,
   overdueInvoices,
+  recordExpense,
   recordPayment,
 } from '../books/books';
-import { docsFor, findRelated, type MatchRow } from './related';
+import { docsFor, findRelated, vendorBillCounts, type MatchRow } from './related';
 import { learnTick, patternsForPrompt, recordPatternUses } from '../learn/learn';
 import { logAction } from '../learn/audit';
 import { RENDER_PATH, RENDER_SCRIPT, RENDER_VERSION } from './renderScript';
@@ -163,9 +168,11 @@ function startRun(ctx: Ctx, ledgerDir?: string, dryRun = false): boolean {
   const rowById = new Map([...ledger, ...fresh].map(r => [r.event_id, r.row]));
   const documents = documentsForMatching(ctx, id => rowById.get(id.toString()));
   const named = docsFor(fresh, documents);
+  const vendorBills = vendorBillCounts(fresh, documents);
   for (const e of events) {
     e.related_rows = related.get(e.id) ?? [];
     e.documents = named.get(e.id) ?? [];
+    e.vendor_bills = vendorBills.get(e.id) ?? 0;
   }
   const relatedRows = new Set(events.flatMap(e => e.related_rows ?? []));
   const namedDocs = new Set(events.flatMap(e => e.documents ?? []));
@@ -359,17 +366,26 @@ function applyDecisions(ctx: Ctx, run: Run, reply: Reply): bigint[] {
     // Either way the write-up is an email (sent now, or drafted for a person to send)
     if (d.status === 'follow_up') d.review = { ...(d.review ?? {}), action: 'follow_up' };
     let outcome = (OUTCOMES as readonly string[]).includes(d.status) ? d.status : 'review';
-    // The bill this row pays: as the Bookkeeper said, or as the bank memo quotes it
+    // The bill this row pays: as the Bookkeeper said, as the bank memo quotes it,
+    // or the open bill from that vendor for exactly that amount
     const event = ctx.db.inboundEvent.id.find(BigInt(id));
-    const pays = clip(d.pays, 40) || (event && billInMemo(ctx, event)) || undefined;
-    // Pacioli's own check: an overpaid bill or a bill paid twice goes to a person,
-    // even when the Bookkeeper let it through
-    const caught = event && outcome === 'ok' ? checkPayment(ctx, event, pays, eventId => rowOf(ctx, run, eventId)) : undefined;
+    const pays = clip(d.pays, 40) || (event && (billInMemo(ctx, event) || openBillFor(ctx, event))) || undefined;
+    const row = (eventId: bigint) => rowOf(ctx, run, eventId);
+    // Pacioli's own checks: an overpaid bill, a bill paid twice, or a large or
+    // unknown payment with no bill goes to a person, even when the Bookkeeper let it through
+    const caught = event && outcome === 'ok' ? (checkPayment(ctx, event, pays, row) ?? checkNoBill(ctx, event, pays, row)) : undefined;
     if (caught) {
       outcome = 'review';
       d.review = caught.review;
       d.note = caught.review.title;
-      d.duplicate_of = caught.duplicateOf?.toString() ?? null;
+      d.duplicate_of = 'duplicateOf' in caught ? (caught.duplicateOf?.toString() ?? null) : null;
+    }
+    if (event && outcome !== 'void') {
+      // A bill for money we already paid with no bill: linked, not paid again
+      const paidBy = linkLateBill(ctx, event);
+      if (paidBy !== undefined) d.note = `${d.note ? `${d.note} · ` : ''}Already paid by row ${row(paidBy)}, which had no bill`;
+      // Money that left with no bill: an expense in QuickBooks, no bill on file
+      if (isNoBillPayment(ctx, event, pays)) recordExpense(ctx, event, d.category);
     }
     const review = ctx.db.eventReview.eventId.find(BigInt(id));
     if (review) {

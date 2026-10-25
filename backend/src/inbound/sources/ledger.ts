@@ -62,6 +62,27 @@ function simulateLedger(ctx: SourceContext): void {
       return;
     }
 
+    // Now and then a vendor we paid with no bill sends it late (after we asked).
+    // Pacioli links it to that payment instead of paying it again.
+    const missing = [...tx.db.accountingExpense.iter()].filter(
+      e => e.status === 'no_bill' && ![...tx.db.accountingBill.iter()].some(b => b.vendor === e.vendor && b.totalMinor === e.amountMinor)
+    );
+    if (missing.length && ctx.random() < 0.3) {
+      const e = pick(ctx.random, missing);
+      tx.db.accountingBill.insert({
+        ...base,
+        txnDate: Timestamp.fromDate(now),
+        vendor: e.vendor,
+        docNumber: docNumber(initials(e.vendor)),
+        dueDate: Timestamp.fromDate(addDays(now, 15)),
+        lines: [{ description: e.memo, amountMinor: e.amountMinor }],
+        totalMinor: e.amountMinor,
+        balanceMinor: e.amountMinor,
+        memo: 'Sent late, for a payment already made',
+      });
+      return;
+    }
+
     const vendor = pick(ctx.random, VENDORS);
     const main = BigInt(amountBetween(ctx.random, vendor.min, vendor.max));
     const lines = [{ description: `${vendor.item} - ${SHOW}`, amountMinor: main }];

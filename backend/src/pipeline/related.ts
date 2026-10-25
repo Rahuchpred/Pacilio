@@ -118,3 +118,13 @@ export function docsFor(events: MatchRow[], docs: MatchDoc[]): Map<string, strin
   const known = new Set(docs.map(d => d.doc.toUpperCase()));
   return new Map(events.map(e => [e.event_id, docNumbersIn(e.description, e.reference).filter(d => known.has(d))]));
 }
+
+// How many QuickBooks bills we have from each new event's counterparty (typos
+// allowed): a vendor we have bills from is one we already work with
+export function vendorBillCounts(events: MatchRow[], docs: MatchDoc[]): Map<string, number> {
+  const parties = docs.filter(d => d.kind === 'bill').map(d => normalizeName(d.party));
+  return new Map(events.map(e => {
+    const name = normalizeName(e.counterparty);
+    return [e.event_id, parties.filter(p => similarNames(p, name)).length];
+  }));
+}

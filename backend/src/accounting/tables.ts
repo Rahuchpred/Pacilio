@@ -50,4 +50,27 @@ export const accountingPayment = table(
   }
 );
 
-export const accountingTables = { accountingBill, accountingInvoice, accountingPayment };
+// Money that left the bank with no bill behind it, as QuickBooks records it:
+// an expense (already paid), not a bill (owed). When the vendor's bill
+// arrives later, it is linked here and marked paid instead of being paid again.
+export const accountingExpense = table(
+  { name: 'accounting_expense', public: true },
+  {
+    id: t.u64().primaryKey().autoInc(),
+    vendor: t.string(),
+    // Positive: what was paid
+    amountMinor: t.i64(),
+    currency: t.string(),
+    txnDate: t.timestamp(),
+    category: t.string(),
+    memo: t.string(),
+    // The bank row that paid it
+    eventId: t.u64().unique(),
+    // 'no_bill' (asking for it) | 'matched' (the bill arrived and is linked)
+    status: t.string(),
+    billId: t.u64().optional(),
+    createdAt: t.timestamp(),
+  }
+);
+
+export const accountingTables = { accountingBill, accountingInvoice, accountingPayment, accountingExpense };
