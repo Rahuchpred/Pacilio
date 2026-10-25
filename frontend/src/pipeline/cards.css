@@ -786,13 +786,13 @@ button.ask-fact { cursor: pointer; }
 .tc figcaption { display: flex; flex-direction: column; gap: var(--space-2xs); }
 .tc-title { display: flex; align-items: center; gap: var(--space-xs); flex-wrap: wrap; }
 .tc-by { display: inline-flex; align-items: center; gap: var(--space-2xs); color: var(--color-text-secondary); font-size: var(--type-small-size); }
-/* New from the agent: an ink tag and a stronger edge, no hue (color is for decisions) */
-.tc.is-new { border-color: var(--color-border-strong); }
+/* New from the agent: an orange tag and edge, so fresh work stands out */
+.tc.is-new { border-color: var(--color-action-decide); }
 .tc-new {
   padding: 0 var(--space-xs);
   border-radius: var(--radius-control);
-  background: var(--color-text-primary);
-  color: var(--color-text-inverse);
+  background: var(--color-action-decide-soft);
+  color: var(--color-text-decide);
   font-size: 11px;
   font-weight: 500;
   line-height: 18px;
@@ -800,11 +800,11 @@ button.ask-fact { cursor: pointer; }
 /* Arrived here from a reply in Ask Pacioli: a ring that fades out */
 .tc.is-pointed { animation: tc-pointed 1600ms var(--motion-ease-out); }
 @keyframes tc-pointed {
-  0%, 35% { box-shadow: 0 0 0 3px var(--color-text-primary); }
+  0%, 35% { box-shadow: 0 0 0 3px var(--color-action-decide); }
   100% { box-shadow: 0 0 0 3px transparent; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .tc.is-pointed { animation-duration: 1ms; animation-delay: 1200ms; box-shadow: 0 0 0 3px var(--color-text-primary); }
+  .tc.is-pointed { animation-duration: 1ms; animation-delay: 1200ms; box-shadow: 0 0 0 3px var(--color-action-decide); }
 }
 .tc .link-button { align-self: flex-start; }
 .tc-bars { display: flex; flex-direction: column; gap: var(--space-xs); }
@@ -812,10 +812,10 @@ button.ask-fact { cursor: pointer; }
 .tc-label { color: var(--color-text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
 .tc-track { height: 14px; }
 /* Thin bars anchored at the baseline, rounded only at the data end */
-.tc-bar { display: block; height: 100%; min-width: 2px; border-radius: 0 4px 4px 0; background: var(--color-text-primary); }
-.tc-bar.is-negative { background: var(--color-border-strong); }
-.tc-line .tc-series { stroke: var(--color-text-primary); }
-.tc-line .tc-point { fill: var(--color-text-primary); stroke: var(--color-bg-canvas); }
+.tc-bar { display: block; height: 100%; min-width: 2px; border-radius: 0 4px 4px 0; background: var(--color-action-decide); }
+.tc-bar.is-negative { background: color-mix(in srgb, var(--color-action-decide) 35%, var(--color-bg-canvas)); }
+.tc-line .tc-series { stroke: var(--color-action-decide); }
+.tc-line .tc-point { fill: var(--color-action-decide); stroke: var(--color-bg-canvas); }
 .tc-value { font-variant-numeric: tabular-nums; color: var(--color-text-primary); }
 .tc-line { width: 100%; height: auto; overflow: visible; }
 .tc-line .tc-axis { stroke: var(--color-border-default); stroke-width: 1; }

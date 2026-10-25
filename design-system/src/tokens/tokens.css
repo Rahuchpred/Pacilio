@@ -410,23 +410,23 @@
   color-scheme: dark;
 }
 
-/* Accent: Orange, whop.com: orange #fa4616 brightened to #ff7019, Whop's dark greys (#111111 page, #191919 panels, #383838 edges), and warm off-white neutrals in light so the page sits with the orange instead of Stripe's blue-grey */
+/* Accent: Orange, whop.com: orange #fa4616 brightened to #ff7019, Whop's dark greys (#111111 page, #191919 panels, #383838 edges), and clean greys with a faint peach tint in light so the page sits with the orange instead of Stripe's blue-grey */
 :root[data-accent="orange"], [data-accent="orange"] .brand-sample {
   --color-action-decide: #ff7019;
   --color-text-on-decide: #ffffff;
   --color-action-decide-soft: #fff1e6;
-  --color-text-decide: #a84300;
+  --color-text-decide: #c2410c;
   --color-action-reject: #b0204a;
   --color-bg-canvas: #ffffff;
-  --color-bg-surface: #f8f5f0;
-  --color-bg-sunken: #f0ebe3;
-  --color-text-primary: #1f1a14;
-  --color-text-secondary: #5c5248;
-  --color-text-tertiary: #6f655a;
-  --color-border-default: #e8e1d7;
-  --color-border-control: #d1c7b8;
-  --color-border-strong: #8a7f72;
-  --color-action-primary: #1f1a14;
+  --color-bg-surface: #fcf8f4;
+  --color-bg-sunken: #f8efe6;
+  --color-text-primary: #1a1a1a;
+  --color-text-secondary: #525252;
+  --color-text-tertiary: #6b6b6b;
+  --color-border-default: #f0e4d8;
+  --color-border-control: #e3cfbd;
+  --color-border-strong: #8f8f8f;
+  --color-action-primary: #1a1a1a;
 }
 @media (prefers-color-scheme: dark) {
   :root[data-accent="orange"]:not([data-theme="light"]) {
