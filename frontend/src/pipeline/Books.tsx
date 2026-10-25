@@ -34,6 +34,11 @@ function useBooks() {
 
 type BooksData = ReturnType<typeof useBooks>;
 
+const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+const days = (n: number) => plural(n, 'day');
+
+// Like the ledger: one big number, the rest in the line. Plain paper; the
+// orange belongs to Needs you, and overdue invoices show as a count.
 function Far() {
   const { bills, invoices, open, overdue } = useBooks();
   return (
@@ -42,28 +47,27 @@ function Far() {
       width="w-books"
       icon="Document"
       word="QuickBooks"
-      big={
-        <span className="books-far">
-          <Money value={-sum(open(bills))} cents={false} />
-          <span className="books-far-sep">/</span>
-          <Money value={sum(open(invoices))} sign cents={false} />
-        </span>
+      big={<Money value={sum(open(invoices))} cents={false} />}
+      line={
+        <>
+          owed to us · we owe <Money value={sum(open(bills))} cents={false} />
+          {overdue.length ? ` · ${overdue.length} overdue` : ''}
+        </>
       }
-      line={`we owe / owed to us${overdue.length ? ` · ${overdue.length} overdue` : ''}`}
-      craft={overdue.some(d => d.kind === 'invoice') ? 'decide' : undefined}
     />
   );
 }
 
-const DocRow = memo(function DocRow({ d, books }: { d: Doc; books: BooksData }) {
+// One hairline row per bill or invoice: who and where it stands on the left,
+// the amount and its status on the right. Overdue invoices can be reminded
+// here (any open one from its item panel); only the latest wears the decide color.
+const DocRow = memo(function DocRow({ d, books, decide }: { d: Doc; books: BooksData; decide: boolean }) {
   const { paymentsByDoc, rowNumber, reminding } = books;
   const remind = useProcedure(procedures.remindInvoice);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const state = docState(d);
-  const total = dollars(d.totalMinor, d.currency);
   const left = dollars(d.balanceMinor, d.currency);
-  const paidShare = total ? Math.max(0, Math.min(1, (total - left) / total)) : 1;
   const payments = paymentsByDoc.get(`${d.kind}:${d.id}`) ?? [];
   const late = daysOverdue(d.dueDate.toDate());
   const due = Math.ceil((d.dueDate.toDate().getTime() - Date.now()) / 86_400_000);
@@ -75,13 +79,24 @@ const DocRow = memo(function DocRow({ d, books }: { d: Doc; books: BooksData }) 
     .join(', ');
 
   const line =
-    state === 'paid'
-      ? `Paid${d.kind === 'bill' ? ' by bank' : ' into the bank'}${by ? `, ${by}` : ''}`
-      : state === 'overdue'
-        ? `${late} ${late === 1 ? 'day' : 'days'} overdue${state === 'overdue' && left < total ? ` · $${left.toLocaleString('en-US')} left` : ''}`
-        : state === 'part_paid'
-          ? `$${left.toLocaleString('en-US', { minimumFractionDigits: 2 })} left · due in ${due} ${due === 1 ? 'day' : 'days'}`
-          : `Due in ${due} ${due === 1 ? 'day' : 'days'}`;
+    state === 'paid' ? (
+      `${d.kind === 'bill' ? 'Paid from the bank' : 'Paid into the bank'}${by ? `, ${by}` : ''}`
+    ) : state === 'overdue' ? (
+      <>
+        {days(late)} late
+        {left < dollars(d.totalMinor, d.currency) && (
+          <>
+            , <Money value={left} /> left
+          </>
+        )}
+      </>
+    ) : state === 'part_paid' ? (
+      <>
+        <Money value={left} /> left, due in {days(due)}
+      </>
+    ) : (
+      `Due in ${days(due)}`
+    );
 
   const send = () => {
     setBusy(true);
@@ -92,31 +107,27 @@ const DocRow = memo(function DocRow({ d, books }: { d: Doc; books: BooksData }) 
   };
 
   return (
-    <li className={`doc is-${state}`}>
+    <li className="doc">
       <button type="button" className="doc-main" onClick={() => d.eventId !== undefined && openItem(d.eventId)}>
-        <span className="doc-head">
-          <span className="strong doc-party">{d.party}</span>
-          <span className="muted small">{d.docNumber}</span>
+        <span className="doc-who">
+          <span className="doc-party">{d.party}</span>
+          <span className="doc-line">
+            {d.docNumber} · {line}
+          </span>
         </span>
         <span className="doc-amount">
-          <Money value={total} />
+          <Money value={dollars(d.totalMinor, d.currency)} />
         </span>
-        <span className="doc-bar" aria-hidden="true">
-          <span style={{ width: `${paidShare * 100}%` }} />
-        </span>
-        <span className={`doc-line small${state === 'overdue' ? ' is-late' : ''}`}>
-          <Status kind={DOC_STATUS[state].kind}>{DOC_STATUS[state].label}</Status>
-          {line}
-        </span>
+        <Status kind={DOC_STATUS[state].kind}>{DOC_STATUS[state].label}</Status>
       </button>
-      {d.kind === 'invoice' && state !== 'paid' && (
+      {d.kind === 'invoice' && state === 'overdue' && (
         <div className="doc-actions nodrag">
           {reminding(d) ? (
-            <span className="muted small">
-              <Icon name="mail" size={12} /> Reminder sent, waiting for a reply
+            <span className="tertiary small doc-sent">
+              <Icon name="mail" size={14} /> Reminder sent, waiting for a reply
             </span>
           ) : (
-            <Button kind={state === 'overdue' ? 'decide' : 'quiet'} size="sm" icon="Send" pending={busy} disabled={busy} onClick={send}>
+            <Button kind={decide ? 'decide' : 'quiet'} size="sm" icon="Send" pending={busy} disabled={busy} onClick={send}>
               Remind them
             </Button>
           )}
@@ -127,31 +138,53 @@ const DocRow = memo(function DocRow({ d, books }: { d: Doc; books: BooksData }) 
   );
 });
 
-function Column({ title, docs, empty, books }: { title: string; docs: Doc[]; empty: string; books: BooksData }) {
+function Column({
+  title,
+  docs,
+  empty,
+  books,
+  decideId,
+}: {
+  title: string;
+  docs: Doc[];
+  empty: string;
+  books: BooksData;
+  decideId?: string;
+}) {
   const [filter, setFilter] = useState<Filter>('open');
+  const openCount = docs.filter(d => d.balanceMinor > 0n).length;
   const shown = docs
     .filter(d => (filter === 'paid' ? docState(d) === 'paid' : filter === 'overdue' ? docState(d) === 'overdue' : d.balanceMinor > 0n))
     .sort((a, b) => a.dueDate.toDate().getTime() - b.dueDate.toDate().getTime());
   return (
     <section className="books-col">
-      <div className="books-col-head">
-        <h4 className="section-label">{title}</h4>
-        <CardTabs
-          label={`${title} filter`}
-          value={filter}
-          onChange={setFilter}
-          tabs={[
-            { id: 'open', label: `Open (${docs.filter(d => d.balanceMinor > 0n).length})` },
-            { id: 'overdue', label: `Overdue (${docs.filter(d => docState(d) === 'overdue').length})` },
-            { id: 'paid', label: `Paid (${docs.filter(d => docState(d) === 'paid').length})` },
-          ]}
-        />
-      </div>
+      <header className="books-col-head">
+        <h4>{title}</h4>
+        <span className="tertiary small">{docs.length}</span>
+        <span className="books-col-tabs">
+          <CardTabs
+            label={`${title} filter`}
+            value={filter}
+            onChange={setFilter}
+            tabs={[
+              { id: 'open', label: `Open ${openCount}` },
+              {
+                id: 'overdue',
+                label: `Overdue ${docs.filter(d => docState(d) === 'overdue').length}`,
+              },
+              {
+                id: 'paid',
+                label: `Paid ${docs.filter(d => docState(d) === 'paid').length}`,
+              },
+            ]}
+          />
+        </span>
+      </header>
       <ul className="docs nodrag nowheel">
         {shown.map(d => (
-          <DocRow key={`${d.kind}:${d.id}`} d={d} books={books} />
+          <DocRow key={`${d.kind}:${d.id}`} d={d} books={books} decide={`${d.kind}:${d.id}` === decideId} />
         ))}
-        {!shown.length && <li className="muted small">{empty}</li>}
+        {!shown.length && <li className="audit-empty">{empty}</li>}
       </ul>
     </section>
   );
@@ -159,37 +192,34 @@ function Column({ title, docs, empty, books }: { title: string; docs: Doc[]; emp
 
 function Full() {
   const books = useBooks();
-  const { bills, invoices, open, overdue } = books;
-  const lateInvoices = overdue.filter(d => d.kind === 'invoice');
+  const { bills, invoices, open, overdue, reminding } = books;
+  const lateInvoices = overdue
+    .filter(d => d.kind === 'invoice')
+    .sort((a, b) => a.dueDate.toDate().getTime() - b.dueDate.toDate().getTime());
+  // The one call waiting on a person: remind the sponsor who is latest
+  const first = lateInvoices.find(d => !reminding(d));
+  const openBills = open(bills);
+  const openInvoices = open(invoices);
   return (
-    <Card type="books" icon="Document" title="QuickBooks" className="w-books-full" meta={<span className="muted small">Who owes whom · {clock(new Date())}</span>}>
-      <dl className="counts">
-        <div>
-          <dt>We owe</dt>
-          <dd>
-            <Money value={-sum(open(bills))} />
-          </dd>
-        </div>
-        <div>
-          <dt>Owed to us</dt>
-          <dd>
-            <Money value={sum(open(invoices))} />
-          </dd>
-        </div>
-        <div>
-          <dt>Overdue</dt>
-          <dd>
-            {overdue.length} <span className="muted small">({lateInvoices.length} owed to us)</span>
-          </dd>
-        </div>
-      </dl>
+    <Card type="books" icon="Document" title="QuickBooks" className="w-books-full">
+      <p className="agent-built">
+        We owe <Money value={sum(openBills)} /> on {plural(openBills.length, 'open bill')}. Sponsors owe us{' '}
+        <Money value={sum(openInvoices)} /> on {plural(openInvoices.length, 'open invoice')}
+        {lateInvoices.length > 0 ? `, ${lateInvoices.length} of them overdue.` : '.'}
+      </p>
       <div className="books-cols">
-        <Column title="We owe (bills)" docs={bills} empty="Nothing here." books={books} />
-        <Column title="Owed to us (invoices)" docs={invoices} empty="Nothing here." books={books} />
+        <Column title="Bills we owe" docs={bills} empty="No bills here." books={books} />
+        <Column
+          title="Invoices owed to us"
+          docs={invoices}
+          empty="No invoices here."
+          books={books}
+          decideId={first ? `invoice:${first.id}` : undefined}
+        />
       </div>
       <p className="muted small">
-        Bills are paid from the bank and invoices into it; the Bookkeeper matches each payment and Settle records it here.
-        Remind them emails the sponsor; once people remind the same way a few times, the Bookkeeper learns to.
+        The Bookkeeper matches each bank payment to its bill or invoice. Remind them emails the sponsor; after a few reminders the
+        Bookkeeper sends them itself.
       </p>
     </Card>
   );
@@ -214,12 +244,12 @@ export function BooksSection({ eventId }: { eventId: bigint }) {
           </span>
           <Status kind={DOC_STATUS[docState(paidDoc)].kind}>{DOC_STATUS[docState(paidDoc)].label}</Status>
         </header>
-        <p>
+        <p className="bill-card-body bill-why">
           This {paidDoc.kind === 'bill' ? 'pays our bill' : 'is a payment on our invoice'}{' '}
           <button type="button" className="link-button" onClick={() => paidDoc.eventId !== undefined && openItem(paidDoc.eventId)}>
             {paidDoc.docNumber}
           </button>{' '}
-          ({paidDoc.party}); Settle recorded it there.
+          from {paidDoc.party}. The Bookkeeper matched it and Pacioli recorded the payment there.
         </p>
       </section>
     );
@@ -232,61 +262,65 @@ export function BooksSection({ eventId }: { eventId: bigint }) {
     <section className="bill-card">
       <header className="bill-card-head">
         <span>
-          <Icon name="Document" size={14} /> QuickBooks {d.kind === 'bill' ? 'bill (we owe)' : 'invoice (owed to us)'}
+          <Icon name="Document" size={14} /> QuickBooks {d.kind === 'bill' ? 'bill we owe' : 'invoice owed to us'}
         </span>
         <Status kind={DOC_STATUS[state].kind}>{DOC_STATUS[state].label}</Status>
       </header>
-      <dl className="bill-rows">
-        <div>
-          <dt>{d.kind === 'bill' ? 'Vendor' : 'Sponsor'}</dt>
-          <dd>{d.party}</dd>
-        </div>
-        <div>
-          <dt>Total</dt>
-          <dd>
-            <Money value={dollars(d.totalMinor, d.currency)} />
-          </dd>
-        </div>
-        <div>
-          <dt>Still open</dt>
-          <dd>
-            <Money value={dollars(d.balanceMinor, d.currency)} />
-          </dd>
-        </div>
-        <div>
-          <dt>Due</dt>
-          <dd>
-            {d.dueDate.toDate().toLocaleDateString([], { month: 'short', day: 'numeric' })}
-            {state === 'overdue' && ` · ${daysOverdue(d.dueDate.toDate())} days overdue`}
-          </dd>
-        </div>
-      </dl>
-      <ol className="doc-trail">
-        <li>
-          {d.txnDate.toDate().toLocaleDateString([], { month: 'short', day: 'numeric' })} · {d.kind === 'bill' ? 'Bill received' : 'Invoice sent'}
-        </li>
-        {payments.map(p => {
-          const bankId = p.reference.startsWith('event:') ? p.reference.slice(6) : '';
-          const bank = bankId ? rowBy.get(bankId) : undefined;
-          return (
-            <li key={p.id.toString()}>
-              {clock(p.paidAt.toDate())} · <Money value={dollars(p.amountMinor, d.currency)} /> {d.kind === 'bill' ? 'paid from the bank' : 'paid into the bank'}
-              {bank && (
-                <>
-                  {' '}
-                  (
-                  <button type="button" className="link-button" onClick={() => openItem(bank.event.id)}>
-                    {bank.event.counterparty}
-                  </button>
-                  ), matched by the Bookkeeper
-                </>
-              )}
-            </li>
-          );
-        })}
-        {!payments.length && <li className="muted">No payment yet</li>}
-      </ol>
-      {d.kind === 'invoice' && state !== 'paid' && <RemindButton d={d} />}
+      <div className="bill-card-body">
+        <dl className="bill-rows is-flush">
+          <div>
+            <dt>{d.kind === 'bill' ? 'Vendor' : 'Sponsor'}</dt>
+            <dd>{d.party}</dd>
+          </div>
+          <div>
+            <dt>Total</dt>
+            <dd>
+              <Money value={dollars(d.totalMinor, d.currency)} />
+            </dd>
+          </div>
+          <div>
+            <dt>Still open</dt>
+            <dd>
+              <Money value={dollars(d.balanceMinor, d.currency)} />
+            </dd>
+          </div>
+          <div>
+            <dt>Due</dt>
+            <dd>
+              {d.dueDate.toDate().toLocaleDateString([], { month: 'short', day: 'numeric' })}
+              {state === 'overdue' && `, ${days(daysOverdue(d.dueDate.toDate()))} late`}
+            </dd>
+          </div>
+        </dl>
+        <ol className="doc-trail">
+          <li>
+            {d.txnDate.toDate().toLocaleDateString([], { month: 'short', day: 'numeric' })}:{' '}
+            {d.kind === 'bill' ? 'Bill received' : 'Invoice sent'}
+          </li>
+          {payments.map(p => {
+            const bankId = p.reference.startsWith('event:') ? p.reference.slice(6) : '';
+            const bank = bankId ? rowBy.get(bankId) : undefined;
+            return (
+              <li key={p.id.toString()}>
+                {clock(p.paidAt.toDate())}: <Money value={dollars(p.amountMinor, d.currency)} />{' '}
+                {d.kind === 'bill' ? 'paid from the bank' : 'paid into the bank'}
+                {bank && (
+                  <>
+                    {' '}
+                    (
+                    <button type="button" className="link-button" onClick={() => openItem(bank.event.id)}>
+                      {bank.event.counterparty}
+                    </button>
+                    ), matched by the Bookkeeper
+                  </>
+                )}
+              </li>
+            );
+          })}
+          {!payments.length && <li className="tertiary">No payment yet</li>}
+        </ol>
+        {d.kind === 'invoice' && state !== 'paid' && <RemindButton d={d} />}
+      </div>
     </section>
   );
 }

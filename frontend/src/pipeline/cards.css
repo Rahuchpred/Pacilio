@@ -1346,19 +1346,32 @@ button.audit-row { cursor: pointer; }
 .pipeline .w-books,
 .pipeline .far-card.w-books { width: 480px; }
 .pipeline .w-books-full { width: 980px; }
-.books-far { display: inline-flex; align-items: baseline; gap: var(--space-sm); }
-.books-far-sep { color: var(--color-text-tertiary); font-weight: 300; }
 .books-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-xl); align-items: start; }
 .books-col { display: flex; flex-direction: column; gap: var(--space-sm); min-width: 0; }
-.books-col-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); flex-wrap: wrap; }
-.books-col-head h4 { margin: 0; }
-.docs { list-style: none; margin: 0; padding: 0; max-height: 520px; overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-xs); }
-.doc { display: flex; flex-direction: column; gap: var(--space-xs); padding: var(--space-sm) var(--space-md); border-radius: var(--radius-panel); background: var(--color-bg-surface); }
-.doc.is-overdue { box-shadow: inset 2px 0 0 var(--color-status-disputed); }
+/* Like the audit columns: the heading, its count, the filter on the right */
+.books-col-head { display: flex; align-items: center; gap: var(--space-xs); min-height: 36px; }
+.books-col-head h4 { margin: 0; font-size: var(--type-body-size); line-height: var(--type-body-line); font-weight: 500; }
+.books-col-tabs { margin-left: auto; }
+
+/* Hairline rows, no tiles: who and where it stands, the amount, the status */
+.docs { list-style: none; margin: 0; padding: 0; max-height: 520px; overflow-y: auto; overflow-x: hidden; }
+/* The row is one block: the hover wash covers the text and the button alike */
+.doc {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-xs);
+  border-top: var(--border-hairline) solid var(--color-border-default);
+}
+.doc:first-child { border-top: 0; }
+@media (hover: hover) and (pointer: fine) {
+  .doc:hover { background: var(--color-bg-sunken); }
+}
 .doc-main {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: var(--space-2xs) var(--space-md);
+  grid-template-columns: minmax(0, 1fr) auto 96px;
+  align-items: start;
+  gap: var(--space-md);
   width: 100%;
   padding: 0;
   border: 0;
@@ -1368,13 +1381,11 @@ button.audit-row { cursor: pointer; }
   text-align: left;
   cursor: pointer;
 }
-.doc-head { display: flex; flex-direction: column; min-width: 0; }
-.doc-party { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.doc-amount { font-variant-numeric: tabular-nums; align-self: start; }
-/* How much of it is paid, as a thin bar in the accept green */
-.doc-bar { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: var(--color-border-default); overflow: hidden; }
-.doc-bar > span { display: block; height: 100%; background: var(--color-status-cleared); border-radius: 2px; }
-.doc-line { grid-column: 1 / -1; display: flex; align-items: center; gap: var(--space-sm); color: var(--color-text-secondary); min-width: 0; overflow-wrap: anywhere; }
-.doc-line.is-late { color: var(--color-status-disputed); }
+.doc-main .status { justify-self: start; }
+.doc-who { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.doc-party { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.doc-line { font-size: var(--type-small-size); line-height: var(--type-small-line); color: var(--color-text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.doc-amount { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .doc-actions { display: flex; align-items: center; gap: var(--space-sm); }
-.doc-trail { margin: var(--space-sm) 0 0; padding-left: var(--space-lg); display: flex; flex-direction: column; gap: var(--space-2xs); font-size: var(--type-small-size); }
+.doc-sent { display: inline-flex; align-items: center; gap: var(--space-2xs); }
+.doc-trail { margin: 0; padding-left: var(--space-lg); display: flex; flex-direction: column; gap: var(--space-2xs); font-size: var(--type-small-size); font-variant-numeric: tabular-nums; }
