@@ -1,13 +1,12 @@
-import { useEffect, useRef, useState, type ComponentType, type MouseEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ComponentType, type ReactNode } from 'react';
 import { Handle, Panel, type NodeProps } from '@xyflow/react';
 import { Icon, type IconName } from '../../../design-system/src/components';
 import { AskSettle } from '../ui/AskSettle';
 import { HANDLES } from './layout';
-import { getView as view, setLock, setOpen, useFocus, useShown, useView, type Lock } from './view';
+import { useExpanded, useFocus, useSetExpanded } from './view';
 
-// Three levels of detail on one canvas. Far: one word and one big number per
-// card, readable from across the table. Middle: one line per thing. Near: the
-// full card, every row, with the actions. Clicking a card opens it in full.
+// Two states per card. Overview: one word and one big number, readable from
+// across the table. Full: every row, with the actions. A click toggles them.
 
 // What a card shows from far away.
 export type Look = 'idle' | 'working' | 'done' | 'issue';
@@ -25,9 +24,8 @@ export type FarView = {
 export type CardLevels = {
   // Each level is a component, so it can read live tables
   far: ComponentType<NodeProps>;
-  short: ComponentType<NodeProps>;
   full: ComponentType<NodeProps>;
-  // A live look on the wrapper (working, done, issue) for every level
+  // A live look on the wrapper (working, done, issue) in both states
   useLook?: (props: NodeProps) => Look;
 };
 
@@ -80,102 +78,53 @@ function useJustFinished(look: string) {
   return finished;
 }
 
-// One card type at every level. Clicking a card that isn't in full opens it
-// in full and centres it; buttons, links and toggles inside do their own thing.
+// One card type in its two states: the overview, or open in full for
+// everyone. Clicks are handled by the canvas (see Pipeline), so dragging a
+// card never toggles it.
 export function leveled(c: CardLevels) {
   const Far = c.far;
-  const Short = c.short;
   const Full = c.full;
   const useLook = c.useLook ?? (() => 'idle' as Look);
   return function Leveled(props: NodeProps) {
-    const level = useShown(props.id);
-    const { openCard } = useFocus();
+    const expanded = !!(props.data as { expanded?: boolean }).expanded;
     const look = useLook(props);
     const finished = useJustFinished(look);
-    const onClick = (e: MouseEvent) => {
-      if ((e.target as HTMLElement).closest('button, a, summary, input, textarea, iframe, .lv-click')) return;
-      openCard(props.id);
-    };
-    const body =
-      level === 'near' ? (
-        <div className="lv-full">
-          <Full {...props} />
-        </div>
-      ) : level === 'mid' ? (
-        <div className="lv-short lv-openable" onClick={onClick}>
-          <Short {...props} />
-        </div>
-      ) : (
-        <div className="lv-openable" onClick={onClick}>
-          <Far {...props} />
-        </div>
-      );
-    return <div className={`lv-check is-${look}${finished ? ' just-finished' : ''}`}>{body}</div>;
+    return (
+      <div className={`lv-check is-${look}${finished ? ' just-finished' : ''}`}>
+        {expanded ? (
+          <div className="lv-full">
+            <Full {...props} />
+          </div>
+        ) : (
+          <div className="lv-openable">
+            <Far {...props} />
+          </div>
+        )}
+      </div>
+    );
   };
 }
 
-const LOCKS: { id: Lock; label: string; hint: string }[] = [
-  { id: 'auto', label: 'Auto', hint: 'Follows the zoom' },
-  { id: 'far', label: 'Overview', hint: 'One number per card' },
-  { id: 'mid', label: 'Cards', hint: 'One line per thing' },
-  { id: 'near', label: 'Full detail', hint: 'Every row, at any zoom' },
-];
-
-// Bottom right: how much every card shows. Auto follows the zoom; the others
-// hold that level at any zoom. Esc or a click on empty canvas closes an
-// opened card.
-export function DetailFilter() {
-  const { lock, open } = useView();
+// Bottom right: close every open card (for everyone), and Ask Settle.
+export function CanvasCorner() {
+  const expanded = useExpanded();
+  const setExpanded = useSetExpanded();
   const { fitAll } = useFocus();
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && view().open) setOpen(null);
-    };
-    const onClick = (e: globalThis.MouseEvent) => {
-      if ((e.target as HTMLElement).classList?.contains('react-flow__pane') && view().open) setOpen(null);
-    };
-    window.addEventListener('keydown', onKey);
-    window.addEventListener('click', onClick);
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      window.removeEventListener('click', onClick);
-    };
-  }, []);
-
   return (
     <Panel position="bottom-right" className="lv-control">
-      {open && (
-        <button
-          type="button"
-          className="lv-close"
-          onClick={() => {
-            setOpen(null);
-            fitAll();
-          }}
-        >
-          Close card <kbd>Esc</kbd>
-        </button>
-      )}
       <div className="lv-row">
-        <div className="lv-seg" role="radiogroup" aria-label="How much each card shows">
-          <span className="lv-label">Detail</span>
-          {LOCKS.map(l => (
-            <button
-              key={l.id}
-              type="button"
-              role="radio"
-              aria-checked={lock === l.id}
-              title={l.hint}
-              onClick={() => {
-                setLock(l.id);
-                fitAll();
-              }}
-            >
-              {l.label}
-            </button>
-          ))}
-        </div>
+        {expanded.size > 0 && (
+          <button
+            type="button"
+            className="lv-close"
+            onClick={() => {
+              expanded.forEach(id => setExpanded(id, false));
+              fitAll();
+            }}
+          >
+            Close {expanded.size === 1 ? 'card' : `all ${expanded.size}`}
+          </button>
+        )}
         <AskSettle />
       </div>
     </Panel>

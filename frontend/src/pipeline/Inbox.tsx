@@ -2,7 +2,7 @@ import { useTable } from 'spacetimedb/react';
 import { Money, Status } from '../../../design-system/src/components';
 import { tables } from '../module_bindings';
 import type { InboundSourceStatus } from '../module_bindings/types';
-import { FarCard, Handles, type CardLevels } from '../canvas/levels';
+import { FarCard, type CardLevels } from '../canvas/levels';
 import { Card } from './Card';
 import { ROW_STATUS, SOURCES, SOURCE_TITLES, byIdDesc, clock, dollars, kindLabel, openItem, useRows } from './live';
 
@@ -66,20 +66,6 @@ function Far() {
   );
 }
 
-function Short() {
-  const { total } = useSources();
-  return (
-    <div className="pnode-bare w-inbox">
-      <h3 className="bare-title">
-        Inbox
-        <span className="muted small">{total} events</span>
-      </h3>
-      <SourceList />
-      <Handles type="inbox" />
-    </div>
-  );
-}
-
 // Full: the sources, then the newest events; any of them opens in the item panel.
 function Full() {
   const rows = useRows();
@@ -118,4 +104,4 @@ function Full() {
   );
 }
 
-export const inbox: CardLevels = { far: Far, short: Short, full: Full };
+export const inbox: CardLevels = { far: Far, full: Full };

@@ -92,9 +92,19 @@ export const pipelineNodeSize = table(
   }
 );
 
+// Cards someone opened to full detail; open for everyone. Absent = overview.
+export const pipelineCard = table(
+  { name: 'pipeline_card', public: true },
+  {
+    nodeId: t.string().primaryKey(),
+    expanded: t.bool(),
+  }
+);
+
 export const inboundTables = {
   pipelineLayout,
   pipelineNodeSize,
+  pipelineCard,
   inboundEvent,
   inboundLabel,
   inboundSource,

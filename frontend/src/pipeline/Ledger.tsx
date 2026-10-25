@@ -2,14 +2,12 @@ import { useState } from 'react';
 import { useProcedure, useTable } from 'spacetimedb/react';
 import { Button, Money, Status } from '../../../design-system/src/components';
 import { procedures, tables } from '../module_bindings';
-import { FarCard, Handles, type CardLevels } from '../canvas/levels';
+import { FarCard, type CardLevels } from '../canvas/levels';
 import { Card, CardTabs } from './Card';
 import { ROW_STATUS, SOURCE_TITLES, clock, dollars, kindLabel, openItem, totals, useRows, type Row } from './live';
 
 // The master ledger: every event the agent has checked, with where it stands.
 // Up close: every row, or the workbook exactly as Droid rendered it.
-
-const SHORT_ROWS = 6;
 
 function useLedger() {
   const rows = useRows().filter(r => r.state !== 'waiting' && r.state !== 'checking');
@@ -48,39 +46,6 @@ function RowCells({ r }: { r: Row }) {
         <Money value={dollars(r.event.amountMinor, r.event.currency)} />
       </span>
     </>
-  );
-}
-
-function Short() {
-  const { rows, t, doc } = useLedger();
-  const latest = rows.slice(-SHORT_ROWS).reverse();
-  return (
-    <div className="pnode-bare w-ledger">
-      <h3 className="bare-title">
-        Master ledger
-        <span className="muted small">{doc ? `Updated ${clock(doc.updatedAt.toDate())}` : 'Not written yet'}</span>
-      </h3>
-      <div className="sheet">
-        {latest.map(r => (
-          <div key={r.event.id.toString()} className={`sheet-row${r.state === 'review' ? ' is-held' : ''}`}>
-            <RowCells r={r} />
-          </div>
-        ))}
-        {!latest.length && (
-          <div className="sheet-row">
-            <span className="muted">The agent writes rows after its first run.</span>
-          </div>
-        )}
-        <div className="sheet-row sheet-total">
-          <span>Net, {t.settled} posted</span>
-          <span />
-          <span className="num">
-            <Money value={t.net} />
-          </span>
-        </div>
-      </div>
-      <Handles type="ledger" />
-    </div>
   );
 }
 
@@ -183,4 +148,4 @@ function Full() {
   );
 }
 
-export const ledger: CardLevels = { far: Far, short: Short, full: Full };
+export const ledger: CardLevels = { far: Far, full: Full };

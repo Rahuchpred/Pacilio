@@ -107,7 +107,7 @@ function AgentFull() {
   );
 }
 
-export const reportAgent: CardLevels = { far: AgentFar, short: AgentShort, full: AgentFull, useLook: useReportLook };
+export const reportAgent: CardLevels = { far: AgentFar, full: AgentFull, useLook: useReportLook };
 
 // The show report: the agent's takeaways over the dashboard it built.
 
@@ -129,54 +129,6 @@ function ReportFar() {
       big={<Money value={f.net} cents={false} />}
       line={doc ? `net income${f.margin !== null ? `, ${f.margin}% margin` : ''}` : 'net so far, no report yet'}
     />
-  );
-}
-
-// Money in against money out, as two bars on one scale.
-function InOut() {
-  const f = useFigures();
-  const max = Math.max(f.moneyIn, f.moneyOut, 1);
-  return (
-    <div className="inout">
-      {[
-        { key: 'in', label: 'Money in', value: f.moneyIn },
-        { key: 'out', label: 'Money out', value: -f.moneyOut },
-      ].map(b => (
-        <div key={b.key} className="inout-row">
-          <span className="small muted">{b.label}</span>
-          <span className="inout-track">
-            <span className={`inout-bar is-${b.key}`} style={{ width: `${(Math.abs(b.value) / max) * 100}%` }} />
-          </span>
-          <span className="num small">
-            <Money value={b.value} cents={false} />
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function ReportShort() {
-  const { doc, status, building } = useReport();
-  const commentary = jsonList(doc?.commentary);
-  return (
-    <Card
-      type="report"
-      icon="ChartLine"
-      title="Show report"
-      meta={building ? <Status kind={status.kind}>{status.label}</Status> : doc && <span className="muted small">{clock(doc.updatedAt.toDate())}</span>}
-      className="w-report"
-    >
-      {doc?.headline ? <p className="lede">{doc.headline}</p> : <p className="muted">The reports agent writes this from settled rows.</p>}
-      <InOut />
-      {commentary.length > 0 && (
-        <ul className="takeaways">
-          {commentary.slice(0, 3).map(line => (
-            <li key={line}>{line}</li>
-          ))}
-        </ul>
-      )}
-    </Card>
   );
 }
 
@@ -242,4 +194,4 @@ function ReportFull() {
   );
 }
 
-export const report: CardLevels = { far: ReportFar, short: ReportShort, full: ReportFull };
+export const report: CardLevels = { far: ReportFar, full: ReportFull };

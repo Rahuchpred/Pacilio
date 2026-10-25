@@ -4,13 +4,15 @@ import { Button, Status } from '../../../design-system/src/components';
 import { reducers, tables } from '../module_bindings';
 import { logError } from '../throttle';
 
-// Bottom center: run, pause or restart every source and both agents at once.
+// Bottom center: run, pause or restart every source and both agents at once,
+// and tidy the canvas back to its default layout for everyone.
 export function Dock() {
   const [statuses] = useTable(tables.inboundSourceStatus);
   const [events] = useTable(tables.inboundEvent);
   const run = useReducer(reducers.runInbound);
   const pause = useReducer(reducers.pauseInbound);
   const restart = useReducer(reducers.restartInbound);
+  const tidy = useReducer(reducers.tidyPipelineLayout);
   const [busy, setBusy] = useState(false);
   const running = statuses.filter(s => s.enabled).length > 0;
 
@@ -48,6 +50,11 @@ export function Dock() {
       >
         Restart
       </Button>
+      <span title="Put every card back in its place and close them, for everyone">
+        <Button kind="quiet" size="sm" icon="CollapseAll" disabled={busy} onClick={act(() => tidy())}>
+          Tidy
+        </Button>
+      </span>
     </div>
   );
 }

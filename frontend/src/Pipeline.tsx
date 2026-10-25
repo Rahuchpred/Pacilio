@@ -1,25 +1,26 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ReactFlow,
   Background,
   BackgroundVariant,
   Controls,
   MarkerType,
-  applyNodeChanges,
   useReactFlow,
   type Edge,
   type FitViewOptions,
   type Node,
   type NodeChange,
+  type NodeMouseHandler,
 } from '@xyflow/react';
 import { useReducer, useTable } from 'spacetimedb/react';
 import { reducers, tables } from './module_bindings';
 import { Cursors } from './Cursors';
 import { logError, throttle } from './throttle';
+import { arrange, type Point, type Size } from './canvas/arrange';
 import { edgeTypes } from './canvas/FlowEdge';
-import { LAYOUT, txnId } from './canvas/layout';
-import { DetailFilter, leveled } from './canvas/levels';
-import { useView } from './canvas/view';
+import { LAYOUT, OVERVIEW, txnId } from './canvas/layout';
+import { CanvasCorner, leveled } from './canvas/levels';
+import { localId, sharedId, useExpanded, useFocus, useSetExpanded } from './canvas/view';
 import { Dock } from './ui/Dock';
 import { mainAgent } from './pipeline/Agent';
 import { emails } from './pipeline/Emails';
@@ -39,8 +40,11 @@ import './canvas/levels.css';
 import './pipeline/cards.css';
 
 const SYNC_INTERVAL_MS = 40;
+const MOVE_SYNC_MS = 50;
 // Fit the canvas between the presence bar (top right) and the dock (bottom).
 const FIT: FitViewOptions = { padding: { top: '72px', bottom: '88px', left: '32px', right: '32px' } };
+// Clicks on these do their own thing inside an open card
+const INTERACTIVE = 'button, a, input, textarea, select, summary, label, iframe, [role="tab"], .nodrag';
 
 const nodeTypes = {
   inbox: leveled(inbox),
@@ -53,20 +57,7 @@ const nodeTypes = {
   report: leveled(report),
 };
 
-// With every card in full, the same layout spread out so none overlap.
-const SPREAD = { x: 1.75, y: 1.5 };
-const TXN_FULL_Y = 1250;
-
-function initialNodes(spread = false): Node[] {
-  const k = spread ? SPREAD : { x: 1, y: 1 };
-  return Object.entries(LAYOUT).map(([id, n]) => ({
-    id,
-    type: n.type,
-    // Full cards are tall: the transactions drop well below them
-    position: { x: n.x * k.x, y: spread && n.type === 'txn' ? TXN_FULL_Y : n.y * k.y },
-    data: {},
-  }));
-}
+const typeOf = (id: string) => LAYOUT[id].type;
 
 // React Flow writes the arrow color inline, so it is set here, not in CSS.
 const arrow = { type: MarkerType.ArrowClosed, width: 16, height: 16, color: 'var(--color-border-strong)' };
@@ -139,26 +130,127 @@ function useEdges(): Edge[] {
   }, [open, building, checking.join()]);
 }
 
+// Where everyone has put each card (shared), falling back to the default layout.
+function useSharedBase(): Record<string, Point> {
+  const [rows] = useTable(tables.pipelineLayout);
+  return useMemo(() => {
+    const placed = new Map(rows.map(r => [localId(r.nodeId), { x: r.x, y: r.y }]));
+    return Object.fromEntries(Object.entries(LAYOUT).map(([id, n]) => [id, placed.get(id) ?? { x: n.x, y: n.y }]));
+  }, [rows]);
+}
+
+type Drag = { id: string; at: Point; offset: Point };
+
 export function Pipeline() {
   const moveCursor = useReducer(reducers.moveCursor);
+  const moveNode = useReducer(reducers.movePipelineNode);
   const { screenToFlowPosition, fitView } = useReactFlow();
-  const { open, lock } = useView();
-
-  // Layout is local and fixed: dragging a card does not move it for others.
-  const [nodes, setNodes] = useState<Node[]>(() => initialNodes());
-  const spread = lock === 'near';
-  useEffect(() => setNodes(initialNodes(spread)), [spread]);
+  const { focusWhenGrown } = useFocus();
+  const expanded = useExpanded();
+  const setExpanded = useSetExpanded();
+  const shared = useSharedBase();
   const edges = useEdges();
-  // The opened card sits above its neighbours
-  const shown = useMemo(() => nodes.map(n => (n.id === open ? { ...n, zIndex: 10 } : n.zIndex ? { ...n, zIndex: 0 } : n)), [nodes, open]);
+
+  // Measured card sizes, as React Flow reports them
+  const [sizes, setSizes] = useState<Record<string, Size>>({});
+  // The card you are dragging follows your pointer. Its offset from its base
+  // (how far opened cards pushed it) is kept so the shared base stays right.
+  const [drag, setDrag] = useState<Drag | null>(null);
+  const dragRef = useRef<Drag | null>(null);
+  // Positions you set, shown until the shared row catches up
+  const [mine, setMine] = useState<Record<string, Point>>({});
+  const justDragged = useRef(0);
+
+  const base = useMemo(() => ({ ...shared, ...mine }), [shared, mine]);
+  useEffect(() => {
+    // Forget local positions once the shared table agrees
+    setMine(m => {
+      const left = Object.fromEntries(Object.entries(m).filter(([id, p]) => shared[id].x !== p.x || shared[id].y !== p.y));
+      return Object.keys(left).length === Object.keys(m).length ? m : left;
+    });
+  }, [shared]);
+
+  const open = useMemo(() => [...expanded].filter(id => LAYOUT[id]), [expanded]);
+  const arranged = useMemo(
+    () =>
+      arrange(
+        base,
+        id => sizes[id] ?? OVERVIEW[typeOf(id)],
+        id => OVERVIEW[typeOf(id)],
+        open,
+        drag?.id
+      ),
+    [base, sizes, open, drag?.id]
+  );
+
+  const nodes: Node[] = useMemo(
+    () =>
+      Object.keys(LAYOUT).map(id => ({
+        id,
+        type: typeOf(id),
+        position: drag?.id === id ? drag.at : arranged[id],
+        data: { expanded: expanded.has(id) },
+        // Open cards sit above the lines and their neighbours
+        zIndex: expanded.has(id) ? 10 : 0,
+        ...(sizes[id] ? { measured: sizes[id] } : {}),
+      })),
+    [arranged, drag, expanded, sizes]
+  );
 
   useEffect(() => {
     // Wait for the nodes to be measured before fitting them in view.
-    const t = setTimeout(() => fitView(FIT), 80);
+    const t = setTimeout(() => fitView(FIT), 120);
     return () => clearTimeout(t);
   }, [fitView]);
 
-  const onNodesChange = useCallback((changes: NodeChange[]) => setNodes(prev => applyNodeChanges(changes, prev)), []);
+  const sendMove = useMemo(
+    () =>
+      throttle((id: string, x: number, y: number) => {
+        moveNode({ nodeId: sharedId(id), x, y }).catch(logError);
+      }, MOVE_SYNC_MS),
+    [moveNode]
+  );
+
+  const onNodesChange = useCallback(
+    (changes: NodeChange[]) => {
+      for (const c of changes) {
+        if (c.type === 'dimensions' && c.dimensions) {
+          const d = c.dimensions;
+          setSizes(s => (s[c.id]?.width === d.width && s[c.id]?.height === d.height ? s : { ...s, [c.id]: d }));
+        } else if (c.type === 'position' && c.position) {
+          const prev = dragRef.current;
+          const offset =
+            prev?.id === c.id ? prev.offset : { x: arranged[c.id].x - base[c.id].x, y: arranged[c.id].y - base[c.id].y };
+          const next = { x: c.position.x - offset.x, y: c.position.y - offset.y };
+          // Everyone sees the card move while you drag it
+          sendMove(c.id, next.x, next.y);
+          if (c.dragging) {
+            dragRef.current = { id: c.id, at: c.position, offset };
+          } else {
+            dragRef.current = null;
+            setMine(m => ({ ...m, [c.id]: next }));
+            justDragged.current = Date.now();
+          }
+          setDrag(dragRef.current);
+        }
+      }
+    },
+    [arranged, base, sendMove]
+  );
+
+  // A click opens a card for everyone, or closes it again. Clicks on controls
+  // inside an open card, text selections and the end of a drag don't count.
+  const onNodeClick: NodeMouseHandler = useCallback(
+    (e, node) => {
+      if ((e.target as HTMLElement).closest(INTERACTIVE)) return;
+      if (Date.now() - justDragged.current < 250) return;
+      if (window.getSelection()?.toString()) return;
+      const next = !expanded.has(node.id);
+      setExpanded(node.id, next);
+      if (next) focusWhenGrown(node.id);
+    },
+    [expanded, setExpanded, focusWhenGrown]
+  );
 
   const sendCursor = useMemo(
     () =>
@@ -176,11 +268,12 @@ export function Pipeline() {
   return (
     <div className="board pipeline" onPointerMove={onPointerMove}>
       <ReactFlow
-        nodes={shown}
+        nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
+        onNodeClick={onNodeClick}
         nodesConnectable={false}
         edgesFocusable={false}
         colorMode="light"
@@ -191,7 +284,7 @@ export function Pipeline() {
       >
         <Background variant={BackgroundVariant.Dots} gap={24} size={1} />
         <Controls showInteractive={false} />
-        <DetailFilter />
+        <CanvasCorner />
         <Cursors />
       </ReactFlow>
       <Dock />

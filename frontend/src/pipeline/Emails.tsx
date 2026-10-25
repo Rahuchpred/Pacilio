@@ -103,29 +103,6 @@ function Far() {
   );
 }
 
-function Short() {
-  const { threads } = useThreads();
-  return (
-    <Card type="emails" icon="mail" title="Emails to vendors" className="w-emails">
-      {threads.length ? (
-        <ul className="mail-list">
-          {threads.slice(0, 5).map(t => (
-            <li key={t.id.toString()}>
-              <span className="stack">
-                <span className="strong">{t.counterparty}</span>
-                <span className="muted small">{t.subject}</span>
-              </span>
-              <ThreadTag thread={t} />
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="muted">Choose Email them on a question and Settle writes here, nudging until they reply.</p>
-      )}
-    </Card>
-  );
-}
-
 function Conversation({ thread, messages }: { thread: EmailThread; messages: EmailMessage[] }) {
   const send = useProcedure(procedures.sendEmailReply);
   const close = useReducer(reducers.closeEmailThread);
@@ -235,4 +212,4 @@ function Full() {
   );
 }
 
-export const emails: CardLevels = { far: Far, short: Short, full: Full };
+export const emails: CardLevels = { far: Far, full: Full };

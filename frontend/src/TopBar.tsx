@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useReducer, useSpacetimeDB, useTable } from 'spacetimedb/react';
 import { Icon } from '../../design-system/src/components';
-import { useFocus } from './canvas/view';
+import { useFocus, useSetExpanded } from './canvas/view';
 import { openItem } from './pipeline/live';
 import { reducers, tables } from './module_bindings';
 import type { User } from './module_bindings/types';
@@ -43,7 +43,8 @@ export function TopBar() {
 // The bell: questions waiting on you and email replies nobody has opened.
 // Joins and leaves are not notifications; the people bar shows presence.
 function Notifications() {
-  const { openCard } = useFocus();
+  const { focusWhenGrown } = useFocus();
+  const setExpanded = useSetExpanded();
   const [open, setOpen] = useState(false);
   // Questions asked after this moment count as unread
   const [seenAt, setSeenAt] = useState(() => Date.now());
@@ -64,7 +65,9 @@ function Notifications() {
 
   const go = (card: string, eventId?: bigint) => {
     setOpen(false);
-    openCard(card);
+    // Opens the card for everyone, then brings it to you
+    setExpanded(card, true);
+    focusWhenGrown(card);
     if (eventId !== undefined) openItem(eventId);
   };
 

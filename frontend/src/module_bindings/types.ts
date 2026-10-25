@@ -272,6 +272,12 @@ export const PipelineAgent = __t.object("PipelineAgent", {
 });
 export type PipelineAgent = __Infer<typeof PipelineAgent>;
 
+export const PipelineCard = __t.object("PipelineCard", {
+  nodeId: __t.string(),
+  expanded: __t.bool(),
+});
+export type PipelineCard = __Infer<typeof PipelineCard>;
+
 export const PipelineLayout = __t.object("PipelineLayout", {
   nodeId: __t.string(),
   x: __t.f64(),

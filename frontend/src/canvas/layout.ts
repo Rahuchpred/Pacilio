@@ -47,6 +47,19 @@ export const LAYOUT: Record<string, { type: string; x: number; y: number }> = {
 
 export const NODE_IDS = Object.keys(LAYOUT);
 
+// Each card type's overview size (see pipeline/cards.css), used to judge which
+// way neighbours move and until a card has been measured.
+export const OVERVIEW: Record<string, { width: number; height: number }> = {
+  inbox: { width: INBOX_W, height: 190 },
+  main: { width: MAIN_W, height: 190 },
+  txn: { width: TXN_W, height: 130 },
+  flagged: { width: 480, height: 210 },
+  ledger: { width: LEDGER_W, height: 190 },
+  emails: { width: 360, height: 190 },
+  reportAgent: { width: RAGENT_W, height: 190 },
+  report: { width: 420, height: 190 },
+};
+
 export type HandleSpec = { type: 'source' | 'target'; position: Position; id?: string; left?: string };
 
 // Connection points per card type, the same at every level.

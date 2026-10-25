@@ -30,6 +30,7 @@ import RestartInboundReducer from "../restart_inbound_reducer";
 import RunInboundReducer from "../run_inbound_reducer";
 import SetInboundSourceReducer from "../set_inbound_source_reducer";
 import SetNameReducer from "../set_name_reducer";
+import SetPipelineCardExpandedReducer from "../set_pipeline_card_expanded_reducer";
 import SteerAgentTaskReducer from "../steer_agent_task_reducer";
 import TidyPipelineLayoutReducer from "../tidy_pipeline_layout_reducer";
 
@@ -57,6 +58,7 @@ export type RestartInboundParams = __Infer<typeof RestartInboundReducer>;
 export type RunInboundParams = __Infer<typeof RunInboundReducer>;
 export type SetInboundSourceParams = __Infer<typeof SetInboundSourceReducer>;
 export type SetNameParams = __Infer<typeof SetNameReducer>;
+export type SetPipelineCardExpandedParams = __Infer<typeof SetPipelineCardExpandedReducer>;
 export type SteerAgentTaskParams = __Infer<typeof SteerAgentTaskReducer>;
 export type TidyPipelineLayoutParams = __Infer<typeof TidyPipelineLayoutReducer>;
 

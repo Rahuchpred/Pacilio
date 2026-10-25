@@ -10,7 +10,6 @@ import { byIdDesc, clock, openItem, useAgentLook, useRows } from './live';
 // The main agent: Droid on the Factory computer, checking events in batches
 // and writing the master ledger.
 
-const LOG_SHORT = 5;
 const LOG_FULL = 12;
 const STEPS = 14;
 const RUN_CHIPS = 10;
@@ -69,21 +68,6 @@ function Far() {
   );
 }
 
-function Log({ limit }: { limit: number }) {
-  const { runs } = useAgent();
-  if (!runs.length) return <p className="muted">Waiting for the first batch of events.</p>;
-  return (
-    <ol className="log">
-      {runs.slice(0, limit).map(r => (
-        <li key={r.id.toString()} className="log-row">
-          <span className="log-time">{clock(r.startedAt.toDate())}</span>
-          <span>{runLine(r)}</span>
-        </li>
-      ))}
-    </ol>
-  );
-}
-
 function Counts() {
   const { checking, waiting, done } = useAgent();
   return (
@@ -101,17 +85,6 @@ function Counts() {
         <dd>{done}</dd>
       </div>
     </dl>
-  );
-}
-
-function Short() {
-  const { look, agent } = useAgent();
-  return (
-    <Card type="main" icon="agent" title="Main agent" meta={<Status kind={look.kind}>{look.label}</Status>} className="w-main pnode-main">
-      <Counts />
-      {agent?.lastError && <p className="card-error">{agent.lastError}</p>}
-      <Log limit={LOG_SHORT} />
-    </Card>
   );
 }
 
@@ -170,4 +143,4 @@ function Full() {
   );
 }
 
-export const mainAgent: CardLevels = { far: Far, short: Short, full: Full };
+export const mainAgent: CardLevels = { far: Far, full: Full };

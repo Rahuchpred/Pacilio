@@ -498,3 +498,12 @@ button.ask-fact { cursor: pointer; }
 /* Widths include padding and border, so a card fills exactly its slot. */
 .pipeline .pnode,
 .pipeline .pnode-bare { box-sizing: border-box; }
+
+/* An overview card opens on click; an open card closes on a click outside its controls. */
+.pipeline .lv-openable .far-card { cursor: pointer; }
+.pipeline .w-txn-full { width: 300px; box-sizing: border-box; }
+.pipeline .react-flow__node { transition: transform 260ms var(--motion-ease-out); }
+.pipeline .react-flow__node.dragging { transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  .pipeline .react-flow__node { transition: none; }
+}

@@ -160,10 +160,24 @@ export function inbound(stdb: Schema) {
     }
   );
 
-  // Snap every pipeline node back to the default layout and size, for everyone.
+  // Someone opened or closed a card's full detail; it opens or closes for everyone.
+  const setPipelineCardExpanded = stdb.reducer(
+    { nodeId: t.string(), expanded: t.bool() },
+    (ctx, { nodeId, expanded }) => {
+      if (!nodeId.startsWith('pipeline:')) throw new SenderError('Not a pipeline node');
+      const row = ctx.db.pipelineCard.nodeId.find(nodeId);
+      if (!expanded) {
+        if (row) ctx.db.pipelineCard.nodeId.delete(nodeId);
+      } else if (row) ctx.db.pipelineCard.nodeId.update({ nodeId, expanded });
+      else ctx.db.pipelineCard.insert({ nodeId, expanded });
+    }
+  );
+
+  // Snap every pipeline node back to the default layout, size and overview, for everyone.
   const tidyPipelineLayout = stdb.reducer(ctx => {
     for (const row of [...ctx.db.pipelineLayout.iter()]) ctx.db.pipelineLayout.nodeId.delete(row.nodeId);
     for (const row of [...ctx.db.pipelineNodeSize.iter()]) ctx.db.pipelineNodeSize.nodeId.delete(row.nodeId);
+    for (const row of [...ctx.db.pipelineCard.iter()]) ctx.db.pipelineCard.nodeId.delete(row.nodeId);
   });
 
   // ─── Whole-pipeline controls (the UI's Run / Pause / Restart) ─────────────
@@ -369,6 +383,7 @@ export function inbound(stdb: Schema) {
     resetInboundSource,
     movePipelineNode,
     resizePipelineNode,
+    setPipelineCardExpanded,
     tidyPipelineLayout,
     runInbound,
     pauseInbound,

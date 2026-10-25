@@ -259,4 +259,4 @@ function makeLevel(full: boolean) {
   };
 }
 
-export const needsYou: CardLevels = { far: Far, short: makeLevel(false), full: makeLevel(true) };
+export const needsYou: CardLevels = { far: Far, full: makeLevel(true) };

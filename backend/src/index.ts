@@ -64,6 +64,7 @@ export const {
   resetInboundSource,
   movePipelineNode,
   resizePipelineNode,
+  setPipelineCardExpanded,
   tidyPipelineLayout,
   runInbound,
   pauseInbound,

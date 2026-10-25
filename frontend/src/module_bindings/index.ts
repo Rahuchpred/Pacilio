@@ -58,6 +58,7 @@ import RestartInboundReducer from "./restart_inbound_reducer";
 import RunInboundReducer from "./run_inbound_reducer";
 import SetInboundSourceReducer from "./set_inbound_source_reducer";
 import SetNameReducer from "./set_name_reducer";
+import SetPipelineCardExpandedReducer from "./set_pipeline_card_expanded_reducer";
 import SteerAgentTaskReducer from "./steer_agent_task_reducer";
 import TidyPipelineLayoutReducer from "./tidy_pipeline_layout_reducer";
 
@@ -85,6 +86,7 @@ import InboundSourceStatusRow from "./inbound_source_status_table";
 import LedgerDocumentRow from "./ledger_document_table";
 import NodeRow from "./node_table";
 import PipelineAgentRow from "./pipeline_agent_table";
+import PipelineCardRow from "./pipeline_card_table";
 import PipelineLayoutRow from "./pipeline_layout_table";
 import PipelineNodeSizeRow from "./pipeline_node_size_table";
 import ReportDocumentRow from "./report_document_table";
@@ -291,6 +293,17 @@ const tablesSchema = __schema({
       { name: 'pipeline_agent_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, PipelineAgentRow),
+  pipelineCard: __table({
+    name: 'pipeline_card',
+    indexes: [
+      { accessor: 'nodeId', name: 'pipeline_card_node_id_idx_btree', algorithm: 'btree', columns: [
+        'nodeId',
+      ] },
+    ],
+    constraints: [
+      { name: 'pipeline_card_node_id_key', constraint: 'unique', columns: ['nodeId'] },
+    ],
+  }, PipelineCardRow),
   pipelineLayout: __table({
     name: 'pipeline_layout',
     indexes: [
@@ -410,6 +423,7 @@ const reducersSchema = __reducers(
   __reducerSchema("run_inbound", RunInboundReducer),
   __reducerSchema("set_inbound_source", SetInboundSourceReducer),
   __reducerSchema("set_name", SetNameReducer),
+  __reducerSchema("set_pipeline_card_expanded", SetPipelineCardExpandedReducer),
   __reducerSchema("steer_agent_task", SteerAgentTaskReducer),
   __reducerSchema("tidy_pipeline_layout", TidyPipelineLayoutReducer),
 );

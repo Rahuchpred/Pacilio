@@ -1,38 +1,26 @@
-import { useSyncExternalStore } from 'react';
 import { useReactFlow, useStoreApi } from '@xyflow/react';
-import { reducedMotion, useLevel, type Level } from './level';
+import { useReducer, useTable } from 'spacetimedb/react';
+import { reducers, tables } from '../module_bindings';
+import { logError } from '../throttle';
 
-// What the canvas shows. "auto" follows the zoom like version 5; the other
-// values lock every card to one level at any zoom, for people who want all the
-// detail from far away. `open` is one card shown in full after a click.
-export type Lock = 'auto' | Level;
-type View = { lock: Lock; open: string | null };
+// Each card is either an overview (one word, one number) or open in full.
+// Opening is shared: a card someone opens opens for everyone, and the cards
+// around it move aside. Rows in pipeline_card use the shared "pipeline:" ids.
 
-let view: View = { lock: 'auto', open: null };
-const listeners = new Set<() => void>();
-const set = (next: Partial<View>) => {
-  view = { ...view, ...next };
-  listeners.forEach(l => l());
-};
-const subscribe = (l: () => void) => {
-  listeners.add(l);
-  return () => listeners.delete(l);
-};
+export const sharedId = (id: string) => `pipeline:${id}`;
+export const localId = (shared: string) => shared.replace(/^pipeline:/, '');
 
-export const setLock = (lock: Lock) => set({ lock, open: null });
-export const setOpen = (open: string | null) => set({ open });
-export const useView = () => useSyncExternalStore(subscribe, () => view);
-export const getView = () => view;
+export const reducedMotion = () =>
+  typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-// The level one card should draw at right now.
-export function useShown(id: string): Level {
-  const zoomed = useLevel();
-  const { lock, open } = useView();
-  if (open === id) return 'near';
-  // Full cards are wider than their slot: zooming in alone shows the middle
-  // cards bigger; a click (or the Full detail lock) opens them in full
-  if (lock === 'auto') return zoomed === 'near' ? 'mid' : zoomed;
-  return lock;
+export function useExpanded(): Set<string> {
+  const [rows] = useTable(tables.pipelineCard);
+  return new Set(rows.filter(r => r.expanded).map(r => localId(r.nodeId)));
+}
+
+export function useSetExpanded() {
+  const set = useReducer(reducers.setPipelineCardExpanded);
+  return (id: string, expanded: boolean) => set({ nodeId: sharedId(id), expanded }).catch(logError);
 }
 
 // Room the camera leaves for the presence bar (top) and the dock (bottom).
@@ -50,8 +38,7 @@ export function useFocus() {
   const store = useStoreApi();
 
   // Centre one card in the free space between the top bar and the dock, at a
-  // zoom where the whole card fits. Called after the card has grown to full
-  // size, so it measures what will actually be on screen.
+  // zoom where the whole card fits.
   const focus = (id: string) => {
     const n = rf.getInternalNode(id);
     if (!n) return;
@@ -67,18 +54,16 @@ export function useFocus() {
     rf.setCenter(p.x + w / 2, p.y + h / 2 + dy, { zoom, ...camera() });
   };
 
-  // Open a card in full, wait until React Flow has measured its new size
-  // (it changes from the small card to the full one), then centre it.
-  const size = (id: string) => {
-    const m = rf.getInternalNode(id)?.measured;
-    return `${m?.width ?? 0}x${m?.height ?? 0}`;
-  };
-  const openCard = (id: string) => {
-    const before = size(id);
-    setOpen(id);
+  // Once a card has grown to full size (and its neighbours moved), centre it.
+  const focusWhenGrown = (id: string) => {
+    const size = () => {
+      const m = rf.getInternalNode(id)?.measured;
+      return `${m?.width ?? 0}x${m?.height ?? 0}`;
+    };
+    const before = size();
     let frames = 0;
     const wait = () => {
-      if (size(id) !== before || frames++ > 30) focus(id);
+      if (size() !== before || frames++ > 60) window.setTimeout(() => focus(id), 60);
       else requestAnimationFrame(wait);
     };
     requestAnimationFrame(wait);
@@ -94,5 +79,5 @@ export function useFocus() {
       60
     );
 
-  return { focus, openCard, fitAll };
+  return { focus, focusWhenGrown, fitAll };
 }
