@@ -33,6 +33,18 @@ const connectionBuilder = DbConnection.builder()
   .onDisconnect(onDisconnect)
   .onConnectError(onConnectError);
 
+// A trackpad pinch over the dock, the top bar or a panel would zoom the whole
+// page and push the fixed controls off screen. Only the canvas zooms: React
+// Flow still gets the event first, the browser never does.
+// If the page is already zoomed (from before this guard, or a remembered tab),
+// the browser keeps the pinch so you can always zoom back out.
+const pageZoomed = () => (window.visualViewport?.scale ?? 1) > 1.01;
+window.addEventListener('wheel', e => { if (e.ctrlKey && !pageZoomed()) e.preventDefault(); }, { passive: false });
+// Safari sends its own gesture events for pinch.
+for (const type of ['gesturestart', 'gesturechange', 'gestureend']) {
+  window.addEventListener(type, e => { if (!pageZoomed()) e.preventDefault(); }, { passive: false });
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <SpacetimeDBProvider connectionBuilder={connectionBuilder}>

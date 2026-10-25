@@ -40,6 +40,11 @@ scalar.push(`  --border-hairline: ${t.border.hairline}px;`);
 scalar.push(`  --border-focus: ${t.border.focus}px;`);
 for (const k of ["fast", "base", "slow"]) scalar.push(`  --motion-${k}: ${t.motion[k]}ms;`);
 scalar.push(`  --motion-ease: ${t.motion.ease};`);
+scalar.push(`  --elevation-paper: ${t.elevation.paper};`);
+scalar.push(`  --elevation-paper-dark: ${t.elevation.paperDark};`);
+// Strong curves (Emil Kowalski): ease-out for things entering or responding, ease-in-out for things moving on screen.
+scalar.push(`  --motion-ease-out: ${t.motion.easeOut};`);
+scalar.push(`  --motion-ease-in-out: ${t.motion.easeInOut};`);
 
 const blocks = [];
 for (const b of Object.keys(t.brands)) {

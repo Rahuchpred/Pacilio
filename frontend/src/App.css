@@ -1,13 +1,13 @@
 :root {
-  /* Aliases onto the Settle tokens (design-system/src/tokens/tokens.css) */
-  font-family: var(--font-sans);
-  color: var(--color-text-primary);
-  background: var(--color-bg-surface);
-  --surface: var(--color-bg-canvas);
-  --border: var(--color-border-default);
-  --muted: var(--color-text-secondary);
-  --hover: var(--color-bg-surface);
-  --accent: var(--color-border-strong);
+  font-family: system-ui, -apple-system, sans-serif;
+  color: #1a1a1a;
+  background: #f6f6f4;
+  --surface: #fff;
+  --border: #e6e6e3;
+  --muted: #7a7a76;
+  --hover: #f1f1ee;
+  --accent: #7c3aed;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
 html,
@@ -48,6 +48,7 @@ button {
 
 .cursor-arrow {
   display: block;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.25));
 }
 
 .cursor-label {
@@ -61,6 +62,7 @@ button {
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 /* ─── Avatar ─── */
@@ -86,8 +88,8 @@ button {
   transform: translateX(-50%);
   padding: 5px 9px;
   border-radius: 6px;
-  background: var(--color-action-primary);
-  color: var(--color-text-inverse);
+  background: #1a1a1a;
+  color: #fff;
   font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
@@ -120,6 +122,7 @@ button {
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--surface);
+  box-shadow: var(--shadow);
 }
 
 .people .avatar {
@@ -136,7 +139,7 @@ button {
 }
 
 .avatar.more {
-  background: var(--color-text-tertiary);
+  background: #9a9a96;
   font-size: 12px;
 }
 
@@ -144,40 +147,8 @@ button {
   position: relative;
 }
 
-.icon-button {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-}
 
-.icon-button:hover,
-.icon-button.active {
-  background: var(--hover);
-}
 
-.badge {
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  box-sizing: border-box;
-  border: 2px solid var(--surface);
-  border-radius: 999px;
-  background: var(--color-action-reject);
-  color: #fff;
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 14px;
-}
 
 .profile-button {
   display: block;
@@ -202,6 +173,7 @@ button {
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--surface);
+  box-shadow: var(--shadow);
 }
 
 .dropdown-title {
@@ -216,36 +188,10 @@ button {
   color: var(--muted);
 }
 
-.notifications {
-  width: 300px;
-}
 
-.notifications ul {
-  max-height: 360px;
-  margin: 0;
-  padding: 0;
-  overflow-y: auto;
-  list-style: none;
-}
 
-.notifications li {
-  display: flex;
-  gap: 10px;
-  padding: 8px;
-  border-radius: 8px;
-  font-size: 14px;
-}
 
-.notifications li:hover {
-  background: var(--hover);
-}
 
-.empty {
-  padding: 24px 0;
-  text-align: center;
-  font-size: 13px;
-  color: var(--muted);
-}
 
 .profile {
   width: 280px;
@@ -310,30 +256,5 @@ button {
 .error {
   margin-top: 8px;
   font-size: 12px;
-  color: var(--color-action-reject);
-}
-
-/* A flag from the agent in the notifications list */
-.flag-notification {
-  cursor: pointer;
-}
-
-.flag-mark {
-  display: inline-grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  background: var(--color-status-held-soft);
-  color: var(--color-status-held);
-  font-weight: 700;
-}
-
-.reply-mark {
-  display: inline-grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  flex-shrink: 0;
+  color: #ef4444;
 }

@@ -1,49 +1,77 @@
 import { useState } from 'react';
-import { Handle, NodeResizer, Position } from '@xyflow/react';
 import { useProcedure, useReducer, useTable } from 'spacetimedb/react';
+import { Button, Money, Status, type StatusKind } from '../../../design-system/src/components';
 import { procedures, reducers, tables } from '../module_bindings';
 import { logError } from '../throttle';
+import { FarCard, type CardLevels, type Look } from '../canvas/levels';
+import { Steps } from './Agent';
+import { Card } from './Card';
+import { clock, jsonList, totals, useRows } from './live';
 
-// The reports agent and the show report it builds from the settled ledger rows
-// (P&L, cash, costs, vendors, tickets).
+// The reports agent, between the ledger and the show report: every 10 minutes
+// while the pipeline runs (if the ledger changed), or on request, Droid runs
+// the fixed report tool over the settled rows and writes the takeaways.
 
 const EVERY_MIN = 10;
 
-function clock(d: Date): string {
-  return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-}
-
-// Sits between the ledger and the report: runs the report tool, writes the takeaways.
-export function ReportAgentNode() {
+function useReport() {
   const [states] = useTable(tables.reportState);
   const [docs] = useTable(tables.reportDocument);
   const [agents] = useTable(tables.pipelineAgent);
-  const refresh = useReducer(reducers.requestReport);
   const state = states[0];
   const doc = docs[0];
-  const running = agents[0]?.enabled;
-  const building = state?.status === 'running' || state?.requested;
+  const running = !!agents[0]?.enabled;
+  const building = state?.status === 'running' || !!state?.requested;
   const next = state?.lastStartedAt
     ? new Date(state.lastStartedAt.toDate().getTime() + EVERY_MIN * 60_000)
     : undefined;
-
-  const status = state?.lastError
-    ? <span className="status is-held">! Error</span>
+  const status: { kind: StatusKind; label: string } = state?.lastError
+    ? { kind: 'disputed', label: 'Error' }
     : building
-      ? <span className="status is-held">● Building</span>
+      ? { kind: 'needs', label: 'Building' }
       : running
-        ? <span className="status is-cleared">▶ Ready</span>
-        : <span className="status">‖ Paused</span>;
+        ? { kind: 'cleared', label: 'Ready' }
+        : { kind: 'agent', label: 'Paused' };
+  return { state, doc, running, building, next, status };
+}
 
+function useReportLook(): Look {
+  const { state, building, doc } = useReport();
+  if (state?.lastError) return 'issue';
+  if (building) return 'working';
+  return doc ? 'idle' : 'idle';
+}
+
+function AgentFar() {
+  const { doc, building, status } = useReport();
   return (
-    <div className={`pipeline-node report-agent-node${building ? ' is-receiving' : ''}`}>
-      <Handle type="target" position={Position.Left} isConnectable={false} />
-      <div className="node-head">
-        <h3>Reports agent</h3>
-        {status}
-      </div>
-      <p className="node-meta">Charts and P&amp;L from settled rows only</p>
-      <dl className="node-stats">
+    <FarCard
+      type="reportAgent"
+      width="w-ragent"
+      icon="agent"
+      word="Reports agent"
+      big={<Status kind={status.kind}>{status.label}</Status>}
+      line={doc ? `Last report ${clock(doc.updatedAt.toDate())}` : 'No report yet'}
+      craft={building ? 'decide' : undefined}
+    />
+  );
+}
+
+function BuildNow() {
+  const refresh = useReducer(reducers.requestReport);
+  const { building } = useReport();
+  return (
+    <Button kind="secondary" size="sm" icon="ChartLine" disabled={building} pending={building} onClick={() => refresh().catch(logError)}>
+      {building ? 'Building…' : 'Build report now'}
+    </Button>
+  );
+}
+
+function AgentShort() {
+  const { doc, running, next, status, state } = useReport();
+  return (
+    <Card type="reportAgent" icon="agent" title="Reports agent" meta={<Status kind={status.kind}>{status.label}</Status>} className="w-ragent">
+      <dl className="counts">
         <div>
           <dt>Last report</dt>
           <dd>{doc ? clock(doc.updatedAt.toDate()) : '–'}</dd>
@@ -54,42 +82,110 @@ export function ReportAgentNode() {
         </div>
       </dl>
       {state?.lastError ? (
-        <p className="node-error">{state.lastError}</p>
+        <p className="card-error">{state.lastError}</p>
       ) : (
-        <p className="node-latest">Runs every {EVERY_MIN} min when the ledger changes</p>
+        <p className="muted small">Reads settled rows only, every {EVERY_MIN} min when the ledger changes.</p>
       )}
-      <button
-        className="btn btn-secondary report-refresh"
-        disabled={!!building}
-        onClick={() => refresh().catch(logError)}
-      >
-        {building ? 'Building…' : 'Build report now'}
-      </button>
-      <Handle type="source" position={Position.Right} isConnectable={false} />
+      <div className="nodrag">
+        <BuildNow />
+      </div>
+    </Card>
+  );
+}
+
+function AgentFull() {
+  const { state, doc } = useReport();
+  const taskId = state?.taskId ?? doc?.taskId;
+  return (
+    <div className="w-ragent-full">
+      <AgentShort />
+      <div className="pnode agent-steps-card">
+        <span className="section-label">{state?.taskId !== undefined ? 'Building now' : 'Last build'} · what Droid did</span>
+        <Steps taskId={taskId} />
+      </div>
     </div>
   );
 }
 
-function list(json: string | undefined): string[] {
-  try {
-    const v = JSON.parse(json ?? '[]');
-    return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
-  } catch {
-    return [];
-  }
+export const reportAgent: CardLevels = { far: AgentFar, short: AgentShort, full: AgentFull, useLook: useReportLook };
+
+// The show report: the agent's takeaways over the dashboard it built.
+
+function useFigures() {
+  const t = totals(useRows());
+  const margin = t.moneyIn > 0 ? Math.round((t.net / t.moneyIn) * 1000) / 10 : null;
+  return { ...t, margin };
 }
 
-export function ReportsNode() {
-  const [docs] = useTable(tables.reportDocument);
-  const [states] = useTable(tables.reportState);
+function ReportFar() {
+  const { doc } = useReport();
+  const f = useFigures();
+  return (
+    <FarCard
+      type="report"
+      width="w-report"
+      icon="ChartLine"
+      word="Show report"
+      big={<Money value={f.net} cents={false} />}
+      line={doc ? `net income${f.margin !== null ? `, ${f.margin}% margin` : ''}` : 'net so far, no report yet'}
+    />
+  );
+}
+
+// Money in against money out, as two bars on one scale.
+function InOut() {
+  const f = useFigures();
+  const max = Math.max(f.moneyIn, f.moneyOut, 1);
+  return (
+    <div className="inout">
+      {[
+        { key: 'in', label: 'Money in', value: f.moneyIn },
+        { key: 'out', label: 'Money out', value: -f.moneyOut },
+      ].map(b => (
+        <div key={b.key} className="inout-row">
+          <span className="small muted">{b.label}</span>
+          <span className="inout-track">
+            <span className={`inout-bar is-${b.key}`} style={{ width: `${(Math.abs(b.value) / max) * 100}%` }} />
+          </span>
+          <span className="num small">
+            <Money value={b.value} cents={false} />
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ReportShort() {
+  const { doc, status, building } = useReport();
+  const commentary = jsonList(doc?.commentary);
+  return (
+    <Card
+      type="report"
+      icon="ChartLine"
+      title="Show report"
+      meta={building ? <Status kind={status.kind}>{status.label}</Status> : doc && <span className="muted small">{clock(doc.updatedAt.toDate())}</span>}
+      className="w-report"
+    >
+      {doc?.headline ? <p className="lede">{doc.headline}</p> : <p className="muted">The reports agent writes this from settled rows.</p>}
+      <InOut />
+      {commentary.length > 0 && (
+        <ul className="takeaways">
+          {commentary.slice(0, 3).map(line => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
+function ReportFull() {
+  const { doc, status, building } = useReport();
   const xlsxUrl = useProcedure(procedures.reportXlsxUrl);
   const [error, setError] = useState<string | null>(null);
-  const doc = docs[0];
-  const state = states[0];
-  const building = state?.status === 'running' || state?.requested;
-  const updated = doc?.updatedAt.toDate().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-  const commentary = list(doc?.commentary);
-  const watch = list(doc?.watch);
+  const commentary = jsonList(doc?.commentary);
+  const watch = jsonList(doc?.watch);
 
   const download = () => {
     setError(null);
@@ -99,60 +195,51 @@ export function ReportsNode() {
   };
 
   return (
-    <div className="pipeline-node reports-node">
-      <NodeResizer
-        minWidth={560}
-        minHeight={420}
-        lineClassName="ledger-resize-line"
-        handleClassName="ledger-resize-handle"
-      />
-      <Handle type="target" position={Position.Left} isConnectable={false} />
-      <div className="node-head">
-        <h3>Show report</h3>
-        <div className="ledger-actions">
-          <span className={building ? 'status is-held' : 'status'}>
-            {building ? '● Building…' : doc ? `Updated ${updated}` : 'Not built yet'}
-          </span>
-          <button className="btn btn-secondary" onClick={download} disabled={!doc}>
+    <Card
+      type="report"
+      icon="ChartLine"
+      title="Show report"
+      className="w-report-full"
+      meta={
+        <>
+          {building && <Status kind={status.kind}>{status.label}</Status>}
+          <Button kind="secondary" size="sm" icon="download" disabled={!doc} onClick={download}>
             Download .xlsx
-          </button>
-        </div>
-      </div>
-      {(error || state?.lastError) && <p className="node-error">{error ?? state?.lastError}</p>}
-
+          </Button>
+        </>
+      }
+    >
+      {error && <p className="card-error">{error}</p>}
       {doc ? (
         <>
-          {doc.headline && <p className="report-headline">{doc.headline}</p>}
-          {(commentary.length > 0 || watch.length > 0) && (
-            <div className="report-notes">
-              {commentary.length > 0 && (
-                <ul>
-                  {commentary.map(line => (
+          {doc.headline && <p className="lede">{doc.headline}</p>}
+          <div className="split-cols">
+            <ul className="takeaways">
+              {commentary.map(line => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+            {watch.length > 0 && (
+              <div className="stack">
+                <span className="section-label">Worth a look</span>
+                <ul className="takeaways">
+                  {watch.map(line => (
                     <li key={line}>{line}</li>
                   ))}
                 </ul>
-              )}
-              {watch.length > 0 && (
-                <div className="report-watch">
-                  <span className="followup-label">Worth a look</span>
-                  <ul>
-                    {watch.map(line => (
-                      <li key={line}>{line}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          )}
-          <div className="ledger-frame nodrag nowheel">
+              </div>
+            )}
+          </div>
+          <div className="workbook report-frame nodrag nowheel">
             <iframe title="Show report" sandbox="" srcDoc={doc.html} />
           </div>
+          <p className="muted small">Built {clock(doc.updatedAt.toDate())} from settled rows. The workbook has P&amp;L, cash flow, costs, vendors and tickets.</p>
         </>
       ) : (
-        <p className="node-meta">
-          Built from settled ledger rows every 10 minutes while the pipeline runs, or now from the Reports agent.
-        </p>
+        <p className="muted">Built from settled ledger rows every 10 minutes while the pipeline runs, or now from the reports agent.</p>
       )}
-    </div>
+    </Card>
   );
 }
+
+export const report: CardLevels = { far: ReportFar, short: ReportShort, full: ReportFull };

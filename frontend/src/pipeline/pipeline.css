@@ -1,723 +1,217 @@
-/* Inbound pipeline: Settle tokens only (design-system/src/tokens/tokens.css).
-   Ink and paper, hairlines, no shadows; status is a glyph and a word. */
+/* Variant "Detailed": the first canvas, with full cards. Values come from design-system tokens. */
 
-/* ─── Board ─────────────────────────────────────────────────────────────── */
+/* Cards. One hairline card per step; patterns that bring their own frame
+   (panel, sheet) sit bare under a heading so there is no card in a card. */
 
-.react-flow {
-  --xy-background-color: var(--color-bg-surface);
-  font-family: var(--font-sans);
-}
-
-.react-flow__background-pattern.dots {
-  fill: var(--color-border-control);
-}
-
-.react-flow__controls {
-  box-shadow: none;
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-}
-
-.react-flow__controls-button {
+.pnode {
   background: var(--color-bg-canvas);
-  border-bottom: 1px solid var(--color-border-default);
-  color: var(--color-text-secondary);
-}
-
-.react-flow__controls-button:hover {
-  background: var(--color-bg-surface);
-}
-
-.react-flow__controls-button svg {
-  fill: currentColor;
-}
-
-/* Handles are wiring points, not controls */
-.pipeline-node .react-flow__handle {
-  width: 6px;
-  height: 6px;
-  min-width: 0;
-  min-height: 0;
-  background: var(--color-border-strong);
-  border: 0;
-}
-
-/* ─── Cards ─────────────────────────────────────────────────────────────── */
-
-.pipeline-node {
-  box-sizing: border-box;
-  padding: var(--space-md) var(--space-lg) var(--space-lg);
-  font-family: var(--font-sans);
-  font-size: var(--type-small-size);
-  line-height: var(--type-small-line);
-  color: var(--color-text-primary);
-  background: var(--color-bg-canvas);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-md);
-  transition: border-color var(--motion-base) var(--motion-ease);
-}
-
-.source-node {
-  width: 260px;
-}
-
-.agent-node {
-  width: 380px;
-}
-
-.ledger-node {
-  /* Fills the node's size, which people set with the resize handles */
-  width: 100%;
-  height: 100%;
+  border: var(--border-hairline) solid var(--color-border-default);
+  border-radius: var(--radius-panel);
+  padding: var(--space-lg);
   display: flex;
   flex-direction: column;
-}
-
-.ledger-resize-line {
-  border-color: var(--color-border-strong) !important;
-}
-
-.ledger-resize-handle {
-  width: 8px !important;
-  height: 8px !important;
-  border: 1px solid var(--color-border-strong) !important;
-  background: var(--color-bg-canvas) !important;
-  border-radius: 0 !important;
-}
-
-.ledger-actions {
-  display: flex;
-  align-items: center;
   gap: var(--space-md);
+  font-size: var(--type-small-size);
+  line-height: var(--type-small-line);
+  cursor: grab;
+  transition: border-color var(--motion-fast) var(--motion-ease);
 }
-
-.ledger-frame {
-  flex: 1;
-  min-height: 0;
-  margin-top: var(--space-md);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-  background: var(--color-bg-canvas);
+.pnode p {
+  margin: 0;
 }
-
-.ledger-frame iframe {
-  display: block;
-  width: 100%;
-  height: 100%;
-  border: 0;
+.pnode:hover {
+  border-color: var(--color-border-control);
 }
-
-.ledger-frame .node-meta {
-  padding: var(--space-lg);
-}
-
-/* Activity on a wire: the card it leaves or reaches darkens its edge */
-.source-node.is-sending,
-.agent-node.is-receiving {
+.react-flow__node.selected .pnode,
+.react-flow__node.selected .pnode-bare .panel,
+.react-flow__node.selected .pnode-bare .sheet {
   border-color: var(--color-border-strong);
 }
 
-.node-head {
+.pnode-bare {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  font-size: var(--type-small-size);
+  line-height: var(--type-small-line);
+  cursor: grab;
+}
+.bare-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin: 0;
+  padding-inline: var(--space-xs);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  font-weight: 500;
+}
+.bare-title .muted {
+  margin-left: auto;
+  font-weight: 400;
+}
+
+.w-inbox { width: 340px; }
+.w-main { width: 460px; }
+.w-sub { width: 280px; }
+.w-flag { width: 480px; }
+.w-ledger { width: 540px; }
+.w-follow { width: 360px; }
+.w-summary { width: 400px; }
+
+.pnode-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.pnode-head h3 {
+  margin: 0;
+  flex: 1;
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  font-weight: 500;
+}
+.pnode-main {
+  padding: var(--space-xl);
+  gap: var(--space-lg);
+}
+.pnode-main .pnode-head h3 {
+  font-size: var(--type-subheading-size);
+  line-height: var(--type-subheading-line);
+  letter-spacing: var(--type-subheading-tracking);
+}
+.pnode-foot {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding-top: var(--space-sm);
+  border-top: var(--border-hairline) solid var(--color-border-default);
+}
+
+.lede {
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  text-wrap: pretty;
+}
+/* Escalation card: the decide wash stays on the status and the button, not the frame. */
+.pnode.escalation {
+  border-color: var(--color-border-control);
+  padding: var(--space-xl);
+}
+.escalation .escalation-message {
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+}
+
+/* Ledger sheet sized for the canvas */
+.w-ledger .sheet-row {
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 0.9fr);
   gap: var(--space-md);
 }
 
-.pipeline-node h3 {
-  margin: 0;
-  font-size: var(--type-body-size);
-  line-height: var(--type-body-line);
-  font-weight: var(--type-subheading-weight);
-}
-
-.node-meta {
-  margin: var(--space-2xs) 0 0;
-  color: var(--color-text-secondary);
-}
-
-.node-error {
-  margin: var(--space-sm) 0 0;
-  color: var(--color-status-held);
-  overflow-wrap: anywhere;
-}
-
-/* Label/value pairs under a hairline */
-.node-stats {
-  display: flex;
-  gap: var(--space-xl);
-  margin: var(--space-md) 0 0;
-  padding-top: var(--space-md);
-  border-top: 1px solid var(--color-border-default);
-}
-
-.node-stats div {
-  min-width: 0;
-}
-
-.node-stats dt {
-  font-size: var(--type-label-size);
-  line-height: var(--type-label-line);
-  color: var(--color-text-tertiary);
-}
-
-.node-stats dd {
-  margin: 0;
-  font-size: var(--type-body-size);
-  line-height: var(--type-body-line);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.node-latest {
-  margin: var(--space-sm) 0 0;
-  color: var(--color-text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.status {
-  font-size: var(--type-label-size);
-  line-height: var(--type-label-line);
-  font-weight: var(--type-label-weight);
-  color: var(--color-text-secondary);
-  white-space: nowrap;
-}
-
-.status.is-cleared {
-  color: var(--color-status-cleared);
-}
-
-.status.is-held {
-  color: var(--color-status-held);
-}
-
-.money {
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-/* ─── Event chips around the agent (fixed size: CHIP_WIDTH/HEIGHT) ─────── */
-
-.event-chip {
-  box-sizing: border-box;
-  width: 176px;
-  height: 32px;
+/* Follow-ups */
+.msg-line {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-sm);
-  padding: 0 var(--space-sm);
-  font-family: var(--font-sans);
-  font-size: var(--type-label-size);
-  line-height: var(--type-label-line);
+}
+
+/* Main agent log, tighter than the docs version */
+.w-main .log-row {
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  gap: var(--space-md);
+  padding: var(--space-sm) 0;
+}
+
+/* Summary */
+.money-xl .money {
+  letter-spacing: var(--type-title-tracking);
+  font-weight: var(--type-title-weight);
+}
+.split {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.split-bar {
+  display: flex;
+  gap: var(--space-2xs);
+  height: 8px;
+}
+.split-bar > span {
+  border-radius: var(--radius-xs);
+}
+.split-cleared { background: var(--color-status-cleared); }
+.split-held { background: var(--color-status-held); }
+.split-legend {
+  display: flex;
+  gap: var(--space-lg);
+}
+.split-key {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--color-text-secondary);
+}
+.split-key:first-child .icon { color: var(--color-status-cleared); }
+.split-key:last-child .icon { color: var(--color-status-held); }
+.split-key .money {
   color: var(--color-text-primary);
-  background: var(--color-bg-canvas);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-sm);
-  cursor: grab;
 }
 
-.event-chip.is-new {
-  animation: chip-arrive 1800ms var(--motion-ease);
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
 }
-
-.chip-party {
-  min-width: 0;
+.tl-row {
+  display: grid;
+  grid-template-columns: 112px 1fr;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.tl-label {
+  color: var(--color-text-secondary);
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
-
-/* Handed to the agent in its current run: a soft tint, no extra border */
-.event-chip.is-processing {
-  background: var(--color-status-held-soft);
+.tl-track {
+  position: relative;
+  height: 12px;
+  background: var(--color-bg-sunken);
+  border-radius: var(--radius-xs);
 }
-
-/* Finished by the agent: green, then gone */
-.event-chip.is-done {
-  background: var(--color-status-cleared-soft);
-  animation: chip-done 2600ms var(--motion-ease) forwards;
+.tl-bar {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  border-radius: var(--radius-xs);
 }
-
-@keyframes chip-done {
-  0%,
-  55% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-
-@keyframes chip-arrive {
-  0%,
-  35% {
-    background: var(--color-bg-sunken);
-    border-color: var(--color-border-strong);
-  }
-  100% {
-    background: var(--color-bg-canvas);
-    border-color: var(--color-border-default);
-  }
-}
-
-/* ─── Wires ─────────────────────────────────────────────────────────────── */
-
-.pipeline-edge .react-flow__edge-path {
-  stroke: var(--color-border-control);
-  stroke-width: 1;
-}
-
-.pipeline-edge.is-running .react-flow__edge-path {
-  stroke: var(--color-border-strong);
-}
-
-/* Threads from event chips into the agent */
-.thread .react-flow__edge-path {
-  stroke: var(--color-border-default);
-  stroke-width: 1;
-}
-
-.thread.is-processing .react-flow__edge-path {
-  stroke: var(--color-status-held);
-  opacity: 0.45;
-}
-
-.thread.is-done .react-flow__edge-path {
-  stroke: var(--color-status-cleared);
-  opacity: 0.45;
-}
-
-/* Thread anchor points stay invisible */
-.react-flow__handle.thread-handle {
+.tl-cleared { background: var(--color-status-cleared); }
+.tl-held { background: var(--color-status-held); }
+.tl-now {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
   width: 1px;
-  height: 1px;
-  min-width: 0;
-  min-height: 0;
-  opacity: 0;
-  border: 0;
+  background: var(--color-text-tertiary);
 }
-
-/* An event travelling along a wire */
-.packet {
-  fill: var(--color-text-primary);
-  stroke: var(--color-bg-canvas);
-  stroke-width: 1.5;
-}
-
-/* ─── Run / Pause / Restart ─────────────────────────────────────────────── */
-
-.pipeline-controls {
-  position: fixed;
-  top: var(--space-md);
-  left: var(--space-lg);
-  z-index: 20;
+.tl-axis {
   display: flex;
-  align-items: center;
-  gap: var(--space-lg);
-  padding: var(--space-xs) var(--space-xs) var(--space-xs) var(--space-lg);
-  font-family: var(--font-sans);
-  background: var(--color-bg-canvas);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-md);
+  justify-content: space-between;
+  margin-left: calc(112px + var(--space-sm));
+  color: var(--color-text-tertiary);
+  font-size: var(--type-label-size);
 }
 
-.controls-summary {
-  margin: 0;
-  font-size: var(--type-small-size);
-  line-height: var(--type-small-line);
-  color: var(--color-text-secondary);
+.facts-list.plain {
+  padding: var(--space-xs) 0 0;
+  border-top: var(--border-hairline) solid var(--color-border-default);
+}
+.facts-list.plain dd {
   font-variant-numeric: tabular-nums;
 }
 
-.controls-summary strong {
-  font-weight: var(--type-label-weight);
-  color: var(--color-text-primary);
-}
 
-.controls-buttons {
-  display: flex;
-  gap: var(--space-2xs);
-}
-
-.btn {
-  height: 32px;
-  padding: 0 var(--space-md);
-  border-radius: var(--radius-sm);
-  font-family: var(--font-sans);
-  font-size: var(--type-small-size);
-  font-weight: var(--type-label-weight);
-  cursor: pointer;
-  transition:
-    background-color var(--motion-fast) var(--motion-ease),
-    opacity var(--motion-fast) var(--motion-ease);
-}
-
-.btn:disabled {
-  opacity: 0.35;
-  cursor: default;
-}
-
-.btn-primary {
-  border: 1px solid var(--color-action-primary);
-  background: var(--color-action-primary);
-  color: var(--color-text-inverse);
-}
-
-.btn-secondary {
-  border: 1px solid var(--color-border-control);
-  background: var(--color-bg-canvas);
-  color: var(--color-text-primary);
-}
-
-.btn-quiet {
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--color-text-secondary);
-}
-
-.btn-secondary:not(:disabled):hover,
-.btn-quiet:not(:disabled):hover {
-  background: var(--color-bg-surface);
-}
-
-/* ─── Follow-ups (what the agent needs a person for) ─────────────────── */
-
-.followups-node {
-  width: 560px;
-}
-
-.followup-applying {
-  margin: var(--space-sm) 0 0;
-  color: var(--color-text-secondary);
-}
-
-.followups-scroll {
-  max-height: 760px;
-  overflow-y: auto;
-  margin-top: var(--space-md);
-  border-top: 1px solid var(--color-border-default);
-  cursor: default;
-}
-
-.followup-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.followup-card {
-  padding: var(--space-lg) 0;
-  border-bottom: 1px solid var(--color-border-default);
-}
-
-.followup-card:last-child {
-  border-bottom: 0;
-}
-
-.followup-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-md);
-}
-
-.followup-head h4 {
-  margin: 0;
-  font-size: var(--type-body-size);
-  line-height: var(--type-body-line);
-  font-weight: var(--type-subheading-weight);
-}
-
-.followup-what {
-  margin: var(--space-xs) 0 0;
-  font-size: var(--type-body-size);
-  line-height: var(--type-body-line);
-}
-
-.followup-event {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-md);
-  margin: var(--space-sm) 0 0;
-  padding: var(--space-xs) var(--space-sm);
-  background: var(--color-bg-sunken);
-  border-radius: var(--radius-sm);
-}
-
-.followup-evidence {
-  margin: var(--space-sm) 0 0;
-  padding-left: var(--space-lg);
-  color: var(--color-text-secondary);
-}
-
-.followup-evidence li + li {
-  margin-top: var(--space-2xs);
-}
-
-.followup-fix {
-  margin-top: var(--space-md);
-  padding: var(--space-sm) var(--space-md);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-sm);
-}
-
-.followup-label {
-  font-size: var(--type-label-size);
-  line-height: var(--type-label-line);
-  font-weight: var(--type-label-weight);
-  color: var(--color-text-secondary);
-}
-
-.followup-fix p {
-  margin: var(--space-2xs) 0 0;
-}
-
-.followup-email {
-  margin-top: var(--space-sm);
-  padding: var(--space-sm) var(--space-md);
-  background: var(--color-bg-sunken);
-  border-radius: var(--radius-sm);
-}
-
-.followup-email summary {
-  cursor: pointer;
-  font-weight: var(--type-label-weight);
-}
-
-.followup-subject {
-  margin: var(--space-sm) 0 0;
-  font-weight: var(--type-label-weight);
-}
-
-.followup-body {
-  margin: var(--space-xs) 0 0;
-  white-space: pre-wrap;
-}
-
-.followup-note {
-  margin: var(--space-sm) 0 0;
-  color: var(--color-text-tertiary);
-}
-
-.followup-question {
-  margin: var(--space-md) 0 0;
-  font-weight: var(--type-label-weight);
-}
-
-.followup-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
-  margin-top: var(--space-sm);
-}
-
-.followup-error {
-  margin: var(--space-sm) 0 0;
-  color: var(--color-action-reject);
-}
-
-/* ─── Show report ────────────────────────────────────────────────────── */
-
-.reports-node {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.report-agent-node {
-  width: 320px;
-}
-
-.report-refresh {
-  margin-top: var(--space-md);
-  width: 100%;
-}
-
-.report-headline {
-  margin: var(--space-sm) 0 0;
-  font-size: var(--type-body-size);
-  line-height: var(--type-body-line);
-  font-weight: var(--type-label-weight);
-}
-
-.report-notes {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: var(--space-xl);
-  margin-top: var(--space-xs);
-}
-
-.report-notes ul {
-  margin: var(--space-2xs) 0 0;
-  padding-left: var(--space-lg);
-}
-
-.report-notes li + li {
-  margin-top: var(--space-2xs);
-}
-
-.report-watch {
-  padding-left: var(--space-lg);
-  border-left: 1px solid var(--color-border-default);
-}
-
-/* ─── Email follow-ups ──────────────────────────────────────────────── */
-
-.emails-node {
-  width: 520px;
-}
-
-/* New reply: a blue dot (Settle's only blue, used for "unread" alone) */
-.email-dot {
-  display: inline-block;
-  width: 9px;
-  height: 9px;
-  margin-right: var(--space-xs);
-  border-radius: 50%;
-  background: #2f6fed;
-  vertical-align: middle;
-}
-
-.emails-scroll {
-  max-height: 760px;
-  overflow-y: auto;
-  margin-top: var(--space-md);
-  border-top: 1px solid var(--color-border-default);
-  cursor: default;
-}
-
-.email-threads {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.email-thread {
-  border-bottom: 1px solid var(--color-border-default);
-}
-
-.email-thread-head {
-  display: flex;
-  gap: var(--space-xs);
-  width: 100%;
-  padding: var(--space-md) 0;
-  border: 0;
-  background: none;
-  font: inherit;
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.email-dot-slot {
-  width: 14px;
-  flex-shrink: 0;
-  padding-top: 6px;
-}
-
-.email-thread-text {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.email-party {
-  font-size: var(--type-body-size);
-  line-height: var(--type-body-line);
-  font-weight: var(--type-subheading-weight);
-}
-
-.email-subject {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.email-status {
-  margin-top: var(--space-2xs);
-  color: var(--color-text-secondary);
-}
-
-.email-status.is-replied {
-  color: var(--color-text-primary);
-  font-weight: var(--type-label-weight);
-}
-
-.email-status.is-failed {
-  color: var(--color-action-reject);
-}
-
-.email-conversation {
-  padding: 0 0 var(--space-md) 18px;
-}
-
-.email-messages {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.email-message {
-  margin-top: var(--space-sm);
-  padding: var(--space-sm) var(--space-md);
-  border-radius: var(--radius-sm);
-}
-
-.email-message.is-out {
-  border: 1px solid var(--color-border-default);
-}
-
-.email-message.is-in {
-  background: var(--color-bg-sunken);
-}
-
-.email-meta {
-  color: var(--color-text-secondary);
-}
-
-.email-body {
-  margin: var(--space-xs) 0 0;
-  white-space: pre-wrap;
-}
-
-.email-compose {
-  margin-top: var(--space-md);
-}
-
-.email-compose textarea {
-  box-sizing: border-box;
-  width: 100%;
-  padding: var(--space-sm);
-  border: 1px solid var(--color-border-control);
-  border-radius: var(--radius-sm);
-  font: inherit;
-  resize: vertical;
-}
-
-.email-compose-actions {
-  display: flex;
-  gap: var(--space-xs);
-  margin-top: var(--space-xs);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .event-chip.is-done {
-    animation: none;
-    opacity: 0;
-  }
-
-  .btn,
-  .pipeline-node {
-    transition: none;
-  }
-
-  .event-chip.is-new {
-    animation: none;
-  }
-}

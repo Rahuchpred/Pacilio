@@ -1,116 +1,52 @@
 import { ReactNode, useState } from "react";
+import { glaze, type GlazeName } from "./glaze-icons";
 
-/* Icons: 16px grid, 1.5 stroke, round caps. One drawing style everywhere. */
-const paths = {
-  check: <path d="M4 8.5l2.5 2.5L12 5.5" />,
-  clock: (
-    <>
-      <circle cx="8" cy="8" r="5.75" />
-      <path d="M8 5v3.25l2 1.25" />
-    </>
-  ),
-  alert: (
-    <>
-      <path d="M8 2.75l5.75 10H2.25z" />
-      <path d="M8 6.75v2.5M8 11.25v.01" />
-    </>
-  ),
-  agent: (
-    <>
-      <rect x="3" y="4.5" width="10" height="8" rx="2" />
-      <path d="M8 2v2.5M6 8.5v.01M10 8.5v.01" />
-    </>
-  ),
-  rule: (
-    <>
-      <path d="M4 3.5h8M4 8h8M4 12.5h5" />
-    </>
-  ),
-  person: (
-    <>
-      <circle cx="8" cy="5.5" r="2.5" />
-      <path d="M3.5 13c.75-2.25 2.5-3.5 4.5-3.5s3.75 1.25 4.5 3.5" />
-    </>
-  ),
-  doc: (
-    <>
-      <path d="M4.5 2.5h5l2.5 2.5v8.5h-7.5z" />
-      <path d="M9.5 2.5V5H12" />
-    </>
-  ),
-  bank: (
-    <>
-      <path d="M2.5 6L8 3l5.5 3M3.5 6.5v5M6.5 6.5v5M9.5 6.5v5M12.5 6.5v5M2.5 13h11" />
-    </>
-  ),
-  ticket: (
-    <>
-      <path d="M2.5 5.5V4h11v1.5a1.5 1.5 0 000 3V10h-11V8.5a1.5 1.5 0 000-3z" />
-    </>
-  ),
-  mail: (
-    <>
-      <rect x="2.5" y="4" width="11" height="8" rx="1.5" />
-      <path d="M3 4.75l5 3.75 5-3.75" />
-    </>
-  ),
-  copy: (
-    <>
-      <rect x="5.5" y="5.5" width="7" height="7" rx="1.5" />
-      <path d="M3.5 10.5v-6a1 1 0 011-1h6" />
-    </>
-  ),
-  sun: (
-    <>
-      <circle cx="8" cy="8" r="2.75" />
-      <path d="M8 1.75v1.5M8 12.75v1.5M1.75 8h1.5M12.75 8h1.5M3.6 3.6l1 1M11.4 11.4l1 1M3.6 12.4l1-1M11.4 4.6l1-1" />
-    </>
-  ),
-  download: <path d="M8 2.75v7M5 7l3 3 3-3M3 12.75h10" />,
-  search: (
-    <>
-      <circle cx="7" cy="7" r="4.25" />
-      <path d="M10.25 10.25L13.25 13.25" />
-    </>
-  ),
-  close: <path d="M4 4l8 8M12 4l-8 8" />,
-  plus: <path d="M8 3.5v9M3.5 8h9" />,
-  arrow: <path d="M3.5 8h9M9 4.5L12.5 8 9 11.5" />,
-  calendar: (
-    <>
-      <rect x="2.75" y="3.5" width="10.5" height="9.75" rx="1.75" />
-      <path d="M2.75 6.75h10.5M5.5 2.25v2.5M10.5 2.25v2.5" />
-    </>
-  ),
-  filter: <path d="M2.75 4h10.5M4.75 8h6.5M6.75 12h2.5" />,
-  lock: (
-    <>
-      <rect x="3.25" y="7" width="9.5" height="6.25" rx="1.5" />
-      <path d="M5.25 7V5.25a2.75 2.75 0 015.5 0V7" />
-    </>
-  ),
-  retry: <path d="M12.75 8a4.75 4.75 0 11-1.4-3.36M12.75 2.75v2.5h-2.5" />,
-  spinner: <path d="M8 2.75a5.25 5.25 0 105.25 5.25" />,
-  hourglass: <path d="M4.5 2.5h7M4.5 13.5h7M5 2.5c0 3 6 3.5 6 5.5s-6 2.5-6 5.5M11 2.5c0 3-6 3.5-6 5.5s6 2.5 6 5.5" />,
-} as const;
+/* Icons: the Glaze set from design.how (Phosphor Regular). Settle's short
+   names point at Glaze icons, so existing calls keep working; any Glaze name
+   (Bot, Waiting, Success...) works too. */
+const alias = {
+  check: "Check",
+  clock: "Time",
+  alert: "Warning",
+  agent: "Bot",
+  rule: "Settings",
+  person: "UserAvatar",
+  doc: "Document",
+  bank: "TableView",
+  ticket: "DocumentBlank",
+  mail: "Send",
+  copy: "Copy",
+  sun: "Light",
+  download: "Download",
+  search: "Search",
+  close: "Close",
+  plus: "Add",
+  arrow: "ArrowRight",
+  calendar: "Calendar",
+  filter: "Filter",
+  lock: "Locked",
+  retry: "Retry",
+  spinner: "Pending",
+  hourglass: "Waiting",
+  success: "Success",
+  failed: "FailedMark",
+  chevron: "ChevronRight",
+  chevronDown: "ChevronDown",
+  more: "More",
+  undo: "Undo",
+  sparkle: "Sparkle",
+  info: "Information",
+} as const satisfies Record<string, GlazeName>;
 
-export type IconName = keyof typeof paths;
+export type IconName = keyof typeof alias | GlazeName;
 
 export function Icon({ name, size = 16 }: { name: IconName; size?: number }) {
+  const key: GlazeName = name in alias ? alias[name as keyof typeof alias] : (name as GlazeName);
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.5}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      className="icon"
-    >
-      {paths[name]}
+    <svg width={size} height={size} viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" className="icon">
+      {glaze[key].map((d) => (
+        <path key={d} d={d} />
+      ))}
     </svg>
   );
 }
@@ -146,6 +82,8 @@ export function Button({
   held?: boolean;
   pending?: boolean;
 }) {
+  // Accept and reject always say which way they go, so a glance is enough.
+  const glyph = icon ?? (kind === "accept" ? "Check" : kind === "reject" ? "Close" : undefined);
   return (
     <button
       type="button"
@@ -154,7 +92,7 @@ export function Button({
       aria-disabled={disabled || undefined}
       aria-busy={pending || undefined}
     >
-      {pending ? <span className="spin"><Icon name="spinner" /></span> : icon && <Icon name={icon} />}
+      {pending ? <span className="spin"><Icon name="spinner" /></span> : glyph && <Icon name={glyph} />}
       {children && <span>{children}</span>}
     </button>
   );

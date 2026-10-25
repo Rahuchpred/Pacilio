@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
-  // Design tokens live in ../design-system
+  // The Settle design system lives in ../design-system; one copy of React for both.
+  resolve: { dedupe: ['react', 'react-dom'] },
   server: { fs: { allow: ['..'] } },
 });

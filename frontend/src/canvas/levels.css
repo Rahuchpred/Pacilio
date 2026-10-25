@@ -1,0 +1,465 @@
+/* Detailed cards, less text: same key facts, one line per thing, orange
+   only where Maya decides. Card base styles come from pipeline/pipeline.css.
+   Short-card rules sit under .lv-short so zoomed-in cards look exactly like version 1. */
+
+.pipeline .lv-short .w-inbox { width: 320px; }
+.pipeline .lv-short .w-main { width: 420px; }
+.pipeline .lv-short .w-sub { width: 260px; }
+.pipeline .lv-short .w-flag { width: 420px; }
+.pipeline .lv-short .w-ledger { width: 440px; }
+.pipeline .lv-short .w-follow { width: 320px; }
+.pipeline .lv-short .w-summary { width: 320px; }
+.pipeline .lv-short .w-ledger .sheet-row {
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.1fr) minmax(0, 0.9fr);
+  align-items: center;
+}
+
+
+
+.pipeline .lv-short .w-main .log-row { grid-template-columns: 44px minmax(0, 1fr); }
+.pipeline .lv-short .log-by { color: var(--color-text-secondary); }
+
+
+/* The question: lifted above the rest, the only warm thing on the canvas. */
+.pipeline .lv-short .pnode.escalation {
+  gap: var(--space-md);
+  border-color: var(--color-border-strong);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 8px 24px rgb(0 0 0 / 0.06);
+}
+.pipeline .lv-short .ask-q {
+  font-size: var(--type-body-lg-size);
+  line-height: var(--type-body-lg-line);
+  font-weight: 500;
+  text-wrap: pretty;
+}
+.pipeline .lv-short .ask-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: var(--border-hairline) solid var(--color-border-default);
+  border-radius: var(--radius-panel);
+  overflow: hidden;
+}
+.pipeline .lv-short .ask-compare > div {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  padding: var(--space-md) var(--space-lg);
+}
+.pipeline .lv-short .ask-compare > div + div {
+  border-left: var(--border-hairline) solid var(--color-border-default);
+  background: var(--color-bg-surface);
+}
+.pipeline .lv-short .ask-big {
+  font-size: var(--type-heading-size);
+  line-height: var(--type-heading-line);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.pipeline .ask-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  padding-top: var(--space-md);
+  border-top: var(--border-hairline) solid var(--color-border-default);
+}
+.pipeline .lv-short .ask-sources summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  list-style: none;
+}
+.pipeline .lv-short .ask-sources summary::-webkit-details-marker { display: none; }
+.pipeline .lv-short .ask-sources summary .icon { transition: transform 200ms var(--motion-ease-out); }
+.pipeline .lv-short .ask-sources[open] summary .icon { transform: rotate(90deg); }
+.pipeline .lv-short .ask-sources .sources { margin-top: var(--space-sm); }
+
+/* Emails: one line each */
+.pipeline .lv-short .mail-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.pipeline .lv-short .mail-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-sm) 0;
+}
+.pipeline .lv-short .mail-list li + li { border-top: var(--border-hairline) solid var(--color-border-default); }
+
+
+/* Every card title and every log row at one weight: nothing shouts but the question. */
+.pipeline .lv-short .pnode-main { padding: var(--space-lg); gap: var(--space-md); }
+.pipeline .lv-short .pnode-main .pnode-head h3 {
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  letter-spacing: normal;
+}
+
+/* Today's bar: rectangles in the button colors and finish (accept green for
+   posted, decide orange for held), with the same 4px corners as the buttons. */
+.pipeline .lv-short .split-bar { height: 12px; gap: var(--space-2xs); }
+.pipeline .lv-short .split-bar > span {
+  border-radius: var(--radius-control);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18);
+}
+.pipeline .lv-short .split-cleared {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-action-accept) 90%, #fff), var(--color-action-accept) 60%, color-mix(in srgb, var(--color-action-accept) 94%, #000));
+}
+.pipeline .lv-short .split-held {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--color-action-decide) 90%, #fff), var(--color-action-decide) 60%, color-mix(in srgb, var(--color-action-decide) 94%, #000));
+}
+.pipeline .lv-short .split-key:first-child .icon { color: var(--color-action-accept); }
+.pipeline .lv-short .split-key:last-child .icon { color: var(--color-action-decide); }
+
+/* Far level: one word and one big number, sized to read at overview zoom. */
+.pipeline .far-card {
+  box-sizing: border-box;
+  gap: var(--space-sm);
+  padding: var(--space-lg) var(--space-xl);
+  cursor: zoom-in;
+}
+/* Far cards keep the short cards' footprint so they never touch at overview zoom. */
+.pipeline .far-card.w-inbox { width: 350px; }
+.pipeline .far-card.w-main { width: 420px; }
+.pipeline .far-card.w-sub { width: 310px; }
+.pipeline .far-card.w-flag { width: 420px; }
+.pipeline .far-card.w-ledger { width: 440px; }
+.pipeline .far-card.w-follow { width: 340px; }
+.pipeline .far-card.w-summary { width: 340px; }
+.pipeline .far-word {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--type-heading-size);
+  line-height: var(--type-heading-line);
+  font-weight: 500;
+}
+.pipeline .far-word .icon { width: 28px; height: 28px; }
+.pipeline .far-big {
+  font-size: calc(var(--type-display-size) * 1.2);
+  line-height: 1.1;
+  font-weight: 500;
+  letter-spacing: var(--type-display-tracking);
+  font-variant-numeric: tabular-nums;
+}
+.pipeline .far-big .money { font-weight: 500; }
+.pipeline .far-big .status {
+  height: auto;
+  padding: var(--space-xs) var(--space-md);
+  font-size: var(--type-heading-size);
+  line-height: var(--type-heading-line);
+}
+.pipeline .far-big .status .icon { width: 24px; height: 24px; }
+.pipeline .far-line {
+  font-size: var(--type-subheading-size);
+  line-height: var(--type-subheading-line);
+  color: var(--color-text-secondary);
+}
+.pipeline .far-line .status {
+  height: auto;
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--type-body-size);
+}
+/* Crafted far cards: white type on the material, the line slightly softer. */
+.pipeline .far-card.craft-surface .far-word,
+.pipeline .far-card.craft-surface .far-big { color: inherit; }
+.pipeline .far-card.craft-surface .far-line { color: rgb(255 255 255 / 0.85); }
+
+/* Cards that open in full on click */
+.pipeline .lv-openable { cursor: zoom-in; }
+
+/* The detail filter, bottom right, drawn like the dock. */
+.pipeline .lv-control {
+  margin: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-sm);
+  font-family: var(--font-sans);
+}
+.pipeline .lv-seg {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  padding: var(--space-2xs);
+  background: var(--color-bg-canvas);
+  border: var(--border-hairline) solid var(--color-border-default);
+  border-radius: var(--radius-panel);
+}
+.pipeline .lv-label {
+  padding: 0 var(--space-sm) 0 var(--space-xs);
+  font-size: var(--type-small-size);
+  color: var(--color-text-tertiary);
+}
+.pipeline .lv-seg button,
+.pipeline .lv-close {
+  height: 32px;
+  padding: 0 var(--space-md);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  font: inherit;
+  font-size: var(--type-small-size);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.pipeline .lv-seg button {
+  transition: background 150ms ease, color 150ms ease, transform 160ms var(--motion-ease-out);
+}
+.pipeline .lv-seg button:active,
+.pipeline .lv-close:active { transform: scale(0.97); }
+@media (hover: hover) and (pointer: fine) {
+  .pipeline .lv-seg button:hover { color: var(--color-text-primary); background: var(--color-bg-sunken); }
+}
+.pipeline .lv-seg button[aria-checked="true"] {
+  color: var(--color-text-primary);
+  background: var(--color-bg-sunken);
+  font-weight: 500;
+}
+.pipeline .lv-close {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  height: 42px;
+  background: var(--color-bg-canvas);
+  border: var(--border-hairline) solid var(--color-border-default);
+  border-radius: var(--radius-panel);
+  color: var(--color-text-primary);
+}
+.pipeline .lv-close kbd {
+  font-family: var(--font-mono);
+  font-size: var(--type-label-size);
+  color: var(--color-text-tertiary);
+}
+
+/* One line per check: the delegate handle moves to the middle and the
+   return handle is hidden, since the return trip rides the same line. */
+.pipeline .react-flow__handle[data-handleid="report"] { visibility: hidden; }
+.pipeline .react-flow__node-subagent .react-flow__handle[data-handleid="delegate"],
+.pipeline .react-flow__node-main .react-flow__handle[data-handleid="delegate"] { left: 50% !important; }
+
+
+/* ---- Motion ---- */
+
+/* Changing level swaps a card for a different one (far, short or full).
+   A short cross-fade with a touch of blur makes it read as one card
+   changing, not two swapping. Only opacity and filter move. */
+.pipeline .react-flow__node > * {
+  transition: opacity 200ms var(--motion-ease-out), filter 200ms var(--motion-ease-out), border-color var(--motion-fast) ease;
+}
+@starting-style {
+  .pipeline .react-flow__node > * { opacity: 0; filter: blur(2px); }
+}
+
+/* The Close button rises into place from just below. */
+.pipeline .lv-close {
+  transition: opacity 180ms var(--motion-ease-out), transform 180ms var(--motion-ease-out);
+}
+@starting-style {
+  .pipeline .lv-close { opacity: 0; transform: translateY(4px); }
+}
+
+/* Cards only lift their border on devices that can hover. */
+@media (hover: none) {
+  .pipeline .pnode:hover { border-color: var(--color-border-default); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pipeline .react-flow__node > * { transition: opacity 200ms ease; }
+  @starting-style { .pipeline .react-flow__node > * { filter: none; } }
+  .pipeline .lv-close { transition: opacity 180ms ease; }
+  @starting-style { .pipeline .lv-close { transform: none; } }
+  .pipeline .lv-short .ask-sources summary .icon { transition: none; }
+}
+
+/* Check agents: orange with a glassy sheen while working, then green when
+   finished or fixed, red while an issue is still open. Colors ease over
+   200ms; the sheen is constant motion, so it runs linear, sweeps for about
+   1.3s and rests, so it reads as calm work rather than an alarm. */
+.pipeline .lv-check .pnode {
+  position: relative;
+  transition: background 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+}
+.pipeline .lv-check.is-working .pnode:not(.far-card) {
+  background: color-mix(in srgb, var(--color-action-decide) 16%, var(--color-bg-canvas));
+  border-color: var(--color-action-decide);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.8);
+}
+.pipeline .lv-check.is-done .pnode:not(.far-card) {
+  background: var(--color-status-cleared-soft);
+  border-color: color-mix(in srgb, var(--color-status-cleared) 45%, transparent);
+}
+.pipeline .lv-check.is-issue .pnode:not(.far-card) {
+  background: var(--color-status-disputed-soft);
+  border-color: color-mix(in srgb, var(--color-status-disputed) 45%, transparent);
+}
+/* Check agents in motion. While a check works the card stays still and
+   only the icon in its tag breathes, so the canvas stays calm. When it
+   finishes, the old label blurs out, the new one blurs in and its check mark
+   draws itself: the change lands exactly where you read the status. */
+.pipeline .lv-check.is-working .status .icon { animation: lv-breathe 1.2s ease-in-out infinite; }
+@keyframes lv-breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+
+.pipeline .lv-check.just-finished .status { animation: lv-tag 260ms cubic-bezier(0.23, 1, 0.32, 1) both; }
+.pipeline .lv-check.just-finished .status .icon { animation: lv-draw 320ms 90ms cubic-bezier(0.23, 1, 0.32, 1) both; }
+@keyframes lv-tag { from { opacity: 0; filter: blur(3px); scale: 0.96; } to { opacity: 1; filter: blur(0); scale: 1; } }
+@keyframes lv-draw { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+
+/* Reduced motion: no breathing, and the new tag simply fades in. */
+@media (prefers-reduced-motion: reduce) {
+  .pipeline .lv-check.is-working .status .icon { animation: none; }
+  .pipeline .lv-check.just-finished .status { animation: lv-fade-in 200ms ease both; }
+  .pipeline .lv-check.just-finished .status .icon { animation: none; }
+}
+@keyframes lv-fade-in { from { opacity: 0; } }
+
+/* Filter and Ask Settle side by side; Close card stacks above them. */
+.pipeline .lv-row { display: flex; align-items: flex-end; gap: var(--space-sm); }
+
+/* Colored cards never glow outside. Close up, each keeps its light look (a
+   soft wash, dark type) with a ring in its own color and the same neutral
+   paper shadow as every other card. --tint is the card's action color. */
+.pipeline .lv-check.is-working { --tint: var(--color-action-decide); }
+.pipeline .lv-check.is-done { --tint: var(--color-action-accept); }
+.pipeline .lv-check.is-issue { --tint: var(--color-action-reject); }
+.pipeline .react-flow__node-flagged { --tint: var(--color-action-decide); }
+
+.pipeline .lv-check:not(.is-idle) .pnode:not(.far-card),
+.pipeline .react-flow__node-flagged .pnode.escalation:not(.far-card) {
+  border-color: transparent;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.8),
+    0 0 0 1px color-mix(in srgb, var(--tint) 32%, transparent),
+    0 1px 2px rgb(31 26 20 / 0.05),
+    0 6px 16px -4px rgb(31 26 20 / 0.06),
+    0 18px 36px -14px rgb(31 26 20 / 0.10);
+}
+/* Far crafted cards: the material stays, the colored halo goes. */
+.pipeline .far-card.craft-surface {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.24),
+    0 0 0 1px color-mix(in srgb, var(--tint) 78%, #000),
+    0 2px 4px rgb(0 0 0 / 0.08),
+    0 14px 28px -14px rgb(31 26 20 / 0.22);
+}
+
+/* On a wash, grey lines and grey chips disappear. Dividers and neutral tags
+   take the card's own color instead. */
+.pipeline .lv-check:not(.is-idle) .pnode:not(.far-card) .pnode-foot {
+  border-color: color-mix(in srgb, var(--tint) 28%, transparent);
+}
+.pipeline .lv-check:not(.is-idle) .pnode:not(.far-card) .status-agent {
+  background: rgb(255 255 255 / 0.65);
+  box-shadow: inset 0 0 0 var(--border-hairline) color-mix(in srgb, var(--tint) 35%, transparent);
+}
+
+/* Connection dots on a colored card: in the card's color on a wash, white
+   with a dark ring on the solid far surface, so the line's end always shows. */
+.pipeline .react-flow__node .lv-check:not(.is-idle) .pnode:not(.far-card) .react-flow__handle[data-handleid] {
+  background: var(--tint);
+  border-color: var(--color-bg-canvas);
+}
+.pipeline .react-flow__node .craft-surface .react-flow__handle[data-handleid] {
+  width: 10px;
+  height: 10px;
+  background: var(--color-bg-canvas);
+  border-color: color-mix(in srgb, var(--tint) 78%, #000);
+}
+
+/* ---- The question: an orange band ----
+   The question sits on the decide orange, the same material as its far
+   card, so zooming in keeps the object. The evidence and the choices stay
+   on white below. Once answered the band goes pale: still orange, because
+   orange marks a person, but clearly no longer waiting. */
+.pipeline .pnode.escalation.ask-banded:not(.far-card) {
+  --ask-pad: var(--space-xl);
+  padding: var(--ask-pad);
+  background: var(--color-bg-canvas);
+  transition: box-shadow 240ms ease;
+}
+.pipeline .ask-banded .ask-top {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  margin: calc(-1 * var(--ask-pad)) calc(-1 * var(--ask-pad)) 0;
+  padding: var(--ask-pad);
+  border-radius: var(--radius-panel) var(--radius-panel) 0 0;
+  color: var(--color-text-on-decide);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--tint) 86%, #fff) 0%, var(--tint) 55%, color-mix(in srgb, var(--tint) 92%, #000) 100%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.24), inset 0 -1px 0 color-mix(in srgb, var(--tint) 78%, #000);
+  text-shadow: 0 1px 1px color-mix(in srgb, var(--tint) 50%, #000);
+  transition: background 240ms ease;
+}
+.pipeline .ask-banded .ask-top .escalation-message { color: inherit; }
+/* Tags on the band are frosted glass, like on the far card. */
+.pipeline .ask-banded .ask-top .status[class] {
+  color: var(--color-text-on-decide);
+  text-shadow: none;
+  background: rgb(255 255 255 / 0.18);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.4);
+}
+.pipeline .ask-banded .ask-top .ref a { color: inherit; opacity: 0.9; }
+
+/* The agent's pick, named above its button. */
+.pipeline .ask-suggested {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2xs);
+}
+.pipeline .ask-suggest {
+  font-size: var(--type-label-size);
+  line-height: var(--type-label-line);
+  font-weight: var(--type-label-weight);
+  color: var(--color-text-decide);
+}
+.pipeline .ask-foot .facts-actions { display: flex; align-items: flex-end; gap: var(--space-sm); }
+
+/* Answered: the result in one line, with an undo. */
+.pipeline .ask-result-line {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-xs);
+  flex: 1;
+  min-width: 0;
+  color: var(--color-text-primary);
+  text-wrap: pretty;
+}
+.pipeline .ask-result-line .icon { flex: none; color: var(--color-status-cleared); translate: 0 2px; }
+
+/* ---- Answered: quiet orange ----
+   Orange stays as the mark of the person who decided; green stays for the
+   agents' work. Close up a pale orange band with dark type; far a white
+   tile with an orange top edge. */
+.pipeline .person-mark { display: inline-flex; align-items: center; gap: var(--space-xs); white-space: nowrap; }
+.pipeline .person-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-action-decide);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-action-decide) 22%, transparent);
+}
+.pipeline .ask-result .person-mark { color: var(--color-text-secondary); font-size: var(--type-small-size); }
+
+.pipeline .ask-banded.is-answered .ask-top {
+  color: var(--color-text-primary);
+  text-shadow: none;
+  background: color-mix(in srgb, var(--color-bg-canvas) 88%, var(--color-action-decide));
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--color-action-decide) 25%, transparent);
+}
+.pipeline .ask-banded.is-answered .ask-top .escalation-who { color: var(--color-text-decide); }
+.pipeline .ask-banded.is-answered .ask-top .status[class] {
+  color: var(--color-status-cleared);
+  background: var(--color-status-cleared-soft);
+  box-shadow: inset 0 0 0 var(--border-hairline) color-mix(in srgb, var(--color-status-cleared) 40%, transparent);
+}
+.pipeline .far-card.is-answered {
+  box-shadow: inset 0 4px 0 var(--color-action-decide), 0 0 0 1px rgb(31 26 20 / 0.05), 0 1px 2px rgb(31 26 20 / 0.05), 0 6px 16px -4px rgb(31 26 20 / 0.06), 0 18px 36px -14px rgb(31 26 20 / 0.10);
+}
+.pipeline .far-card.is-answered .far-word { color: var(--color-text-decide); }

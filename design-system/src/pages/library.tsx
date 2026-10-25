@@ -391,7 +391,7 @@ const status: PageDef = {
   id: "status",
   group: "Display",
   title: "Status",
-  lede: "Each theme draws state its own way: Navy a glyph and a word, Ramp a square tag, Stripe a tinted pill with the icon after, Mercury an outlined pill.",
+  lede: "Each theme draws state its own way: Navy a glyph and a word, Ramp a square tag, Stripe a tinted tag with the icon first, Mercury an outlined pill.",
   agent: `# Status
 kinds: cleared, held, disputed, needs, agent. The theme decides the shape. Color is never the only signal.`,
   sections: [
