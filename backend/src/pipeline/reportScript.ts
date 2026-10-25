@@ -31,16 +31,17 @@ SETTLED = ("ok", "refunded")
 DOCUMENT_KINDS = ("bill", "invoice")
 HELD = ("review", "void", "following_up")
 # Pacioli tokens, orange accent, light (design-system/src/tokens/tokens.css).
-# Money in is the brand orange, money out a soft peach of it, totals ink.
-IN_COLOR = "#ff7019"    # money in: --color-action-decide
-OUT_COLOR = "#ffa366"   # money out: decide orange, lightened
-TOTAL_COLOR = "#1a1a1a" # totals: --color-text-primary
-SURFACE = "#fcf8f4"     # --color-bg-surface
+# Money is ink and paper: no hue, so nothing in the report reads like the
+# decide orange.
+IN_COLOR = "#1f1a14"    # money in: --color-text-primary
+OUT_COLOR = "#8a7f72"   # money out: --color-border-strong
+TOTAL_COLOR = "#5c5248" # totals: --color-text-secondary
+SURFACE = "#f8f5f0"     # --color-bg-surface
 CANVAS = "#ffffff"      # --color-bg-canvas
-GRID = "#f0e4d8"        # --color-border-default
-SUNKEN = "#f8efe6"      # --color-bg-sunken
-TEXT = "#1a1a1a"        # --color-text-primary
-TEXT_2 = "#525252"      # --color-text-secondary
+GRID = "#e8e1d7"        # --color-border-default
+SUNKEN = "#f0ebe3"      # --color-bg-sunken
+TEXT = "#1f1a14"        # --color-text-primary
+TEXT_2 = "#5c5248"      # --color-text-secondary
 
 
 def money(cents, whole=False):
