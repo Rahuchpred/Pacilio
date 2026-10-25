@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, type ComponentType, type MouseEvent, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type ComponentType, type MouseEvent, type ReactNode } from 'react';
 import { Handle, Panel, Position, type NodeProps } from '@xyflow/react';
 import { Icon, Money, Status, type IconName, type StatusKind } from '../../../../design-system/src/components';
 import * as Full from '../../pipeline/nodes';
@@ -7,6 +7,7 @@ import { getView as view, setLock, setOpen, useFocus, useShown, useView, type Lo
 import * as Short from './nodes';
 import { AskSettle } from '../../ui/AskSettle';
 import { useCheckLook, type CheckLook } from './checkState';
+import { PersonMark, useAnswer } from '../../ui/answer';
 
 // The live look of the check a card belongs to, for the far level's crafted surface.
 const CheckLookCtx = createContext<CheckLook | null>(null);
@@ -86,13 +87,31 @@ function LiveStatus({ subId }: { subId: string }) {
 }
 
 function FarCard({ type, props }: { type: string; props: NodeProps }) {
-  const v = FAR[type](props);
+  const { decision } = useAnswer();
+  let v = FAR[type](props);
+  // Once answered, the question's far card says so, in the accept green.
+  if (type === 'flagged' && decision) {
+    v = {
+      ...v,
+      icon: 'check',
+      word: 'Answered',
+      big: <Money value={decision === 'cap' ? 5760 : 6240} />,
+      line: (
+        <>
+          {decision === 'cap' ? 'Capped at the PO by ' : 'Paid in full by '}
+          <PersonMark />
+        </>
+      ),
+    };
+  }
   const look = useContext(CheckLookCtx);
   // From afar the brand reads through its material: the question and any
   // agent with something to say wear the crafted surface.
-  const craft = v.ask ? 'craft-surface' : look ? CRAFT[look.state] : '';
+  // The question wears the solid orange only while it waits; answered, it
+  // turns to white paper with an orange top edge (see trimmed.css).
+  const craft = v.ask ? (decision ? '' : 'craft-surface') : look ? CRAFT[look.state] : '';
   return (
-    <div className={`pnode far-card ${v.width}${v.ask ? ' is-ask' : ''}${craft ? ' ' + craft : ''}`}>
+    <div className={`pnode far-card ${v.width}${v.ask ? ' is-ask' : ''}${v.ask && decision ? ' is-answered' : ''}${craft ? ' ' + craft : ''}`}>
       <div className="far-word">
         <Icon name={v.icon} />
         <span>{v.word}</span>
@@ -133,8 +152,21 @@ function leveledCheck(short: ComponentType<NodeProps>, full: ComponentType<NodeP
   const Inner = leveled('subagent', short, full);
   return function LeveledCheck(props: NodeProps) {
     const look = useCheckLook(props.data.subId as string);
+    // Mark the moment a check finishes (working, or an open issue, turning
+    // into a result) so the tag plays its finish once, then clears.
+    const prev = useRef(look.state);
+    const [finished, setFinished] = useState(false);
+    useEffect(() => {
+      const was = prev.current;
+      prev.current = look.state;
+      if ((was === 'working' && (look.state === 'done' || look.state === 'issue')) || (was === 'issue' && look.state === 'done')) {
+        setFinished(true);
+        const t = window.setTimeout(() => setFinished(false), 900);
+        return () => window.clearTimeout(t);
+      }
+    }, [look.state]);
     return (
-      <div className={`lv-check is-${look.state}`}>
+      <div className={`lv-check is-${look.state}${finished ? ' just-finished' : ''}`}>
         <CheckLookCtx.Provider value={look}>
           <Inner {...props} />
         </CheckLookCtx.Provider>

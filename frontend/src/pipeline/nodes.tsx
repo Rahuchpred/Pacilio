@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import {
   Actor,
-  Button,
   Icon,
   Money,
   Ref,
@@ -19,6 +18,7 @@ import {
   subagents,
   summary,
 } from './data';
+import { AnswerFoot, useAnswer } from '../ui/answer';
 
 function Card({
   icon,
@@ -138,19 +138,22 @@ export function SubagentNode({ data }: NodeProps) {
 /* Needs your OK: Glaze's escalation. Who asks, why, the facts, a deadline, two choices. */
 export function FlaggedNode() {
   const e = escalation;
+  const { decision, answeredClass } = useAnswer();
   return (
-    <div className="pnode w-flag escalation">
-      <div className="escalation-head">
-        <span className="escalation-who">
-          <Icon name="agent" />
-          {e.asker}
-        </span>
-        <Status kind="needs">Waiting on {e.waitingOn}</Status>
+    <div className={`pnode w-flag escalation ask-banded${answeredClass}`}>
+      <div className="ask-top">
+        <div className="escalation-head">
+          <span className="escalation-who">
+            <Icon name="agent" />
+            {e.asker}
+          </span>
+          {decision ? <Status kind="cleared">Answered</Status> : <Status kind="needs">Waiting on {e.waitingOn}</Status>}
+        </div>
+        <p className="escalation-message">
+          Halcyon Staffing billed 52 hours<Ref n={1} />, but PO 4410 covers 48<Ref n={2} />. I'm 62% sure the extra
+          hours are real, since you approved 3 of their last 5 overages<Ref n={3} />, so I'm asking first.
+        </p>
       </div>
-      <p className="escalation-message">
-        Halcyon Staffing billed 52 hours<Ref n={1} />, but PO 4410 covers 48<Ref n={2} />. I'm 62% sure the extra
-        hours are real, since you approved 3 of their last 5 overages<Ref n={3} />, so I'm asking first.
-      </p>
       <div className="facts">
         <p className="facts-title">Halcyon HS-0912</p>
         <dl className="facts-list">
@@ -163,18 +166,8 @@ export function FlaggedNode() {
             </div>
           ))}
         </dl>
-        <div className="facts-foot">
-          <span className="facts-hold">{e.hold}</span>
-          <div className="facts-actions">
-            <Button kind="quiet" size="sm">
-              Pay $6,240.00
-            </Button>
-            <Button kind="decide" size="sm">
-              Cap at $5,760.00
-            </Button>
-          </div>
-        </div>
       </div>
+      <AnswerFoot />
       <ol className="sources">
         {e.sources.map((s, i) => (
           <Source key={i} n={i + 1} source={s.source} detail={s.detail} />

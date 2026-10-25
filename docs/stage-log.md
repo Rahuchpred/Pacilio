@@ -51,6 +51,12 @@ Our real path was not a straight line. We started the design system in Figma, bu
 
 Still different: the Figma Citation component draws sources as inline chips; the app lists them on two lines. The app's Cards level fits the whole canvas on screen at small size; the Figma frame shows it at real size and scrolls, because tiny text makes a poor design file. The short card's deadline text wraps in both.
 
+**Second loop, Saturday 15:30 (about 10 min):** code moved first this time. Close-up cards got the glow their far versions had, so the color now means state at every zoom: orange waits on you, green is done, red is an open issue. The inbox tray got darker so it reads behind the list. The agent pushed it back to Figma through the MCP as four effect styles (Glow/Decide, Glow/Accept, Glow/Reject, Tray/Inset) built from our color variables, then applied them in the Cards frame. Friction: a variable-bound fill ignored its opacity and turned the tray near black; we replaced it with one mixed color. After a look on a real screen we dropped the colored halo outside the cards and kept the glow inside; the same edit went to the three Figma styles, so every frame updated at once. For the question card we pulled five patterns from Mobbin through its MCP (PayPal, Binance, Airwallex, Base44, PandaDoc), built all six looks behind a switcher in the live app, and kept Band: the question on the far card's orange, evidence on white. The losing five were deleted the same hour.
+
+| Figma frame | Running app |
+|---|---|
+| ![Figma needs you glow](stage-log/figma-needs-you-glow.png) | ![App needs you glow](stage-log/app-needs-you-glow.png) |
+
 ## Run this yourself
 
 1. Keep tokens in one JSON file and mirror the names as Figma variables.

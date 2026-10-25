@@ -66,7 +66,7 @@ export function FlowEdge(props: EdgeProps) {
   const calm = id === 'e-main-flagged' && !(state.approval && state.approval.decision === null);
   const calmLine = calm ? { ...style, stroke: 'var(--color-border-control)' } : style;
   const calmText = calm ? { ...labelStyle, fill: 'var(--color-text-secondary)' } : labelStyle;
-  const calmBg = calm ? { fill: 'var(--color-bg-surface)' } : undefined;
+  const calmBg = calm ? { fill: 'var(--color-bg-surface)', stroke: 'var(--color-border-default)' } : undefined;
 
   return (
     <>

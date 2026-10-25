@@ -346,11 +346,40 @@
   background: linear-gradient(180deg, var(--color-bg-canvas) 60%, color-mix(in srgb, var(--color-bg-canvas) 97%, var(--color-action-decide)) 100%);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9), var(--elevation-paper);
 }
-/* The inbox tray stays a sunken well, just without its outline. */
-.panel { border-color: transparent; }
+/* The inbox tray stays a sunken well, just without its outline. It sits a
+   step darker than the page and takes a soft inner shadow, so the white
+   list reads as lying in it rather than floating on the page. */
+.panel {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--color-bg-sunken) 92%, var(--color-text-primary));
+  box-shadow: inset 0 1px 2px rgb(31 26 20 / 0.08), inset 0 0 0 1px rgb(31 26 20 / 0.05);
+}
+:root[data-theme="dark"] .panel { background: var(--color-bg-sunken); box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.06); }
 .ask-button.is-open { background: var(--color-bg-sunken); }
 
 /* One control height across the canvas chrome: 42px, 4px inner padding,
    32px buttons inside (dock, Detail filter, Ask Settle, top bar). */
 .v-trimmed .lv-seg { padding: var(--space-xs); }
 .topbar { height: 42px; padding: 0 var(--space-xs); }
+
+/* The dock sits centered while there is room. On narrower windows it would
+   cover the detail filter at the bottom right, so it moves left, next to
+   the zoom controls; narrower still, the filter stacks above it. */
+@media (max-width: 1240px) {
+  .dock { left: 60px; transform: none; }
+}
+@media (max-width: 940px) {
+  .v-trimmed .lv-control { margin-bottom: calc(var(--space-lg) + 42px + var(--space-sm)); }
+}
+
+/* Edge labels: a hairline in the line's own color, so the tag reads on the
+   page and not just as a tint of it. */
+.pipeline .edge-decide .react-flow__edge-textbg {
+  stroke: color-mix(in srgb, var(--color-action-decide) 55%, transparent);
+  stroke-width: 1;
+}
+.pipeline .edge-money .react-flow__edge-textbg {
+  fill: var(--color-status-cleared-soft);
+  stroke: color-mix(in srgb, var(--color-action-accept) 40%, transparent);
+  stroke-width: 1;
+}

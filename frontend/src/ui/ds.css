@@ -263,6 +263,8 @@ body {
   border-top: var(--border-hairline) solid var(--color-border-default);
 }
 .sheet-row > * { min-width: 0; }
+/* Rows divide from the row above, so the first row never draws a line under the frame's edge. */
+.sheet-row:first-child { border-top: 0; }
 .sheet-head {
   border-top: 0;
   font-size: var(--type-label-size);

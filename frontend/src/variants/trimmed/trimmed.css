@@ -55,7 +55,7 @@
   font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
-.v-trimmed .lv-short .ask-foot {
+.v-trimmed .ask-foot {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -299,25 +299,167 @@
   background: var(--color-status-disputed-soft);
   border-color: color-mix(in srgb, var(--color-status-disputed) 45%, transparent);
 }
-/* The sheen: a soft white band sliding across. It animates background-position,
-   not transform, because the card cannot clip (its connection dots sit on the edge). */
-.v-trimmed .lv-check.is-working .pnode::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 0.75) 50%, transparent 65%) no-repeat;
-  background-size: 250% 100%;
-  animation: lv-sheen 1.8s linear infinite;
-}
-@keyframes lv-sheen {
-  0% { background-position: 130% 0; }
-  70%, 100% { background-position: -30% 0; }
-}
+/* Check agents in motion. While a check works the card stays still and
+   only the icon in its tag breathes, so the canvas stays calm. When it
+   finishes, the old label blurs out, the new one blurs in and its check mark
+   draws itself: the change lands exactly where you read the status. */
+.v-trimmed .lv-check.is-working .status .icon { animation: lv-breathe 1.2s ease-in-out infinite; }
+@keyframes lv-breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+
+.v-trimmed .lv-check.just-finished .status { animation: lv-tag 260ms cubic-bezier(0.23, 1, 0.32, 1) both; }
+.v-trimmed .lv-check.just-finished .status .icon { animation: lv-draw 320ms 90ms cubic-bezier(0.23, 1, 0.32, 1) both; }
+@keyframes lv-tag { from { opacity: 0; filter: blur(3px); scale: 0.96; } to { opacity: 1; filter: blur(0); scale: 1; } }
+@keyframes lv-draw { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+
+/* Reduced motion: no breathing, and the new tag simply fades in. */
 @media (prefers-reduced-motion: reduce) {
-  .v-trimmed .lv-check.is-working .pnode::after { animation: none; background: none; }
+  .v-trimmed .lv-check.is-working .status .icon { animation: none; }
+  .v-trimmed .lv-check.just-finished .status { animation: lv-fade-in 200ms ease both; }
+  .v-trimmed .lv-check.just-finished .status .icon { animation: none; }
 }
+@keyframes lv-fade-in { from { opacity: 0; } }
 
 /* Filter and Ask Settle side by side; Close card stacks above them. */
 .v-trimmed .lv-row { display: flex; align-items: flex-end; gap: var(--space-sm); }
+
+/* Colored cards never glow outside. Close up, each keeps its light look (a
+   soft wash, dark type) with a ring in its own color and the same neutral
+   paper shadow as every other card. --tint is the card's action color. */
+.v-trimmed .lv-check.is-working { --tint: var(--color-action-decide); }
+.v-trimmed .lv-check.is-done { --tint: var(--color-action-accept); }
+.v-trimmed .lv-check.is-issue { --tint: var(--color-action-reject); }
+.v-trimmed .react-flow__node-flagged { --tint: var(--color-action-decide); }
+
+.v-trimmed .lv-check:not(.is-idle) .pnode:not(.far-card),
+.v-trimmed .react-flow__node-flagged .pnode.escalation:not(.far-card) {
+  border-color: transparent;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.8),
+    0 0 0 1px color-mix(in srgb, var(--tint) 32%, transparent),
+    0 1px 2px rgb(31 26 20 / 0.05),
+    0 6px 16px -4px rgb(31 26 20 / 0.06),
+    0 18px 36px -14px rgb(31 26 20 / 0.10);
+}
+/* Far crafted cards: the material stays, the colored halo goes. */
+.v-trimmed .far-card.craft-surface {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.24),
+    0 0 0 1px color-mix(in srgb, var(--tint) 78%, #000),
+    0 2px 4px rgb(0 0 0 / 0.08),
+    0 14px 28px -14px rgb(31 26 20 / 0.22);
+}
+
+/* On a wash, grey lines and grey chips disappear. Dividers and neutral tags
+   take the card's own color instead. */
+.v-trimmed .lv-check:not(.is-idle) .pnode:not(.far-card) .pnode-foot {
+  border-color: color-mix(in srgb, var(--tint) 28%, transparent);
+}
+.v-trimmed .lv-check:not(.is-idle) .pnode:not(.far-card) .status-agent {
+  background: rgb(255 255 255 / 0.65);
+  box-shadow: inset 0 0 0 var(--border-hairline) color-mix(in srgb, var(--tint) 35%, transparent);
+}
+
+/* Connection dots on a colored card: in the card's color on a wash, white
+   with a dark ring on the solid far surface, so the line's end always shows. */
+.v-trimmed .react-flow__node .lv-check:not(.is-idle) .pnode:not(.far-card) .react-flow__handle[data-handleid] {
+  background: var(--tint);
+  border-color: var(--color-bg-canvas);
+}
+.v-trimmed .react-flow__node .craft-surface .react-flow__handle[data-handleid] {
+  width: 10px;
+  height: 10px;
+  background: var(--color-bg-canvas);
+  border-color: color-mix(in srgb, var(--tint) 78%, #000);
+}
+
+/* ---- The question: an orange band ----
+   The question sits on the decide orange, the same material as its far
+   card, so zooming in keeps the object. The evidence and the choices stay
+   on white below. Once answered the band goes pale: still orange, because
+   orange marks a person, but clearly no longer waiting. */
+.v-trimmed .pnode.escalation.ask-banded:not(.far-card) {
+  --ask-pad: var(--space-xl);
+  padding: var(--ask-pad);
+  background: var(--color-bg-canvas);
+  transition: box-shadow 240ms ease;
+}
+.v-trimmed .ask-banded .ask-top {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  margin: calc(-1 * var(--ask-pad)) calc(-1 * var(--ask-pad)) 0;
+  padding: var(--ask-pad);
+  border-radius: var(--radius-panel) var(--radius-panel) 0 0;
+  color: var(--color-text-on-decide);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--tint) 86%, #fff) 0%, var(--tint) 55%, color-mix(in srgb, var(--tint) 92%, #000) 100%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.24), inset 0 -1px 0 color-mix(in srgb, var(--tint) 78%, #000);
+  text-shadow: 0 1px 1px color-mix(in srgb, var(--tint) 50%, #000);
+  transition: background 240ms ease;
+}
+.v-trimmed .ask-banded .ask-top .escalation-message { color: inherit; }
+/* Tags on the band are frosted glass, like on the far card. */
+.v-trimmed .ask-banded .ask-top .status[class] {
+  color: var(--color-text-on-decide);
+  text-shadow: none;
+  background: rgb(255 255 255 / 0.18);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.4);
+}
+.v-trimmed .ask-banded .ask-top .ref a { color: inherit; opacity: 0.9; }
+
+/* The agent's pick, named above its button. */
+.v-trimmed .ask-suggested {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2xs);
+}
+.v-trimmed .ask-suggest {
+  font-size: var(--type-label-size);
+  line-height: var(--type-label-line);
+  font-weight: var(--type-label-weight);
+  color: var(--color-text-decide);
+}
+.v-trimmed .ask-foot .facts-actions { display: flex; align-items: flex-end; gap: var(--space-sm); }
+
+/* Answered: the result in one line, with an undo. */
+.v-trimmed .ask-result-line {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-xs);
+  flex: 1;
+  min-width: 0;
+  color: var(--color-text-primary);
+  text-wrap: pretty;
+}
+.v-trimmed .ask-result-line .icon { flex: none; color: var(--color-status-cleared); translate: 0 2px; }
+
+/* ---- Answered: quiet orange ----
+   Orange stays as the mark of the person who decided; green stays for the
+   agents' work. Close up a pale orange band with dark type; far a white
+   tile with an orange top edge. */
+.v-trimmed .person-mark { display: inline-flex; align-items: center; gap: var(--space-xs); white-space: nowrap; }
+.v-trimmed .person-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-action-decide);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-action-decide) 22%, transparent);
+}
+.v-trimmed .ask-result .person-mark { color: var(--color-text-secondary); font-size: var(--type-small-size); }
+
+.v-trimmed .ask-banded.is-answered .ask-top {
+  color: var(--color-text-primary);
+  text-shadow: none;
+  background: color-mix(in srgb, var(--color-bg-canvas) 88%, var(--color-action-decide));
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--color-action-decide) 25%, transparent);
+}
+.v-trimmed .ask-banded.is-answered .ask-top .escalation-who { color: var(--color-text-decide); }
+.v-trimmed .ask-banded.is-answered .ask-top .status[class] {
+  color: var(--color-status-cleared);
+  background: var(--color-status-cleared-soft);
+  box-shadow: inset 0 0 0 var(--border-hairline) color-mix(in srgb, var(--color-status-cleared) 40%, transparent);
+}
+.v-trimmed .far-card.is-answered {
+  box-shadow: inset 0 4px 0 var(--color-action-decide), 0 0 0 1px rgb(31 26 20 / 0.05), 0 1px 2px rgb(31 26 20 / 0.05), 0 6px 16px -4px rgb(31 26 20 / 0.06), 0 18px 36px -14px rgb(31 26 20 / 0.10);
+}
+.v-trimmed .far-card.is-answered .far-word { color: var(--color-text-decide); }

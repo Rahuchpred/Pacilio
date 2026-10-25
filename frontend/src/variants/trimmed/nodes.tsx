@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import {
-  Button,
   Icon,
   Money,
   Source,
@@ -18,6 +17,7 @@ import {
   summary,
 } from '../../pipeline/data';
 import { useCheckLook } from './checkState';
+import { AnswerFoot, AnswerStatus, useAnswer } from '../../ui/answer';
 
 function Card({
   icon,
@@ -133,19 +133,23 @@ export function SubagentNode({ data }: NodeProps) {
   );
 }
 
-/* Needs your OK: the two numbers side by side, two choices. Sources fold away. */
+/* Needs your OK: the question on an orange band, the evidence on white below,
+   then two choices. Once answered the band turns green and shows the result. */
 export function FlaggedNode() {
   const e = escalation;
+  const { answeredClass } = useAnswer();
   return (
-    <div className="pnode w-flag escalation">
-      <div className="escalation-head">
-        <span className="escalation-who">
-          <Icon name="agent" />
-          {e.asker}
-        </span>
-        <Status kind="needs">Needs you</Status>
+    <div className={`pnode w-flag escalation ask-banded${answeredClass}`}>
+      <div className="ask-top">
+        <div className="escalation-head">
+          <span className="escalation-who">
+            <Icon name="agent" />
+            {e.asker}
+          </span>
+          <AnswerStatus />
+        </div>
+        <p className="ask-q">Halcyon billed 4 hours more than the PO. Pay them?</p>
       </div>
-      <p className="ask-q">Halcyon billed 4 hours more than the PO. Pay them?</p>
       <div className="ask-compare">
         <div>
           <span className="muted small">Invoice HS-0912</span>
@@ -159,17 +163,7 @@ export function FlaggedNode() {
         </div>
       </div>
       <p className="muted small">You approved 3 of their last 5 overages.</p>
-      <div className="ask-foot">
-        <span className="muted small">{e.hold}</span>
-        <div className="facts-actions">
-          <Button kind="quiet" size="sm">
-            Pay $6,240.00
-          </Button>
-          <Button kind="decide" size="sm">
-            Cap at $5,760.00
-          </Button>
-        </div>
-      </div>
+      <AnswerFoot />
       <details className="ask-sources nodrag">
         <summary>
           <Icon name="ChevronRight" size={12} /> Sources ({e.sources.length})
