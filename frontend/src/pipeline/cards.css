@@ -507,3 +507,37 @@ button.ask-fact { cursor: pointer; }
 @media (prefers-reduced-motion: reduce) {
   .pipeline .react-flow__node { transition: none; }
 }
+
+/* ---- Follow-up settings (Emails card) ---- */
+
+.fu-settings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--color-bg-surface);
+  border: var(--border-hairline) solid var(--color-border-default);
+  border-radius: var(--radius-panel);
+  cursor: default;
+}
+.fu-head { display: flex; flex-direction: column; gap: var(--space-2xs); }
+.fu-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-md); }
+.fu-step { display: flex; flex-direction: column; gap: var(--space-xs); }
+.fu-when { display: flex; align-items: center; gap: var(--space-xs); flex-wrap: wrap; }
+.fu-when input,
+.fu-when select,
+.fu-step textarea {
+  font: inherit;
+  font-size: var(--type-small-size);
+  color: var(--color-text-primary);
+  background: var(--color-bg-canvas);
+  border: var(--border-hairline) solid var(--color-border-control);
+  border-radius: var(--radius-control);
+}
+.fu-when input { width: 64px; height: 28px; padding: 0 var(--space-sm); }
+.fu-when select { height: 28px; padding: 0 var(--space-xs); }
+.fu-when .btn { margin-left: auto; }
+.fu-step textarea { padding: var(--space-xs) var(--space-sm); resize: vertical; }
+.fu-actions { display: flex; align-items: center; gap: var(--space-xs); flex-wrap: wrap; }
+.fu-spacer { flex: 1; }
+.email-links { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); }

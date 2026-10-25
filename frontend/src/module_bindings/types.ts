@@ -139,6 +139,13 @@ export const Edge = __t.object("Edge", {
 });
 export type Edge = __Infer<typeof Edge>;
 
+export const EmailFollowUp = __t.object("EmailFollowUp", {
+  step: __t.u32(),
+  delayMin: __t.u32(),
+  message: __t.string(),
+});
+export type EmailFollowUp = __Infer<typeof EmailFollowUp>;
+
 export const EmailInbox = __t.object("EmailInbox", {
   id: __t.u32(),
   inboxId: __t.string(),
@@ -193,6 +200,12 @@ export const EventReview = __t.object("EventReview", {
   updatedAt: __t.timestamp(),
 });
 export type EventReview = __Infer<typeof EventReview>;
+
+export const FollowUpStep = __t.object("FollowUpStep", {
+  delayMin: __t.u32(),
+  message: __t.string(),
+});
+export type FollowUpStep = __Infer<typeof FollowUpStep>;
 
 export const InboundEvent = __t.object("InboundEvent", {
   id: __t.u64(),

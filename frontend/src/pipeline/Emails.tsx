@@ -6,13 +6,14 @@ import type { EmailMessage, EmailThread } from '../module_bindings/types';
 import { logError } from '../throttle';
 import { FarCard, type CardLevels } from '../canvas/levels';
 import { Card } from './Card';
+import { FollowUpSettings } from './FollowUpSettings';
+import { describeSchedule, useFollowUpSchedule } from './followUps';
 import { clock, openItem } from './live';
 
 // Emails (AgentMail): one thread per item a person chose to follow up on.
 // Without a reply, Settle nudges on a schedule; a reply comes to the top with
 // a blue dot.
 
-const FOLLOW_UPS_TOTAL = 4;
 const SIGNATURE = /\n\n— Settle, bookkeeping for the Oct 24 show$/;
 
 const THREAD_STATUS: Record<string, { kind: StatusKind; label: string }> = {
@@ -38,16 +39,16 @@ function duration(ms: number): string {
   return hours < 24 ? `${hours} h` : `${Math.round(hours / 24)} d`;
 }
 
-function statusLine(thread: EmailThread, now: number): string {
+function statusLine(thread: EmailThread, now: number, total: number): string {
   switch (thread.status) {
     case 'waiting': {
       const next = thread.nextFollowUpAt?.toDate().getTime();
-      return next ? `Follow-up ${thread.followUps + 1} of ${FOLLOW_UPS_TOTAL} in ${duration(next - now)}` : 'Sending…';
+      return next ? `Follow-up ${thread.followUps + 1} of ${total} in ${duration(next - now)}` : 'Sending…';
     }
     case 'replied':
       return `Replied ${duration(now - thread.lastActivityAt.toDate().getTime())} ago`;
     case 'gave_up':
-      return `No reply after ${FOLLOW_UPS_TOTAL} follow-ups`;
+      return thread.followUps ? `No reply after ${thread.followUps} follow-ups` : 'No follow-ups scheduled';
     case 'failed':
       return thread.error ?? 'Unknown error';
     default:
@@ -106,6 +107,8 @@ function Far() {
 function Conversation({ thread, messages }: { thread: EmailThread; messages: EmailMessage[] }) {
   const send = useProcedure(procedures.sendEmailReply);
   const close = useReducer(reducers.closeEmailThread);
+  const reopen = useReducer(reducers.reopenEmailThread);
+  const canReopen = (thread.status === 'closed' || thread.status === 'gave_up') && !!thread.lastMessageId;
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -141,6 +144,16 @@ function Conversation({ thread, messages }: { thread: EmailThread; messages: Ema
         <button type="button" className="link-button" onClick={() => openItem(thread.eventId)}>
           Look at the payment
         </button>
+        {canReopen && (
+          <Button
+            kind="secondary"
+            size="sm"
+            icon="Undo"
+            onClick={() => reopen({ threadId: thread.id }).catch((err: Error) => setError(err.message))}
+          >
+            Reopen thread
+          </Button>
+        )}
       </div>
       {canReply && (
         <form className="email-compose" onSubmit={submit}>
@@ -151,7 +164,7 @@ function Conversation({ thread, messages }: { thread: EmailThread; messages: Ema
             rows={3}
           />
           <div className="email-compose-actions">
-            {thread.status !== 'closed' && (
+            {thread.status !== 'closed' && thread.status !== 'gave_up' && (
               <Button kind="quiet" size="sm" onClick={() => close({ threadId: thread.id }).catch(logError)}>
                 Close thread
               </Button>
@@ -172,6 +185,8 @@ function Full() {
   const [messages] = useTable(tables.emailMessage);
   const markRead = useReducer(reducers.markEmailThreadRead);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [settings, setSettings] = useState(false);
+  const { steps, ready } = useFollowUpSchedule();
   const now = useNow();
 
   const toggle = (thread: EmailThread) => {
@@ -181,8 +196,24 @@ function Full() {
   };
 
   return (
-    <Card type="emails" icon="mail" title="Emails to vendors" className="w-emails-full">
-      <p className="muted small">Sent from ledgr@agentmail.to. Without a reply, Settle follows up after 10 min, 30 min, 2 h and 1 day.</p>
+    <Card
+      type="emails"
+      icon="mail"
+      title="Emails to vendors"
+      className="w-emails-full"
+      meta={
+        <span className="nodrag" title="Edit the follow-ups">
+          <Button kind={settings ? 'secondary' : 'quiet'} size="sm" icon="Settings" onClick={() => setSettings(s => !s)}>
+            Follow-ups
+          </Button>
+        </span>
+      }
+    >
+      {settings ? (
+        <FollowUpSettings onDone={() => setSettings(false)} />
+      ) : (
+        ready && <p className="muted small">Without a reply, Settle {describeSchedule(steps)}.</p>
+      )}
       {threads.length === 0 ? (
         <p className="muted">Choose Email them on a question and Settle writes here.</p>
       ) : (
@@ -198,7 +229,7 @@ function Full() {
                   <span className="stack">
                     <span className="strong">{thread.counterparty}</span>
                     <span className="muted small">{thread.subject}</span>
-                    <span className="tertiary small">{statusLine(thread, now)}</span>
+                    <span className="tertiary small">{statusLine(thread, now, steps.length)}</span>
                   </span>
                   <ThreadTag thread={thread} />
                 </button>

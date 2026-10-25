@@ -9,20 +9,49 @@ type Ctx = ReducerCtx<InferSchema<Schema>>;
 type PCtx = ProcedureCtx<InferSchema<Schema>>;
 type Thread = NonNullable<ReturnType<Ctx['db']['emailThread']['id']['find']>>;
 
-// How long to wait for a reply before each follow-up (minutes). After the
-// last one the thread stops nagging and shows "No reply".
-export const FOLLOW_UP_DELAYS_MIN = [10, 30, 120, 1440];
+// The default follow-up schedule: how long to wait for a reply before each
+// follow-up (minutes) and what it says. People can edit it in the UI (the
+// email_follow_up table); after the last one a thread shows "No reply".
+const DEFAULT_FOLLOW_UPS = [
+  { delayMin: 10, message: 'Just following up on my note below. Could you take a look when you have a moment?' },
+  { delayMin: 30, message: "Following up again on the message below. We need this to close out the Oct 24 show's books." },
+  { delayMin: 120, message: 'Checking in once more on the item below. A quick reply with where things stand would help.' },
+  { delayMin: 1440, message: "Last follow-up from us on the item below. Please reply so we can settle it; we'll stop nudging after this." },
+];
+const MAX_STEPS = 10;
+const MAX_DELAY_MIN = 7 * 24 * 60;
+const MAX_MESSAGE = 1000;
 const TICK_INTERVAL_MICROS = 30_000_000n;
 const MINUTE_MICROS = 60_000_000n;
 const INBOX_NAME = 'Settle Bookkeeping';
 const SIGNATURE = '\n\n— Settle, bookkeeping for the Oct 24 show';
 
-const NUDGES = [
-  'Just following up on my note below. Could you take a look when you have a moment?',
-  "Following up again on the message below. We need this to close out the Oct 24 show's books.",
-  'Checking in once more on the item below. A quick reply with where things stand would help.',
-  "Last follow-up from us on the item below. Please reply so we can settle it; we'll stop nudging after this.",
-];
+type Step = { delayMin: number; message: string };
+
+function writeSteps(ctx: Ctx, steps: Step[]) {
+  for (const row of [...ctx.db.emailFollowUp.iter()]) ctx.db.emailFollowUp.step.delete(row.step);
+  steps.forEach((s, step) => ctx.db.emailFollowUp.insert({ step, delayMin: s.delayMin, message: s.message }));
+}
+
+// Seed the default schedule once, so the UI has something to show and edit.
+export function ensureFollowUpDefaults(ctx: Ctx) {
+  if (ctx.db.emailFollowUp.count() === 0n) writeSteps(ctx, DEFAULT_FOLLOW_UPS);
+}
+
+// The schedule in order (the defaults until it has been seeded).
+function followUpSteps(ctx: Ctx): Step[] {
+  const rows = [...ctx.db.emailFollowUp.iter()].sort((a, b) => a.step - b.step);
+  return rows.length ? rows : DEFAULT_FOLLOW_UPS;
+}
+
+// Where a waiting thread stands after `followUps` nudges: the next one's due
+// time from `from`, or "No reply" when the schedule has run out.
+function nextWait(ctx: Ctx, followUps: number, from: Timestamp): Pick<Thread, 'status' | 'nextFollowUpAt'> {
+  const next = followUpSteps(ctx)[followUps];
+  return next
+    ? { status: 'waiting', nextFollowUpAt: inMinutes({ timestamp: from }, next.delayMin) }
+    : { status: 'gave_up', nextFollowUpAt: undefined };
+}
 
 function message(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
@@ -118,7 +147,7 @@ export function startFollowUp(ctx: PCtx, reviewItemId: bigint): string {
       updateThread(tx, threadId, {
         agentmailThreadId: sent.thread_id,
         lastMessageId: sent.message_id,
-        nextFollowUpAt: inMinutes(tx, FOLLOW_UP_DELAYS_MIN[0]),
+        ...nextWait(tx, 0, tx.timestamp),
         lastActivityAt: tx.timestamp,
       });
       ensureTicking(tx);
@@ -147,12 +176,10 @@ function sendInThread(ctx: PCtx, thread: Thread, text: string, kind: 'follow_up'
       agentmailMessageId: sent.message_id,
       sentAt: tx.timestamp,
     });
-    const next = FOLLOW_UP_DELAYS_MIN[followUps];
     updateThread(tx, thread.id, {
       lastMessageId: sent.message_id,
       followUps,
-      status: next === undefined ? 'gave_up' : 'waiting',
-      nextFollowUpAt: next === undefined ? undefined : inMinutes(tx, next),
+      ...nextWait(tx, followUps, tx.timestamp),
       lastActivityAt: tx.timestamp,
       error: undefined,
     });
@@ -225,14 +252,14 @@ export function email(stdb: Schema) {
       for (const thread of threads) {
         try {
           collectReplies(ctx, mail, box.inboxId, box.address, thread);
-          const current = ctx.withTx(tx => tx.db.emailThread.id.find(thread.id));
+          const [current, steps] = ctx.withTx(tx => [tx.db.emailThread.id.find(thread.id), followUpSteps(tx)] as const);
           if (
             current?.status === 'waiting' &&
             current.nextFollowUpAt &&
             current.nextFollowUpAt.microsSinceUnixEpoch <= ctx.timestamp.microsSinceUnixEpoch
           ) {
-            const nudge = NUDGES[Math.min(current.followUps, NUDGES.length - 1)];
-            sendInThread(ctx, current, nudge + SIGNATURE, 'follow_up', current.followUps + 1);
+            const step = steps[current.followUps];
+            if (step) sendInThread(ctx, current, step.message + SIGNATURE, 'follow_up', current.followUps + 1);
           }
         } catch (err) {
           ctx.withTx(tx => updateThread(tx, thread.id, { error: message(err) }));
@@ -271,5 +298,65 @@ export function email(stdb: Schema) {
     updateThread(ctx, threadId, { status: 'closed', nextFollowUpAt: undefined, unread: false });
   });
 
-  return { emailTick, sendEmailReply, markEmailThreadRead, closeEmailThread };
+  // Back to an open thread: waiting on them again (nudging from the first
+  // follow-up), or "replied" if their message is the last one.
+  const reopenEmailThread = stdb.reducer({ threadId: t.u64() }, (ctx, { threadId }) => {
+    const thread = ctx.db.emailThread.id.find(threadId);
+    if (!thread) throw new SenderError('Thread not found');
+    if (thread.status !== 'closed' && thread.status !== 'gave_up') throw new SenderError('This thread is already open');
+    if (!thread.lastMessageId) throw new SenderError("This thread's first email never sent");
+    const last = [...ctx.db.emailMessage.threadId.filter(threadId)].sort((a, b) =>
+      a.sentAt.microsSinceUnixEpoch < b.sentAt.microsSinceUnixEpoch ? 1 : -1
+    )[0];
+    const theirs = last?.direction === 'in';
+    updateThread(ctx, threadId, {
+      ...(theirs ? { status: 'replied', nextFollowUpAt: undefined } : nextWait(ctx, 0, ctx.timestamp)),
+      followUps: 0,
+      lastActivityAt: ctx.timestamp,
+      error: undefined,
+    });
+    ensureTicking(ctx);
+  });
+
+  // Edit the follow-up schedule for every thread, for everyone. Threads that
+  // are waiting move to the new timing (from their last message).
+  const setEmailFollowUps = stdb.reducer(
+    { steps: t.array(t.object('FollowUpStep', { delayMin: t.u32(), message: t.string() })) },
+    (ctx, { steps }) => {
+      if (steps.length > MAX_STEPS) throw new SenderError(`At most ${MAX_STEPS} follow-ups`);
+      const clean = steps.map((s, i) => {
+        const message = s.message.trim();
+        if (!message) throw new SenderError(`Follow-up ${i + 1} needs a message`);
+        if (message.length > MAX_MESSAGE) throw new SenderError(`Follow-up ${i + 1} is too long`);
+        if (s.delayMin < 1 || s.delayMin > MAX_DELAY_MIN) throw new SenderError(`Follow-up ${i + 1}: wait between 1 minute and 7 days`);
+        return { delayMin: s.delayMin, message };
+      });
+      writeSteps(ctx, clean);
+      for (const thread of [...ctx.db.emailThread.iter()]) {
+        if (thread.status !== 'waiting' && thread.status !== 'gave_up') continue;
+        updateThread(ctx, thread.id, nextWait(ctx, thread.followUps, thread.lastActivityAt));
+      }
+      ensureTicking(ctx);
+    }
+  );
+
+  // Back to the default schedule.
+  const resetEmailFollowUps = stdb.reducer(ctx => {
+    writeSteps(ctx, DEFAULT_FOLLOW_UPS);
+    for (const thread of [...ctx.db.emailThread.iter()]) {
+      if (thread.status !== 'waiting' && thread.status !== 'gave_up') continue;
+      updateThread(ctx, thread.id, nextWait(ctx, thread.followUps, thread.lastActivityAt));
+    }
+    ensureTicking(ctx);
+  });
+
+  return {
+    emailTick,
+    sendEmailReply,
+    markEmailThreadRead,
+    closeEmailThread,
+    reopenEmailThread,
+    setEmailFollowUps,
+    resetEmailFollowUps,
+  };
 }

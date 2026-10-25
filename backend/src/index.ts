@@ -8,7 +8,7 @@ import { accounting } from './accounting/accounting';
 import { pipelineTables } from './pipeline/tables';
 import { pipeline } from './pipeline/pipeline';
 import { emailEnv, emailTables } from './email/tables';
-import { email } from './email/email';
+import { email, ensureFollowUpDefaults } from './email/email';
 
 // One row per identity that has ever connected. `color` drives avatar + cursor color.
 const user = table(
@@ -82,7 +82,15 @@ export const { pipelineTick, resolveReviewItem, ledgerXlsxUrl, requestReport, re
 
 // ─── Email follow-ups (AgentMail) ───────────────────────────────────────────
 
-export const { emailTick, sendEmailReply, markEmailThreadRead, closeEmailThread } = email(spacetimedb);
+export const {
+  emailTick,
+  sendEmailReply,
+  markEmailThreadRead,
+  closeEmailThread,
+  reopenEmailThread,
+  setEmailFollowUps,
+  resetEmailFollowUps,
+} = email(spacetimedb);
 
 // ─── Droid agents (Factory cloud) ───────────────────────────────────────────
 
@@ -127,6 +135,7 @@ function validateName(raw: string): string {
 // ─── Lifecycle ──────────────────────────────────────────────────────────────
 
 export const onConnect = spacetimedb.clientConnected(ctx => {
+  ensureFollowUpDefaults(ctx);
   const existing = ctx.db.user.identity.find(ctx.sender);
   if (existing) {
     ctx.db.user.identity.update({ ...existing, online: true });

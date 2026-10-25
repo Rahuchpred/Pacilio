@@ -65,7 +65,19 @@ export const emailTickSchedule = table(
   }
 );
 
-export const emailTables = { emailInbox, emailThread, emailMessage, emailTickSchedule };
+// The follow-up schedule, shared by every thread and editable from the UI:
+// step 0 is sent delay_min after our last message, step 1 that long after
+// step 0, and so on. After the last step a thread shows "No reply".
+export const emailFollowUp = table(
+  { name: 'email_follow_up', public: true },
+  {
+    step: t.u32().primaryKey(),
+    delayMin: t.u32(),
+    message: t.string(),
+  }
+);
+
+export const emailTables = { emailInbox, emailThread, emailMessage, emailTickSchedule, emailFollowUp };
 
 // AGENTMAIL_API_KEY: from agentmail.to. FOLLOWUP_EMAIL_TO: where every
 // follow-up is sent for now (one test inbox standing in for every vendor).

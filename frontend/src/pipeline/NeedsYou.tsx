@@ -4,6 +4,7 @@ import { Button, Icon, Money, Source, Status } from '../../../design-system/src/
 import { procedures, tables } from '../module_bindings';
 import type { InboundEvent, ReviewDetail, ReviewItem } from '../module_bindings/types';
 import { FarCard, Handles, type CardLevels } from '../canvas/levels';
+import { describeSchedule, useFollowUpSchedule } from './followUps';
 import { SOURCE_TITLES, dollars, jsonList, kindLabel, openItem, useOpenItems } from './live';
 
 // Needs you: the calls the agent isn't sure about, one question at a time.
@@ -84,6 +85,7 @@ function Question({
   full?: boolean;
 }) {
   const evidence = jsonList(detail?.evidence);
+  const { steps, ready } = useFollowUpSchedule();
   const twin = item.duplicateOf !== undefined ? eventBy.get(item.duplicateOf.toString()) : undefined;
   return (
     <>
@@ -139,7 +141,9 @@ function Question({
           </summary>
           {detail.followUpSubject && <p className="strong small">{detail.followUpSubject}</p>}
           <p className="small email-draft">{detail.followUpMessage}</p>
-          <p className="muted small">Email them sends this now, then follows up after 10 min, 30 min, 2 h and 1 day until they reply.</p>
+          <p className="muted small">
+            Email them sends this now{ready && steps.length ? `, then ${describeSchedule(steps)} until they reply` : ''}.
+          </p>
         </details>
       )}
       <Decide item={item} event={event} />

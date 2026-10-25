@@ -50,12 +50,15 @@ import MovePipelineNodeReducer from "./move_pipeline_node_reducer";
 import PauseInboundReducer from "./pause_inbound_reducer";
 import RecordPaymentReducer from "./record_payment_reducer";
 import RenameNodeReducer from "./rename_node_reducer";
+import ReopenEmailThreadReducer from "./reopen_email_thread_reducer";
 import RequestAgentTaskReducer from "./request_agent_task_reducer";
 import RequestReportReducer from "./request_report_reducer";
+import ResetEmailFollowUpsReducer from "./reset_email_follow_ups_reducer";
 import ResetInboundSourceReducer from "./reset_inbound_source_reducer";
 import ResizePipelineNodeReducer from "./resize_pipeline_node_reducer";
 import RestartInboundReducer from "./restart_inbound_reducer";
 import RunInboundReducer from "./run_inbound_reducer";
+import SetEmailFollowUpsReducer from "./set_email_follow_ups_reducer";
 import SetInboundSourceReducer from "./set_inbound_source_reducer";
 import SetNameReducer from "./set_name_reducer";
 import SetPipelineCardExpandedReducer from "./set_pipeline_card_expanded_reducer";
@@ -78,6 +81,7 @@ import AgentStepRow from "./agent_step_table";
 import AgentTaskRow from "./agent_task_table";
 import CursorRow from "./cursor_table";
 import EdgeRow from "./edge_table";
+import EmailFollowUpRow from "./email_follow_up_table";
 import EmailMessageRow from "./email_message_table";
 import EmailThreadRow from "./email_thread_table";
 import EventReviewRow from "./event_review_table";
@@ -191,6 +195,17 @@ const tablesSchema = __schema({
       { name: 'edge_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, EdgeRow),
+  emailFollowUp: __table({
+    name: 'email_follow_up',
+    indexes: [
+      { accessor: 'step', name: 'email_follow_up_step_idx_btree', algorithm: 'btree', columns: [
+        'step',
+      ] },
+    ],
+    constraints: [
+      { name: 'email_follow_up_step_key', constraint: 'unique', columns: ['step'] },
+    ],
+  }, EmailFollowUpRow),
   emailMessage: __table({
     name: 'email_message',
     indexes: [
@@ -415,12 +430,15 @@ const reducersSchema = __reducers(
   __reducerSchema("pause_inbound", PauseInboundReducer),
   __reducerSchema("record_payment", RecordPaymentReducer),
   __reducerSchema("rename_node", RenameNodeReducer),
+  __reducerSchema("reopen_email_thread", ReopenEmailThreadReducer),
   __reducerSchema("request_agent_task", RequestAgentTaskReducer),
   __reducerSchema("request_report", RequestReportReducer),
+  __reducerSchema("reset_email_follow_ups", ResetEmailFollowUpsReducer),
   __reducerSchema("reset_inbound_source", ResetInboundSourceReducer),
   __reducerSchema("resize_pipeline_node", ResizePipelineNodeReducer),
   __reducerSchema("restart_inbound", RestartInboundReducer),
   __reducerSchema("run_inbound", RunInboundReducer),
+  __reducerSchema("set_email_follow_ups", SetEmailFollowUpsReducer),
   __reducerSchema("set_inbound_source", SetInboundSourceReducer),
   __reducerSchema("set_name", SetNameReducer),
   __reducerSchema("set_pipeline_card_expanded", SetPipelineCardExpandedReducer),
