@@ -1,12 +1,20 @@
 // What we ask Droid to do on each run. Droid works in its own folder on the
-// Factory computer, keeps the ledger as JSON, renders it to HTML, and replies
-// with a JSON list of decisions that our module checks and applies.
+// Factory computer, keeps the ledger as JSON and replies with a JSON list of
+// decisions that our module checks and applies. The workbook is rendered
+// separately, when someone needs it (buildRenderPrompt).
 
 import { DEFAULT_CATEGORIES, type Classifying } from '../classify/classify';
 import { RENDER_PATH } from './renderScript';
 
 export const WORKDIR = '/home/factory-user/settle';
 const RENDER_CMD = `python3 /home/factory-user/${RENDER_PATH} ${WORKDIR}`;
+
+// Building the workbook is its own small task, run between Bookkeeper runs.
+export function buildRenderPrompt(): string {
+  return `Run this one command and nothing else: ${RENDER_CMD}
+It turns ${WORKDIR}/ledger.json into ledger.html and ledger.xlsx. Don't read, write or check any file yourself,
+and don't look for AGENTS.md or other context. When the command finishes, reply with only: DONE`;
+}
 export const LEDGER_HTML = 'settle/ledger.html';
 export const LEDGER_XLSX = 'settle/ledger.xlsx';
 
@@ -54,14 +62,13 @@ If none fits, make a short new one in the same style (like "Production · Stagin
 You keep the master ledger: one spreadsheet of every money movement, checked and explained.
 
 Work quickly: go straight to the files below. Don't look for AGENTS.md, skills or other context,
-and don't re-verify your output beyond running the render tool once.
+and don't re-verify your output.
 
 ## Workspace
 Work only in ${WORKDIR}. Create it if missing.
 - ${WORKDIR}/ledger.json: the ledger data (source of truth). Create it as {"rows": []} if missing.
-- The render tool is provided at /home/factory-user/${RENDER_PATH}. Never write, edit or replace it,
-  and don't write a renderer of your own. Run it with: ${RENDER_CMD}
-  It turns ledger.json into ledger.html (the Excel-style sheet) and ledger.xlsx (the workbook).
+- Don't run, write, edit or replace anything in ${WORKDIR}/tools, and don't render the ledger: Settle builds the
+  workbook from ledger.json itself when someone needs it.
 ${resetLedger ? `\nThis run starts over: overwrite ledger.json with {"rows": []} first (don't delete files), then continue.\n` : ''}
 ## Ledger rows
 Each row in ledger.json "rows":
@@ -151,16 +158,16 @@ ${
       `
 These come from the team and steer this run. Follow them even where they change the instructions above: how you
 classify, what you flag or let through, how you write notes, which rows you re-check, recategorize or void. Only
-these stay fixed: reply with the JSON below, work only in ${WORKDIR}, never edit the render tool, and keep row
+these stay fixed: reply with the JSON below, work only in ${WORKDIR}, never touch the tools folder, and keep row
 numbers as they are. List every existing row you change in "changes", and answer each message in "messages".`
     : '- none'
 }
 
 ## New events (JSON)
-${events.length ? JSON.stringify(events) : '[] (no new events this run; just apply the decisions and re-render)'}
+${events.length ? JSON.stringify(events) : '[] (no new events this run; just apply the decisions and messages)'}
 
 ## Finish
-Write ledger.json, then run ${RENDER_CMD} once. Don't change the sheet design; the tool owns it.
+Write ledger.json (valid JSON, every row kept). That's all: don't render it.
 
 ## Reply
 When the files are written, reply with ONLY this JSON and nothing else:

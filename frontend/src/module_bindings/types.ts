@@ -305,6 +305,19 @@ export const LedgerDocument = __t.object("LedgerDocument", {
 });
 export type LedgerDocument = __Infer<typeof LedgerDocument>;
 
+export const LedgerRender = __t.object("LedgerRender", {
+  id: __t.u32(),
+  status: __t.string(),
+  taskId: __t.option(__t.u64()),
+  requested: __t.bool(),
+  pendingRunId: __t.u64(),
+  renderedRunId: __t.u64(),
+  renderedAt: __t.option(__t.timestamp()),
+  sessionId: __t.option(__t.string()),
+  lastError: __t.option(__t.string()),
+});
+export type LedgerRender = __Infer<typeof LedgerRender>;
+
 export const Node = __t.object("Node", {
   id: __t.u64(),
   x: __t.f64(),

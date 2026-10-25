@@ -42,10 +42,12 @@ function useLiveTables() {
   const [reportCharts] = useTable(tables.reportChart);
   const [classifications] = useTable(tables.classification);
   const [auditLog] = useTable(tables.auditLog);
+  const [ledgerRenders] = useTable(tables.ledgerRender);
   const [patterns] = useTable(tables.pattern);
   const [patternStates] = useTable(tables.patternState);
   const [classificationModes] = useTable(tables.classificationMode);
   return {
+    ledgerRenders,
     auditLog,
     patterns,
     patternStates,

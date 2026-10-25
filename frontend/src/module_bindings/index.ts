@@ -56,6 +56,7 @@ import RecordPaymentReducer from "./record_payment_reducer";
 import RenameNodeReducer from "./rename_node_reducer";
 import ReopenEmailThreadReducer from "./reopen_email_thread_reducer";
 import RequestAgentTaskReducer from "./request_agent_task_reducer";
+import RequestLedgerRenderReducer from "./request_ledger_render_reducer";
 import RequestReportReducer from "./request_report_reducer";
 import ResetClassificationsReducer from "./reset_classifications_reducer";
 import ResetEmailFollowUpsReducer from "./reset_email_follow_ups_reducer";
@@ -99,6 +100,7 @@ import EventReviewRow from "./event_review_table";
 import InboundEventRow from "./inbound_event_table";
 import InboundSourceStatusRow from "./inbound_source_status_table";
 import LedgerDocumentRow from "./ledger_document_table";
+import LedgerRenderRow from "./ledger_render_table";
 import NodeRow from "./node_table";
 import PatternRow from "./pattern_table";
 import PatternStateRow from "./pattern_state_table";
@@ -347,6 +349,17 @@ const tablesSchema = __schema({
       { name: 'ledger_document_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, LedgerDocumentRow),
+  ledgerRender: __table({
+    name: 'ledger_render',
+    indexes: [
+      { accessor: 'id', name: 'ledger_render_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'ledger_render_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, LedgerRenderRow),
   node: __table({
     name: 'node',
     indexes: [
@@ -530,6 +543,7 @@ const reducersSchema = __reducers(
   __reducerSchema("rename_node", RenameNodeReducer),
   __reducerSchema("reopen_email_thread", ReopenEmailThreadReducer),
   __reducerSchema("request_agent_task", RequestAgentTaskReducer),
+  __reducerSchema("request_ledger_render", RequestLedgerRenderReducer),
   __reducerSchema("request_report", RequestReportReducer),
   __reducerSchema("reset_classifications", ResetClassificationsReducer),
   __reducerSchema("reset_email_follow_ups", ResetEmailFollowUpsReducer),

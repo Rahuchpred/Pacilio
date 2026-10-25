@@ -100,7 +100,31 @@ export const reviewDetail = table(
   }
 );
 
-// The master ledger as Droid last rendered it (singleton, id 0).
+// Building the ledger workbook (singleton, id 0). The Bookkeeper no longer
+// renders after every run (the board draws the sheet live from these tables);
+// the .xlsx is built between runs when someone asks for it, or every 10
+// minutes if the ledger changed.
+export const ledgerRender = table(
+  { name: 'ledger_render', public: true },
+  {
+    id: t.u32().primaryKey(),
+    // 'idle' | 'running'
+    status: t.string(),
+    taskId: t.u64().optional(),
+    requested: t.bool(),
+    // The Bookkeeper run whose ledger the build in progress covers
+    pendingRunId: t.u64(),
+    // The run whose ledger the last finished build covers
+    renderedRunId: t.u64(),
+    renderedAt: t.timestamp().optional(),
+    // The Factory session that holds the built files (for download links)
+    sessionId: t.string().optional(),
+    lastError: t.string().optional(),
+  }
+);
+
+// The master ledger as Droid last rendered it (singleton, id 0). runId moves
+// with every Bookkeeper run; html with every workbook build.
 export const ledgerDocument = table(
   { name: 'ledger_document', public: true },
   {
@@ -191,6 +215,7 @@ export const pipelineTables = {
   reviewItem,
   reviewDetail,
   ledgerDocument,
+  ledgerRender,
   toolInstall,
   reportDocument,
   reportChart,

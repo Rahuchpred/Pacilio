@@ -84,7 +84,8 @@ export const { createBill, createInvoice, recordPayment } = accounting(spacetime
 
 // ─── Bookkeeper (Droid on the Factory computer) ─────────────────────────────
 
-export const { pipelineTick, resolveReviewItem, ledgerXlsxUrl, requestReport, reportXlsxUrl } = pipeline(spacetimedb);
+export const { pipelineTick, resolveReviewItem, ledgerXlsxUrl, requestLedgerRender, requestReport, reportXlsxUrl } =
+  pipeline(spacetimedb);
 
 // ─── Email follow-ups (AgentMail) ───────────────────────────────────────────
 

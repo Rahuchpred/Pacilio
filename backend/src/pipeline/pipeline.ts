@@ -1,8 +1,8 @@
-import { SenderError, t, type InferSchema, type ReducerCtx } from 'spacetimedb/server';
+import { SenderError, t, type InferSchema, type ProcedureCtx, type ReducerCtx } from 'spacetimedb/server';
 import type spacetimedb from '../index';
 import { enqueueAgentTask } from '../droid/agents';
 import { FactoryClient, FactoryError } from '../droid/factory';
-import { LEDGER_HTML, LEDGER_XLSX, MAX_AUTO_EMAILS, buildPrompt, type PromptDecision, type PromptEvent } from './prompt';
+import { LEDGER_HTML, LEDGER_XLSX, MAX_AUTO_EMAILS, buildPrompt, buildRenderPrompt, type PromptDecision, type PromptEvent } from './prompt';
 import { finishMessages, markSent, promptId, queuedFor, requeueMessages } from '../settle/messages';
 import { currentClassifying } from '../classify/classify';
 import { learnTick, patternsForPrompt, recordPatternUses } from '../learn/learn';
@@ -23,6 +23,7 @@ import { startFollowUp } from '../email/email';
 
 type Schema = typeof spacetimedb;
 type Ctx = ReducerCtx<InferSchema<Schema>>;
+type PCtx = ProcedureCtx<InferSchema<Schema>>;
 type Run = NonNullable<ReturnType<Ctx['db']['agentRun']['id']['find']>>;
 type Task = NonNullable<ReturnType<Ctx['db']['agentTask']['id']['find']>>;
 type AgentState = NonNullable<ReturnType<Ctx['db']['pipelineAgent']['id']['find']>>;
@@ -99,6 +100,7 @@ export function resetPipeline(ctx: Ctx) {
   for (const r of [...ctx.db.reviewItem.iter()]) ctx.db.reviewItem.id.delete(r.id);
   for (const r of [...ctx.db.reviewDetail.iter()]) ctx.db.reviewDetail.itemId.delete(r.itemId);
   for (const r of [...ctx.db.ledgerDocument.iter()]) ctx.db.ledgerDocument.id.delete(r.id);
+  updateRender(ctx, { status: 'idle', taskId: undefined, requested: false, pendingRunId: 0n, renderedRunId: 0n, renderedAt: undefined, sessionId: undefined, lastError: undefined });
   updateAgent(ctx, { status: 'idle', currentRunId: undefined, lastError: undefined, resetLedger: true });
   resetReports(ctx);
 }
@@ -402,6 +404,89 @@ function showLiveClassifications(ctx: Ctx, run: Run) {
   }
 }
 
+// ─── The ledger workbook ────────────────────────────────────────────────────
+
+type Render = NonNullable<ReturnType<Ctx['db']['ledgerRender']['id']['find']>>;
+const RENDER_EVERY_MICROS = 10n * 60_000_000n;
+
+function renderState(ctx: Ctx): Render {
+  return (
+    ctx.db.ledgerRender.id.find(0) ??
+    ctx.db.ledgerRender.insert({
+      id: 0,
+      status: 'idle',
+      taskId: undefined,
+      requested: false,
+      pendingRunId: 0n,
+      renderedRunId: 0n,
+      renderedAt: undefined,
+      sessionId: undefined,
+      lastError: undefined,
+    })
+  );
+}
+
+function updateRender(ctx: Ctx, patch: Partial<Render>) {
+  ctx.db.ledgerRender.id.update({ ...renderState(ctx), ...patch });
+}
+
+// One step of the workbook build, between Bookkeeper runs. Returns true while
+// a build is running (the next Bookkeeper run waits for it, so the render
+// never reads ledger.json while the Bookkeeper is writing it).
+function renderTick(ctx: PCtx): boolean {
+  const snap = ctx.withTx(tx => {
+    const r = renderState(tx);
+    const task = r.taskId === undefined ? undefined : (tx.db.agentTask.id.find(r.taskId) ?? undefined);
+    const doc = tx.db.ledgerDocument.id.find(0);
+    const toolReady = tx.db.toolInstall.path.find(RENDER_PATH)?.version === RENDER_VERSION;
+    return { r, task, doc, toolReady };
+  });
+  const { r, task, doc } = snap;
+
+  if (r.status === 'running') {
+    if (!task || STOPPED_TASK.includes(task.status)) {
+      ctx.withTx(tx => updateRender(tx, { status: 'idle', taskId: undefined, lastError: task?.error ?? 'Build stopped' }));
+      return false;
+    }
+    if (task.status !== 'done') return true;
+    // Keep the rendered page too (for the record); the board doesn't need it
+    let html: string | undefined;
+    try {
+      const factory = new FactoryClient(ctx.http, ctx.env.FACTORY_API_KEY);
+      const res = ctx.http.fetch(factory.downloadUrl(ctx.env.FACTORY_COMPUTER_ID, task.sessionId!, LEDGER_HTML));
+      if (res.status === 200) html = res.text().slice(0, MAX_HTML_CHARS);
+    } catch {
+      // the .xlsx is what matters
+    }
+    ctx.withTx(tx => {
+      const d = tx.db.ledgerDocument.id.find(0);
+      if (d && html !== undefined) tx.db.ledgerDocument.id.update({ ...d, html });
+      updateRender(tx, {
+        status: 'idle',
+        taskId: undefined,
+        renderedRunId: r.pendingRunId,
+        renderedAt: tx.timestamp,
+        sessionId: task.sessionId,
+        lastError: undefined,
+      });
+    });
+    return false;
+  }
+
+  if (!doc || !snap.toolReady || doc.runId === r.renderedRunId) {
+    if (r.requested && doc && doc.runId === r.renderedRunId) ctx.withTx(tx => updateRender(tx, { requested: false }));
+    return false;
+  }
+  const stale =
+    !r.renderedAt || ctx.timestamp.microsSinceUnixEpoch - r.renderedAt.microsSinceUnixEpoch >= RENDER_EVERY_MICROS;
+  if (!r.requested && !stale) return false;
+  ctx.withTx(tx => {
+    const taskId = enqueueAgentTask(tx, 'render', buildRenderPrompt(), 'high');
+    updateRender(tx, { status: 'running', taskId, requested: false, pendingRunId: doc.runId, lastError: undefined });
+  });
+  return true;
+}
+
 // The run didn't produce usable results: put its events back in the queue.
 function failRun(ctx: Ctx, run: Run, error: string) {
   for (const eventId of run.eventIds) ctx.db.eventReview.eventId.delete(eventId);
@@ -478,28 +563,24 @@ export function pipeline(stdb: Schema) {
             }
           }
 
-          // Bring the spreadsheet Droid rendered back for every browser to show
-          try {
-            const factory = new FactoryClient(ctx.http, ctx.env.FACTORY_API_KEY);
-            const url = factory.downloadUrl(ctx.env.FACTORY_COMPUTER_ID, task.sessionId!, LEDGER_HTML);
-            const res = ctx.http.fetch(url);
-            if (res.status !== 200) throw new Error(`Ledger download returned ${res.status}`);
-            const html = res.text().slice(0, MAX_HTML_CHARS);
-            ctx.withTx(tx => {
-              const doc = { id: 0, html, runId: run.id, updatedAt: tx.timestamp };
-              if (tx.db.ledgerDocument.id.find(0)) tx.db.ledgerDocument.id.update(doc);
-              else tx.db.ledgerDocument.insert(doc);
-            });
-          } catch (err) {
-            ctx.withTx(tx => updateAgent(tx, { lastError: `Ledger: ${message(err)}` }));
-          }
+          // The ledger changed. No render here: the board draws it live, and the
+          // workbook is built when someone needs it (renderTick)
+          ctx.withTx(tx => {
+            const prev = tx.db.ledgerDocument.id.find(0);
+            const doc = { id: 0, html: prev?.html ?? '', runId: run.id, updatedAt: tx.timestamp };
+            if (prev) tx.db.ledgerDocument.id.update(doc);
+            else tx.db.ledgerDocument.insert(doc);
+          });
         }
         return {};
       }
 
       // Make sure the agent's tools are on the computer before handing it work
       const missing = ctx.withTx(tx =>
-        agentState(tx).enabled || tx.db.reportState.id.find(0)?.requested || queuedFor(tx, 'main').length
+        agentState(tx).enabled ||
+        tx.db.reportState.id.find(0)?.requested ||
+        queuedFor(tx, 'main').length ||
+        tx.db.ledgerRender.id.find(0)?.requested
           ? TOOLS.filter(tool => tx.db.toolInstall.path.find(tool.path)?.version !== tool.version)
           : []
       );
@@ -530,12 +611,22 @@ export function pipeline(stdb: Schema) {
         return {};
       }
 
+      // Build the workbook if it's asked for (or stale), before the next run
+      let rendering = false;
+      try {
+        rendering = renderTick(ctx);
+      } catch (err) {
+        console.warn(`render: ${message(err)}`);
+      }
+      if (rendering) return {};
+
       const started = ctx.withTx(tx => startRun(tx));
       const reportRunning = ctx.withTx(tx => {
         const report = tx.db.reportState.id.find(0);
         return report?.status === 'running' || !!report?.requested;
       });
-      if (!started && !snap.agent.enabled && !reportRunning && !learning) {
+      const renderWanted = ctx.withTx(tx => !!tx.db.ledgerRender.id.find(0)?.requested);
+      if (!started && !snap.agent.enabled && !reportRunning && !learning && !renderWanted) {
         ctx.withTx(tx => {
           for (const row of [...tx.db.pipelineTickSchedule.iter()]) {
             tx.db.pipelineTickSchedule.scheduledId.delete(row.scheduledId);
@@ -632,16 +723,19 @@ export function pipeline(stdb: Schema) {
   );
 
   // A fresh download link for the .xlsx workbook the agent last wrote.
+  // A fresh link to the last built workbook
   const ledgerXlsxUrl = stdb.procedure(t.string(), ctx => {
-    const sessionId = ctx.withTx(tx => {
-      const doc = tx.db.ledgerDocument.id.find(0);
-      const run = doc && tx.db.agentRun.id.find(doc.runId);
-      return (run && tx.db.agentTask.id.find(run.taskId)?.sessionId) ?? undefined;
-    });
-    if (!sessionId) throw new SenderError('The agent has not written the workbook yet');
+    const sessionId = ctx.withTx(tx => tx.db.ledgerRender.id.find(0)?.sessionId);
+    if (!sessionId) throw new SenderError('The workbook has not been built yet');
     const factory = new FactoryClient(ctx.http, ctx.env.FACTORY_API_KEY);
     return factory.downloadUrl(ctx.env.FACTORY_COMPUTER_ID, sessionId, LEDGER_XLSX);
   });
 
-  return { pipelineTick, resolveReviewItem, ledgerXlsxUrl, ...reports(stdb, ensureTicking) };
+  // Build the workbook from the latest ledger (between Bookkeeper runs)
+  const requestLedgerRender = stdb.reducer(ctx => {
+    updateRender(ctx, { requested: true });
+    ensureTicking(ctx);
+  });
+
+  return { pipelineTick, resolveReviewItem, ledgerXlsxUrl, requestLedgerRender, ...reports(stdb, ensureTicking) };
 }
