@@ -127,7 +127,7 @@ export function leveled(c: CardLevels) {
 }
 
 // Bottom right: close every open card, or open them all when none are (for
-// everyone), and Ask Settle.
+// everyone), and Ask Pacioli.
 export function CanvasCorner() {
   const expanded = useExpanded();
   const setExpanded = useSetExpanded();

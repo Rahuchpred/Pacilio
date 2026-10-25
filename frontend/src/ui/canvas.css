@@ -379,7 +379,7 @@
 .ask-button.is-open { background: var(--color-bg-sunken); }
 
 /* One control height across the canvas chrome: 42px, 4px inner padding,
-   32px buttons inside (dock, Detail filter, Ask Settle, top bar). */
+   32px buttons inside (dock, Detail filter, Ask Pacioli, top bar). */
 .pipeline .lv-seg { padding: var(--space-xs); }
 .topbar { height: 42px; padding: 0 var(--space-xs); }
 

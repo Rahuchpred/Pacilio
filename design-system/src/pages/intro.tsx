@@ -12,8 +12,8 @@ const sheetRows = [
 
 export const INTRO: PageDef = {
   id: "introduction",
-  group: "Settle",
-  title: "Settle",
+  group: "Pacioli",
+  title: "Pacioli",
   lede: "Show settlement for concert promoters. Agents do the counting and people make the calls. Ink and paper for the record; the one action you press next is the only crafted surface.",
   agent: Object.values(AGENT_NOTES).slice(0, 6).join("\n\n"),
   sections: [
@@ -57,7 +57,7 @@ export const INTRO: PageDef = {
           <article className="escalation">
             <div className="escalation-head">
               <span className="escalation-who">
-                <Icon name="agent" size={14} /> Settle agent
+                <Icon name="agent" size={14} /> Pacioli agent
               </span>
               <Status kind="needs">Waiting on M. Carter</Status>
             </div>
@@ -118,7 +118,7 @@ export const INTRO: PageDef = {
           <article className="escalation">
             <div className="escalation-head">
               <span className="escalation-who">
-                <Icon name="agent" size={14} /> Settle agent
+                <Icon name="agent" size={14} /> Pacioli agent
               </span>
               <Status kind="needs">Waiting on M. Carter</Status>
             </div>
@@ -224,7 +224,7 @@ export const INTRO: PageDef = {
             </div>
             <div className="msg msg-agent">
               <span className="msg-who">
-                <Icon name="agent" size={14} /> Settle agent
+                <Icon name="agent" size={14} /> Pacioli agent
               </span>
               <p>
                 The rider cap is $3,500

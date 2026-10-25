@@ -4,7 +4,7 @@ import { reducers } from '../module_bindings';
 import type { AgentMessage } from '../module_bindings/types';
 import { logError } from '../throttle';
 
-// Messages Ask Settle sent to the agents: "Sent '…' to Bookkeeper", where it
+// Messages Ask Pacioli sent to the agents: "Sent '…' to Bookkeeper", where it
 // stands, and the agent's one-line reply once a run has handled it.
 
 export const AGENT_NAME: Record<string, string> = { main: 'Bookkeeper', reports: 'Reports agent' };

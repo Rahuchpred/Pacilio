@@ -4,7 +4,7 @@ import { onTaskSettledOfKind } from '../droid/agents';
 import { ensureTicking } from '../pipeline/ticking';
 import { logAction } from '../learn/audit';
 
-// Ask Settle as a dispatcher. A person asks in plain words; Settle answers,
+// Ask Pacioli as a dispatcher. A person asks in plain words; Pacioli answers,
 // and when the ask is really for an agent ("put these under Catering", "make
 // me a vendor report") it sends that agent a one-off message. The message is
 // queued at once (no confirm step) and rides along with that agent's next run,
@@ -17,7 +17,7 @@ export type Message = NonNullable<ReturnType<Ctx['db']['agentMessage']['id']['fi
 export type Target = 'main' | 'reports';
 
 const TARGETS: Target[] = ['main', 'reports'];
-// Ask Settle puts the person's words after this marker in its prompt
+// Ask Pacioli puts the person's words after this marker in its prompt
 const QUESTION_MARK = '\nQuestion: ';
 const MAX_PER_ASK = 3;
 const MAX_TEXT = 800;
@@ -25,7 +25,7 @@ const MAX_REPLY = 600;
 
 export type AskReply = { answer: string; send: { to: Target; message: string }[] };
 
-// Settle's reply is JSON; tolerate a code fence or a stray sentence around it,
+// Pacioli's reply is JSON; tolerate a code fence or a stray sentence around it,
 // and fall back to treating plain text as the answer.
 export function parseAsk(text: string | undefined): AskReply {
   const raw = (text ?? '').trim();
@@ -69,7 +69,7 @@ function wake(ctx: Ctx, target: Target) {
   ensureTicking(ctx);
 }
 
-// When an Ask Settle task finishes, queue whatever it decided to send.
+// When an Ask Pacioli task finishes, queue whatever it decided to send.
 onTaskSettledOfKind('ask', (ctx, task: Task) => {
   if (task.status !== 'done') return;
   const { send } = parseAsk(task.result);
@@ -88,7 +88,7 @@ onTaskSettledOfKind('ask', (ctx, task: Task) => {
     });
   }
   for (const target of new Set(send.map(s => s.to))) wake(ctx, target);
-  // The audit log: what was asked, and what Settle passed on
+  // The audit log: what was asked, and what Pacioli passed on
   const at = task.prompt.lastIndexOf(QUESTION_MARK);
   const question = at < 0 ? '' : task.prompt.slice(at + QUESTION_MARK.length).trim();
   if (!send.length) {

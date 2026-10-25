@@ -1,7 +1,7 @@
 import { ReactNode, useState } from "react";
 import { glaze, type GlazeName } from "./glaze-icons";
 
-/* Icons: the Glaze set from design.how (Phosphor Regular). Settle's short
+/* Icons: the Glaze set from design.how (Phosphor Regular). Pacioli's short
    names point at Glaze icons, so existing calls keep working; any Glaze name
    (Bot, Waiting, Success...) works too. */
 const alias = {

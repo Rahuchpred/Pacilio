@@ -1,5 +1,5 @@
 /* The master ledger drawn like Excel: Excel's own greys, green and status
-   fills (the same ones the agent's .xlsx uses), not the Settle palette. */
+   fills (the same ones the agent's .xlsx uses), not the Pacioli palette. */
 
 .xl {
   display: flex;

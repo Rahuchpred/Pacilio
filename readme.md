@@ -1,4 +1,4 @@
-# Cal Hacks
+# Pacioli
 
 - `backend/` — SpacetimeDB module (TypeScript), deployed to maincloud as `cal-hacks-ansingh`
 - `frontend/` — Vite + React app that connects to it

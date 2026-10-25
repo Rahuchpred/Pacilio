@@ -9,7 +9,7 @@ Each pattern is live on the docs site (`npm --prefix design-system run dev`) and
 - Only the row that needs a person uses Status kind="needs".
 
 ## Needs your OK (follows Glaze's "Book a table")
-- Head: who is asking (agent icon + "Settle agent") and, beside it, Status kind="needs" with "Waiting on <name>". Never a label above a title.
+- Head: who is asking (agent icon + "Pacioli agent") and, beside it, Status kind="needs" with "Waiting on <name>". Never a label above a title.
 - Message: one sentence that says why it is asking, with numbered Refs to the sources. Put the confidence in words: "I'm 62% sure ... so I'm asking first."
 - Facts: a hairline panel with a title and 2 to 4 key/value rows (amounts right aligned).
 - Foot of the facts panel (bg-sunken): the deadline left ("Held until settlement, 11:40 pm"), two buttons right: quiet then decide.
@@ -25,7 +25,7 @@ Each pattern is live on the docs site (`npm --prefix design-system run dev`) and
 
 ## Dispute
 - Counterparty message: bg-sunken, name + role above.
-- Agent reply: canvas with hairline border, Icon "agent" + "Settle agent".
+- Agent reply: canvas with hairline border, Icon "agent" + "Pacioli agent".
 - The reply cites with numbered Refs. Never apologize, never concede without a source.
 - Actions under the thread: secondary "Send", quiet "Escalate to <controller>".
 

@@ -8,7 +8,7 @@ import { FOUNDATIONS } from "./pages/foundations";
 import { ACTIONS, DISPLAY, INPUTS } from "./pages/library";
 
 const PAGES: PageDef[] = [INTRO, ...FOUNDATIONS, ...ACTIONS, ...INPUTS, ...DISPLAY];
-const GROUPS = ["Settle", "Foundations", "Actions", "Inputs", "Display"];
+const GROUPS = ["Pacioli", "Foundations", "Actions", "Inputs", "Display"];
 const pageFromHash = () => {
   const id = window.location.hash.replace(/^#\/?/, "").split("/")[0];
   return PAGES.find((p) => p.id === id) ?? INTRO;
@@ -77,7 +77,7 @@ export default function App() {
   }, [theme]);
 
   useEffect(() => {
-    document.title = page.id === "introduction" ? "Settle Design System" : `${page.title} · Settle Design System`;
+    document.title = page.id === "introduction" ? "Pacioli Design System" : `${page.title} · Pacioli Design System`;
     const els = Array.from(document.querySelectorAll<HTMLElement>(".doc-section"));
     setActive(els[0]?.id ?? "");
     const io = new IntersectionObserver(

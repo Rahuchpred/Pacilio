@@ -3,7 +3,7 @@ import type { User } from './module_bindings/types';
 // A person's color on the canvas: their cursor, its name tag and the dot on
 // their avatar. The backend hands out bright Tailwind colors (orange, green,
 // red among them), which would read as decide, done or issue. This picks
-// one of Settle's six muted presence colors instead, stable per person.
+// one of Pacioli's six muted presence colors instead, stable per person.
 
 export const PRESENCE_COUNT = 6;
 

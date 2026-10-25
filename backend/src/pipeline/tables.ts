@@ -125,7 +125,7 @@ export const ledgerRender = table(
 
 // Where the latest ledger snapshot lives on the Factory computer (singleton,
 // id 0). The backend owns the ledger: before each Bookkeeper run (and before a
-// workbook build, report or Ask Settle) it writes every checked row from these
+// workbook build, report or Ask Pacioli) it writes every checked row from these
 // tables to a fresh folder there, since Factory won't overwrite an upload.
 export const ledgerFiles = table(
   { name: 'ledger_files', public: true },
@@ -185,7 +185,7 @@ export const reportDocument = table(
   }
 );
 
-// Charts the team asked the reports agent for (through Ask Settle). They stay
+// Charts the team asked the reports agent for (through Ask Pacioli). They stay
 // in the show report, and every report build refreshes their numbers, until
 // someone asks to remove one.
 export const reportChart = table(

@@ -252,7 +252,7 @@ export const deleteEdge = spacetimedb.reducer(
   }
 );
 
-// ─── Ask Settle: messages to the agents ─────────────────────────────────────
+// ─── Ask Pacioli: messages to the agents ─────────────────────────────────────
 
 export const { cancelAgentMessage } = settle(spacetimedb);
 

@@ -7,14 +7,14 @@
 // ASCII-only (non-ASCII as \u escapes) so the upload size is exact. Avoid "$"
 // followed by "{" (template literal).
 //
-// Colors: Settle's warm neutrals from the design tokens. Charts are ink
+// Colors: Pacioli's warm neutrals from the design tokens. Charts are ink
 // (money in), warm grey (money out) and secondary ink (totals), so no hue
 // competes with the decide orange.
 
 export const REPORT_VERSION = 'v4';
 export const REPORT_PATH = `settle/tools/report-${REPORT_VERSION}.py`;
 
-export const REPORT_SCRIPT = String.raw`# settle-report v4 -- provided by Settle. Do not edit.
+export const REPORT_SCRIPT = String.raw`# settle-report v4 -- provided by Pacioli. Do not edit.
 # Run: python3 /home/factory-user/settle/tools/report-v4.py /home/factory-user/settle
 """Build report.json, report.html and report.xlsx from the settled rows of ledger.json."""
 import datetime
@@ -30,7 +30,7 @@ HERE = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path(__file__).reso
 SETTLED = ("ok", "refunded")
 DOCUMENT_KINDS = ("bill", "invoice")
 HELD = ("review", "void", "following_up")
-# Settle tokens, orange accent, light (design-system/src/tokens/tokens.css).
+# Pacioli tokens, orange accent, light (design-system/src/tokens/tokens.css).
 # Money is ink and paper: no hue, so nothing in the report reads like the
 # decide orange.
 IN_COLOR = "#1f1a14"    # money in: --color-text-primary

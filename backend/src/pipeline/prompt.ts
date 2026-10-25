@@ -50,7 +50,7 @@ export interface PromptDecision {
   note: string;
 }
 
-// A one-off message from the team (sent through Ask Settle) for this run.
+// A one-off message from the team (sent through Ask Pacioli) for this run.
 // Emails the Bookkeeper may send on its own in one run (pipeline.ts enforces it)
 export const MAX_AUTO_EMAILS = 3;
 

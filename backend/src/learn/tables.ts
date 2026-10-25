@@ -1,7 +1,7 @@
 import { table, t } from 'spacetimedb/server';
 
 // Everything people do, newest last. The learnable entries (decisions on the
-// Bookkeeper's questions, corrections sent through Settle, category changes)
+// Bookkeeper's questions, corrections sent through Pacioli, category changes)
 // feed the pattern learner.
 export const auditLog = table(
   { name: 'audit_log', public: true },

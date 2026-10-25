@@ -298,7 +298,7 @@
 }
 @keyframes lv-fade-in { from { opacity: 0; } }
 
-/* Filter and Ask Settle side by side; Close card stacks above them. */
+/* Filter and Ask Pacioli side by side; Close card stacks above them. */
 .pipeline .lv-row { display: flex; align-items: flex-end; gap: var(--space-sm); }
 
 /* Colored cards never glow outside. Close up, each keeps its light look (a

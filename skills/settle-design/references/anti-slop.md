@@ -1,6 +1,6 @@
 # Anti-slop
 
-Settle follows Glaze's anti-slop rules from design.how (research/designhow/glaze-anti-slop.md) and adds its own.
+Pacioli follows Glaze's anti-slop rules from design.how (research/designhow/glaze-anti-slop.md) and adds its own.
 
 ## Look
 | Avoid | Instead |
@@ -29,7 +29,7 @@ Settle follows Glaze's anti-slop rules from design.how (research/designhow/glaze
 | Shimmer or a blinking cursor on streamed text | The text as it arrives |
 | Content that fades in on scroll | Content that is there |
 
-## Settle's own
+## Pacioli's own
 - One accent per screen: the decide button. If two things are colored, one is wrong.
 - No number without a source. No value without an actor.
 - Never agree with a counterparty without a source.

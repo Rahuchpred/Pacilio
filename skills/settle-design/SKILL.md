@@ -1,13 +1,13 @@
 ---
 name: settle-design
-description: Settle's design system for show settlement UI. Use whenever building or editing any screen, component, email or slide for Settle, including escalations ("needs your OK"), settlement sheets, disputes, policy diffs and agent logs. Covers tokens, money formatting, components, patterns, voice and what never to do.
+description: Pacioli's design system for show settlement UI. Use whenever building or editing any screen, component, email or slide for Pacioli, including escalations ("needs your OK"), settlement sheets, disputes, policy diffs and agent logs. Covers tokens, money formatting, components, patterns, voice and what never to do.
 ---
 
-# Settle design system
+# Pacioli design system
 
 Ink and paper for money. Color appears only where a person has to decide.
 
-Settle runs show settlement for concert promoters. Agents do the counting, people make the calls. Every screen keeps those two visibly different: agent work is black and white with a source on every number, and the one thing waiting on a person is the only thing in color.
+Pacioli runs show settlement for concert promoters. Agents do the counting, people make the calls. Every screen keeps those two visibly different: agent work is black and white with a source on every number, and the one thing waiting on a person is the only thing in color.
 
 ## Before writing UI
 
@@ -30,7 +30,7 @@ Settle runs show settlement for concert promoters. Agents do the counting, peopl
 | `references/tokens.md` | Color, type, space, radius, elevation, motion and how to use them |
 | `references/components.md` | Button, Status, Citation, Actor, Money, Confidence |
 | `references/patterns.md` | Tonight, Needs your OK, Settlement sheet, Dispute, Answer becomes policy, Agent log |
-| `references/voice.md` | How Settle writes |
-| `references/anti-slop.md` | What Settle never does |
+| `references/voice.md` | How Pacioli writes |
+| `references/anti-slop.md` | What Pacioli never does |
 
 Source of truth for every value: `design-system/src/tokens/tokens.json`. The Figma file uses the same names as variables.

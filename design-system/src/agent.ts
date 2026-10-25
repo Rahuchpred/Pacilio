@@ -1,6 +1,6 @@
 // What the Agent toggle shows: the same rules a coding agent reads in skills/settle-design.
 
-export const INSTALL_PROMPT = `Install the Settle design system in this project.
+export const INSTALL_PROMPT = `Install the Pacioli design system in this project.
 1. Copy skills/settle-design from github.com/Rahuchpred/cal-hacks into .claude/skills/settle-design.
 2. Read skills/settle-design/SKILL.md before writing any UI.
 3. Import design-system/src/tokens/tokens.css and use only its variables for color, type, space, radius and motion.
@@ -13,7 +13,7 @@ export const AGENT_NOTES: Record<string, string> = {
 - Footer: date · venue · capacity on the left, one decide Button on the right.
 - Only the row that needs a person uses Status kind="needs".`,
   escalation: `# Needs your OK (follows Glaze's "Book a table")
-- Head: who is asking (agent icon + "Settle agent") and, beside it, Status kind="needs" with "Waiting on <name>". Never a label above a title.
+- Head: who is asking (agent icon + "Pacioli agent") and, beside it, Status kind="needs" with "Waiting on <name>". Never a label above a title.
 - Message: one sentence that says why it is asking, with numbered Refs to the sources. Put the confidence in words: "I'm 62% sure ... so I'm asking first."
 - Facts: a hairline panel with a title and 2 to 4 key/value rows (amounts right aligned).
 - Foot of the facts panel (bg-sunken): the deadline left ("Held until settlement, 11:40 pm"), two buttons right: quiet then decide.
@@ -27,7 +27,7 @@ export const AGENT_NOTES: Record<string, string> = {
 - Amounts use sans with tabular figures, never mono.`,
   dispute: `# Dispute
 - Counterparty message: bg-sunken, name + role above.
-- Agent reply: canvas with hairline border, Icon "agent" + "Settle agent".
+- Agent reply: canvas with hairline border, Icon "agent" + "Pacioli agent".
 - The reply cites with numbered Refs. Never apologize, never concede without a source.
 - Actions under the thread: secondary "Send", quiet "Escalate to <controller>".`,
   policy: `# Answer becomes policy
@@ -81,7 +81,7 @@ Words
 Behaviour
 - No shimmer or blinking cursor on streamed text.
 - No content that fades in on scroll.
-Settle
+Pacioli
 - No second accent color. No number without a source.`,
   button: `# Button
 kinds: decide, accept, reject (crafted), primary, secondary, quiet. sizes: sm 32px, md 40px. Radius is --radius-control.
@@ -95,7 +95,7 @@ kinds: decide, accept, reject (crafted), primary, secondary, quiet. sizes: sm 32
 - data-accent="orange" on <html> swaps the theme color to orange in every theme; components stay the same.`,
   status: `# Status
 kinds: cleared, held, disputed, needs, agent. Each theme draws it its own way:
-- Settle: glyph + word, no background (Glaze). needs uses an hourglass in ink.
+- Pacioli: glyph + word, no background (Glaze). needs uses an hourglass in ink.
 - Ramp: square tag (radius 4), no icon, tinted background; needs is a solid ink tag.
 - Stripe: tinted 4px tag, icon first, hairline in its own color.
 - Mercury: outlined pill in the state color, no icon.`,

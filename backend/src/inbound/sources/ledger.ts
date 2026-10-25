@@ -43,7 +43,7 @@ function simulateLedger(ctx: SourceContext): void {
 
     // A sponsor invoice now and then; otherwise a vendor bill for the show.
     // Payments aren't made up here: the bank pays bills and sponsors pay
-    // invoices into the bank, and Settle records them when it matches them.
+    // invoices into the bank, and Pacioli records them when it matches them.
     if (roll < 0.3) {
       const sponsor = pick(ctx.random, SPONSORS);
       const total = BigInt(amountBetween(ctx.random, sponsor.min, sponsor.max));
@@ -172,7 +172,7 @@ export const ledger: Source = {
         });
       }
 
-      // Payments aren't events of their own: each one is recorded by Settle when
+      // Payments aren't events of their own: each one is recorded by Pacioli when
       // the Bookkeeper matches a bank row to its bill or invoice, so sending it
       // back into the feed would count the same money twice.
       return out;

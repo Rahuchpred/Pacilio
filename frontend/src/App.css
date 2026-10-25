@@ -59,7 +59,7 @@ button {
 .cursor-stop-mid { stop-color: var(--who); }
 .cursor-stop-low { stop-color: color-mix(in srgb, var(--who) 88%, #000); }
 
-/* A person's name: a Settle tag in the same crafted material as the decide
+/* A person's name: a Pacioli tag in the same crafted material as the decide
    button (Stripe recipe: top-lit gradient, 1px highlight, a darker ring),
    in their color. No glow around it. */
 .cursor-label {

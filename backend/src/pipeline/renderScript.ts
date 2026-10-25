@@ -10,7 +10,7 @@ export const RENDER_VERSION = 'v6';
 // older agent-written settle/render.py may still be on the computer
 export const RENDER_PATH = `settle/tools/render-${RENDER_VERSION}.py`;
 
-export const RENDER_SCRIPT = String.raw`# settle-render v6 -- provided by Settle. Do not edit.
+export const RENDER_SCRIPT = String.raw`# settle-render v6 -- provided by Pacioli. Do not edit.
 # Run: python3 /home/factory-user/settle/tools/render-v6.py /home/factory-user/settle
 """Render settle/ledger.json into ledger.html (an Excel-style window) and ledger.xlsx."""
 import datetime

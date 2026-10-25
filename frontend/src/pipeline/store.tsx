@@ -154,7 +154,7 @@ function useDerived(t: ReturnType<typeof useLiveTables>) {
     for (const list of m.values()) list.sort((a, b) => (a.sentAt.microsSinceUnixEpoch < b.sentAt.microsSinceUnixEpoch ? -1 : 1));
     return m;
   }, [t.messages]);
-  // Messages Ask Settle sent, by the ask that sent them (oldest first)
+  // Messages Ask Pacioli sent, by the ask that sent them (oldest first)
   const messagesByAsk = useMemo(
     () => group([...t.agentMessages].sort(byId), m => m.askTaskId.toString()),
     [t.agentMessages]

@@ -1,13 +1,13 @@
 import { table, t } from 'spacetimedb/server';
 
-// Messages Ask Settle sends to the agents on a person's behalf: one-off
+// Messages Ask Pacioli sends to the agents on a person's behalf: one-off
 // instructions for the Bookkeeper's next run, or a request for the reports
 // agent's next report.
 export const agentMessage = table(
   { name: 'agent_message', public: true },
   {
     id: t.u64().primaryKey().autoInc(),
-    // The Ask Settle task that sent it
+    // The Ask Pacioli task that sent it
     askTaskId: t.u64().index('btree'),
     // 'main' | 'reports'
     target: t.string(),

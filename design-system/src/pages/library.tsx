@@ -371,7 +371,7 @@ function SwitchDemo() {
   const [b, setB] = useState(false);
   return (
     <div className="field-stack">
-      <Switch id="s-auto" label="Settle cleared lines on their own" checked={a} onChange={setA} />
+      <Switch id="s-auto" label="Pacioli cleared lines on their own" checked={a} onChange={setA} />
       <Switch id="s-email" label="Email the tour manager the sheet" checked={b} onChange={setB} />
     </div>
   );

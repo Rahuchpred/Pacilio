@@ -6,7 +6,7 @@ import { FactoryClient } from '../droid/factory';
 // ledger.json on the Factory computer and re-read the whole file every run,
 // which got slower as the ledger grew. Now every checked row lives in these
 // tables, and a snapshot of them is uploaded to a fresh folder before an agent
-// needs it. The Bookkeeper only searches it (Grep) and replies; Settle writes
+// needs it. The Bookkeeper only searches it (Grep) and replies; Pacioli writes
 // the rows from its reply.
 
 type Schema = typeof spacetimedb;

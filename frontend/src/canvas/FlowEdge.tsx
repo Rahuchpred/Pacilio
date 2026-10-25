@@ -71,7 +71,7 @@ function PacketDot({ path, packet, onDone }: { path: string; packet: Packet; onD
       <path ref={track} d={path} fill="none" stroke="none" />
       <g ref={dot} className={`packet-tag ${packet.tone}`} style={{ opacity: 0 }}>
         {packet.label ? (
-          // A Settle tag (4px corners) riding on the line itself, its colored
+          // A Pacioli tag (4px corners) riding on the line itself, its colored
           // dot leading at the front, so parallel lanes never cover each other
           <>
             <rect ref={box} y={-TAG_H / 2} height={TAG_H} rx={4} />

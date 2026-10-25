@@ -698,7 +698,7 @@ button.ask-fact { cursor: pointer; }
 .fu-spacer { flex: 1; }
 .email-links { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); padding-left: var(--space-xs); }
 
-/* ---- Messages from Ask Settle to the agents ---- */
+/* ---- Messages from Ask Pacioli to the agents ---- */
 
 .agent-msg {
   display: flex;

@@ -284,7 +284,7 @@ a {
   color: var(--color-text-primary);
 }
 
-/* Status. Settle draws it like Glaze: a glyph and a word, no background. */
+/* Status. Pacioli draws it like Glaze: a glyph and a word, no background. */
 .status {
   display: inline-flex;
   align-items: center;

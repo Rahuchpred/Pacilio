@@ -27,7 +27,7 @@ const REASONING_BY_KIND: Record<string, 'low' | 'medium' | 'high'> = { pipeline:
 // ─── Extension point ────────────────────────────────────────────────────────
 
 // Called in the same transaction that marks a task done or failed. Other
-// modules register for their task kind (Ask Settle routes its messages here).
+// modules register for their task kind (Ask Pacioli routes its messages here).
 type SettledHook = (ctx: Ctx, task: Task) => void;
 const settledHooks = new Map<string, SettledHook>();
 
