@@ -34,7 +34,8 @@ export function Decide({ item, event }: { item: ReviewItem; event: InboundEvent 
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const canRefund = event?.source === 'stripe' && !!event.reference?.startsWith('ch_');
-  const actions = ['void', ...(canRefund ? ['refund'] : []), 'follow_up', 'keep'];
+  // No 'follow_up': email sending is off
+  const actions = ['void', ...(canRefund ? ['refund'] : []), 'keep'];
   const suggested = actions.includes(item.recommendation) ? item.recommendation : 'keep';
   const others = actions.filter(a => a !== suggested);
 

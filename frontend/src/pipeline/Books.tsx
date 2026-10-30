@@ -1,7 +1,5 @@
 import { memo, useMemo, useState } from 'react';
-import { useProcedure } from 'spacetimedb/react';
-import { Button, Icon, Money, Status } from '../../../design-system/src/components';
-import { procedures } from '../module_bindings';
+import { Icon, Money, Status } from '../../../design-system/src/components';
 import { FarCard, type CardLevels } from '../canvas/levels';
 import { Card, CardTabs } from './Card';
 import { DOC_STATUS, clock, daysOverdue, docState, dollars, openItem } from './live';
@@ -11,8 +9,6 @@ const capitalize = (word: string) => word.charAt(0).toUpperCase() + word.slice(1
 
 // QuickBooks: who owes whom. Bills are what we owe vendors; invoices what
 // customers owe us. Payments come from the bank rows the Bookkeeper matched.
-// An overdue invoice can be reminded (Remind them), which the pattern learner
-// watches, so the Bookkeeper can learn to remind on its own.
 
 type Filter = 'open' | 'overdue' | 'paid';
 
@@ -61,13 +57,9 @@ function Far() {
 }
 
 // One hairline row per bill or invoice: who and where it stands on the left,
-// the amount and its status on the right. Overdue invoices can be reminded
-// here (any open one from its item panel); only the latest wears the decide color.
-const DocRow = memo(function DocRow({ d, books, decide }: { d: Doc; books: BooksData; decide: boolean }) {
-  const { paymentsByDoc, rowNumber, reminding } = books;
-  const remind = useProcedure(procedures.remindInvoice);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+// the amount and its status on the right.
+const DocRow = memo(function DocRow({ d, books }: { d: Doc; books: BooksData }) {
+  const { paymentsByDoc, rowNumber } = books;
   const state = docState(d);
   const left = dollars(d.balanceMinor, d.currency);
   const payments = paymentsByDoc.get(`${d.kind}:${d.id}`) ?? [];
@@ -100,14 +92,6 @@ const DocRow = memo(function DocRow({ d, books, decide }: { d: Doc; books: Books
       `Due in ${days(due)}`
     );
 
-  const send = () => {
-    setBusy(true);
-    setError(null);
-    remind({ docNumber: d.docNumber })
-      .catch((err: Error) => setError(err.message))
-      .finally(() => setBusy(false));
-  };
-
   return (
     <li className="doc">
       <button type="button" className="doc-main" onClick={() => d.eventId !== undefined && openItem(d.eventId)}>
@@ -122,20 +106,6 @@ const DocRow = memo(function DocRow({ d, books, decide }: { d: Doc; books: Books
         </span>
         <Status kind={DOC_STATUS[state].kind}>{DOC_STATUS[state].label}</Status>
       </button>
-      {d.kind === 'invoice' && state === 'overdue' && (
-        <div className="doc-actions nodrag">
-          {reminding(d) ? (
-            <span className="tertiary small doc-sent">
-              <Icon name="mail" size={14} /> Reminder sent, waiting for a reply
-            </span>
-          ) : (
-            <Button kind={decide ? 'decide' : 'quiet'} size="sm" icon="Send" pending={busy} disabled={busy} onClick={send}>
-              Remind them
-            </Button>
-          )}
-          {error && <span className="card-error small">{error}</span>}
-        </div>
-      )}
     </li>
   );
 });
@@ -145,13 +115,11 @@ function Column({
   docs,
   empty,
   books,
-  decideId,
 }: {
   title: string;
   docs: Doc[];
   empty: string;
   books: BooksData;
-  decideId?: string;
 }) {
   const [filter, setFilter] = useState<Filter>('open');
   const openCount = docs.filter(d => d.balanceMinor > 0n).length;
@@ -184,7 +152,7 @@ function Column({
       </header>
       <ul className="docs nodrag nowheel">
         {shown.map(d => (
-          <DocRow key={`${d.kind}:${d.id}`} d={d} books={books} decide={`${d.kind}:${d.id}` === decideId} />
+          <DocRow key={`${d.kind}:${d.id}`} d={d} books={books} />
         ))}
         {!shown.length && <li className="audit-empty">{empty}</li>}
       </ul>
@@ -194,13 +162,11 @@ function Column({
 
 function Full() {
   const books = useBooks();
-  const { bills, invoices, open, overdue, reminding } = books;
+  const { bills, invoices, open, overdue } = books;
   const customer = useLive().scenario.customerWord;
   const lateInvoices = overdue
     .filter(d => d.kind === 'invoice')
     .sort((a, b) => a.dueDate.toDate().getTime() - b.dueDate.toDate().getTime());
-  // The one call waiting on a person: remind the customer who is latest
-  const first = lateInvoices.find(d => !reminding(d));
   const openBills = open(bills);
   const openInvoices = open(invoices);
   return (
@@ -212,17 +178,10 @@ function Full() {
       </p>
       <div className="books-cols">
         <Column title="Bills we owe" docs={bills} empty="No bills here." books={books} />
-        <Column
-          title="Invoices owed to us"
-          docs={invoices}
-          empty="No invoices here."
-          books={books}
-          decideId={first ? `invoice:${first.id}` : undefined}
-        />
+        <Column title="Invoices owed to us" docs={invoices} empty="No invoices here." books={books} />
       </div>
       <p className="muted small">
-        The Bookkeeper matches each bank payment to its bill or invoice. Remind them emails the {customer}; after a few reminders the
-        Bookkeeper sends them itself.
+        The Bookkeeper matches each bank payment to its bill or invoice.
       </p>
     </Card>
   );
@@ -322,38 +281,7 @@ export function BooksSection({ eventId }: { eventId: bigint }) {
           })}
           {!payments.length && <li className="tertiary">No payment yet</li>}
         </ol>
-        {d.kind === 'invoice' && state !== 'paid' && <RemindButton d={d} />}
       </div>
     </section>
-  );
-}
-
-function RemindButton({ d }: { d: Doc }) {
-  const { threads } = useLive();
-  const remind = useProcedure(procedures.remindInvoice);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const going = d.eventId !== undefined && threads.some(t => t.eventId === d.eventId && (t.status === 'waiting' || t.status === 'replied'));
-  if (going) return <p className="muted small">A reminder is out; replies show in Emails.</p>;
-  return (
-    <div className="doc-actions">
-      <Button
-        kind="decide"
-        size="sm"
-        icon="Send"
-        pending={busy}
-        disabled={busy}
-        onClick={() => {
-          setBusy(true);
-          setError(null);
-          remind({ docNumber: d.docNumber })
-            .catch((err: Error) => setError(err.message))
-            .finally(() => setBusy(false));
-        }}
-      >
-        Remind them
-      </Button>
-      {error && <span className="card-error small">{error}</span>}
-    </div>
   );
 }
