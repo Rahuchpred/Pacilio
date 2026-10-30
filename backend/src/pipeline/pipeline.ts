@@ -2,16 +2,14 @@ import { SenderError, t, type InferSchema, type ProcedureCtx, type ReducerCtx } 
 import type spacetimedb from '../index';
 import { closeSession, enqueueAgentTask, liveSession, shutDownAgents } from '../droid/agents';
 import { FactoryClient, FactoryError } from '../droid/factory';
-import { LEDGER_HTML, LEDGER_XLSX, MAX_AUTO_EMAILS, buildPrompt, buildRenderPrompt, type PromptDecision, type PromptEvent } from './prompt';
+import { LEDGER_HTML, LEDGER_XLSX, buildPrompt, buildRenderPrompt, type PromptDecision, type PromptEvent } from './prompt';
 import { finishMessages, markSent, promptId, queuedFor, requeueMessages } from '../settle/messages';
 import { currentClassifying } from '../classify/classify';
 import { dropUploadSession, forgetFiles, latestFiles, ledgerRows, relative, setRenderDir, uploadSnapshot } from './snapshot';
 import {
-  MAX_AUTO_REMINDERS,
   billInMemo,
   checkNoBill,
   checkPayment,
-  createReminder,
   invoiceInMemo,
   documentsForMatching,
   isNoBillPayment,
@@ -37,7 +35,7 @@ const TOOLS = [
 ];
 import { pipelineTickSchedule } from './tables';
 import { ensureTicking } from './ticking';
-import { startFollowUp } from '../email/email';
+import { EMAIL_OFF } from '../email/email';
 
 type Schema = typeof spacetimedb;
 type Ctx = ReducerCtx<InferSchema<Schema>>;
@@ -330,19 +328,6 @@ function applyChanges(ctx: Ctx, changes: Change[]) {
   }
 }
 
-// The Bookkeeper may email a vendor itself, but only when an active pattern
-// says to, for an outside party, not for money that left twice, and a few per
-// run. Anything else goes to a person instead.
-function emailAllowed(ctx: Ctx, d: Decision): string | null {
-  const r = d.review ?? {};
-  const m = typeof d.pattern === 'string' ? /^p(\d+)$/.exec(d.pattern) : null;
-  const pattern = m ? ctx.db.pattern.id.find(BigInt(m[1])) : undefined;
-  if (!pattern || pattern.status !== 'active') return null;
-  if (!clip(r.follow_up_to, 120) || !clip(r.follow_up_message, 2000)) return null;
-  if (toId(d.duplicate_of) !== undefined) return null;
-  return pattern.text;
-}
-
 // An event's ledger row number while its run is applied: rows are numbered in
 // event order, counting this run's events as if already done
 function rowOf(ctx: Ctx, run: Run, eventId: bigint): number {
@@ -353,11 +338,8 @@ function rowOf(ctx: Ctx, run: Run, eventId: bigint): number {
   return row;
 }
 
-// Returns the review items the Bookkeeper decided to email about (problems
-// and invoice reminders), to send after this transaction.
-function applyDecisions(ctx: Ctx, run: Run, reply: Reply): bigint[] {
+function applyDecisions(ctx: Ctx, run: Run, reply: Reply) {
   const { summary, decisions } = reply;
-  const autoEmails: bigint[] = [];
   applyChanges(ctx, reply.changes);
   finishMessages(ctx, run.id, reply.messages);
   recordPatternUses(ctx, reply.patterns_used);
@@ -368,9 +350,7 @@ function applyDecisions(ctx: Ctx, run: Run, reply: Reply): bigint[] {
     const id = String(d.event_id);
     if (!inRun.has(id) || seen.has(id)) continue;
     seen.add(id);
-    // An email the Bookkeeper wants to send itself, if a pattern allows it
-    const emailBecause = d.status === 'follow_up' && autoEmails.length < MAX_AUTO_EMAILS ? emailAllowed(ctx, d) : null;
-    // Either way the write-up is an email (sent now, or drafted for a person to send)
+    // Email sending is off: a follow-up goes to a person like any other review
     if (d.status === 'follow_up') d.review = { ...(d.review ?? {}), action: 'follow_up' };
     let outcome = (OUTCOMES as readonly string[]).includes(d.status) ? d.status : 'review';
     // The bill or invoice this row pays: as the Bookkeeper said, as the bank memo quotes it,
@@ -421,15 +401,13 @@ function applyDecisions(ctx: Ctx, run: Run, reply: Reply): bigint[] {
         // Not shown to people; kept for the table shape
         confidence: 0,
         duplicateOf: toId(d.duplicate_of),
-        // Emailed by the Bookkeeper: already decided (it wrote the row as following up)
-        status: emailBecause ? 'applied' : 'open',
-        decision: emailBecause ? 'follow_up' : undefined,
+        status: 'open',
+        decision: undefined,
         decidedBy: undefined,
-        decidedAt: emailBecause ? ctx.timestamp : undefined,
-        resultNote: emailBecause ? `Emailed by the Bookkeeper, following the pattern "${clip(emailBecause, 200)}"` : undefined,
+        decidedAt: undefined,
+        resultNote: undefined,
         createdAt: ctx.timestamp,
       });
-      if (emailBecause) autoEmails.push(item.id);
       const evidence = Array.isArray(r.evidence) ? r.evidence.map(e => clip(e, 200)).filter(Boolean).slice(0, 6) : [];
       const isFollowUp = action === 'follow_up';
       ctx.db.reviewDetail.insert({
@@ -475,30 +453,8 @@ function applyDecisions(ctx: Ctx, run: Run, reply: Reply): bigint[] {
     if (item) ctx.db.reviewItem.id.update({ ...item, status: 'applied' });
   }
 
-  // Overdue invoices it decided to remind, each allowed by a pattern
-  let reminders = 0;
-  for (const r of reply.reminders ?? []) {
-    if (reminders >= MAX_AUTO_REMINDERS || typeof r.invoice !== 'string') continue;
-    const m = typeof r.pattern === 'string' ? /^p(\d+)$/.exec(r.pattern) : null;
-    const pattern = m ? ctx.db.pattern.id.find(BigInt(m[1])) : undefined;
-    if (!pattern || pattern.status !== 'active') continue;
-    try {
-      const made = createReminder(
-        ctx,
-        r.invoice,
-        typeof r.message === 'string' ? clip(r.message, 2000) : undefined,
-        `Reminded by the Bookkeeper, following the pattern "${clip(pattern.text, 200)}"`
-      );
-      autoEmails.push(made.itemId);
-      reminders++;
-    } catch {
-      // already paid, already being reminded, or not an invoice: skip it
-    }
-  }
-
   ctx.db.agentRun.id.update({ ...run, status: 'done', summary, finishedAt: ctx.timestamp });
   updateAgent(ctx, { status: 'idle', currentRunId: undefined, resetLedger: false });
-  return autoEmails;
 }
 
 // While a run works, its "CLASSIFY <id> | <category> | <status>" lines show up
@@ -660,27 +616,7 @@ export function pipeline(stdb: Schema) {
             ctx.withTx(tx => failRun(tx, run, message(err)));
             return {};
           }
-          const autoEmails = ctx.withTx(tx => applyDecisions(tx, run, parsed));
-          // Send the emails the Bookkeeper decided on (allowed by a pattern), and log them
-          for (const itemId of autoEmails) {
-            try {
-              startFollowUp(ctx, itemId);
-              ctx.withTx(tx => {
-                const item = tx.db.reviewItem.id.find(itemId);
-                const detail = tx.db.reviewDetail.itemId.find(itemId);
-                if (!item) return;
-                logAction(
-                  tx,
-                  ctx.sender,
-                  'email',
-                  `Emailed ${detail?.followUpTo ?? 'the vendor'} about "${detail?.title ?? item.question}" (${item.resultNote ?? 'a pattern allowed it'})`,
-                  { eventId: item.eventId, whoName: 'Bookkeeper' }
-                );
-              });
-            } catch (err) {
-              console.warn(`auto email ${itemId}: ${message(err)}`);
-            }
-          }
+          ctx.withTx(tx => applyDecisions(tx, run, parsed));
 
           // The ledger changed. No render here: the board draws it live, and the
           // workbook is built when someone needs it (renderTick)
@@ -840,14 +776,13 @@ export function pipeline(stdb: Schema) {
         ensureTicking(tx);
       });
 
-      // Follow up: email the counterparty now; AgentMail keeps nudging until they reply
+      // Follow up: nothing is emailed any more
       if (action === 'follow_up') {
-        const sent = startFollowUp(ctx, itemId);
         ctx.withTx(tx => {
           const current = tx.db.reviewItem.id.find(itemId);
-          if (current) tx.db.reviewItem.id.update({ ...current, resultNote: sent });
+          if (current) tx.db.reviewItem.id.update({ ...current, resultNote: EMAIL_OFF });
         });
-        return sent;
+        return EMAIL_OFF;
       }
       return resultNote || `Marked ${action}`;
     }

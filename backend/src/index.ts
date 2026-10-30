@@ -7,7 +7,7 @@ import { accountingTables } from './accounting/tables';
 import { accounting } from './accounting/accounting';
 import { pipelineTables } from './pipeline/tables';
 import { pipeline } from './pipeline/pipeline';
-import { emailEnv, emailTables } from './email/tables';
+import { emailTables } from './email/tables';
 import { email, ensureFollowUpDefaults } from './email/email';
 import { settleTables } from './settle/tables';
 import { classifyTables } from './classify/tables';
@@ -59,7 +59,7 @@ const edge = table(
 
 const spacetimedb = schema(
   { user, cursor, node, edge, ...droidTables, ...inboundTables, ...accountingTables, ...pipelineTables, ...emailTables, ...settleTables, ...classifyTables, ...learnTables },
-  { env: { ...droidEnv, ...inboundEnv, ...emailEnv } }
+  { env: { ...droidEnv, ...inboundEnv } }
 );
 export default spacetimedb;
 

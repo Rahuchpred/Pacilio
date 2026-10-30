@@ -1,15 +1,13 @@
 import { SenderError, t, type InferSchema, type ReducerCtx } from 'spacetimedb/server';
 import type spacetimedb from '../index';
-import { startFollowUp } from '../email/email';
-import { logAction } from '../learn/audit';
+import { EMAIL_OFF } from '../email/email';
 import { docNumbersIn, normalizeName, similarNames, type MatchDoc } from '../pipeline/related';
 import { checkBillPayment, noBillNeedsPerson, noBillWriteUp, paymentWriteUp, type PaymentWriteUp } from './paymentCheck';
 
 // QuickBooks as the record of who owes whom: bills are what we owe vendors,
 // invoices what sponsors owe us. Payments are recorded here when the
-// Bookkeeper matches a bank row to its bill or invoice. Overdue invoices can
-// be reminded by a person (Remind them), or by the Bookkeeper when a pattern
-// says to; reminders use the email follow-up threads.
+// Bookkeeper matches a bank row to its bill or invoice. Nobody is emailed
+// about overdue invoices any more (email sending is off).
 
 type Schema = typeof spacetimedb;
 type Ctx = ReducerCtx<InferSchema<Schema>>;
@@ -17,7 +15,6 @@ type Bill = NonNullable<ReturnType<Ctx['db']['accountingBill']['id']['find']>>;
 type Invoice = NonNullable<ReturnType<Ctx['db']['accountingInvoice']['id']['find']>>;
 
 const DAY_MICROS = 86_400_000_000n;
-export const MAX_AUTO_REMINDERS = 3;
 
 function money(minor: bigint): string {
   const neg = minor < 0n;
@@ -257,79 +254,10 @@ export function overdueInvoices(ctx: Ctx): { docNumber: string; customer: string
   return out.sort((a, b) => b.daysOverdue - a.daysOverdue).slice(0, 20);
 }
 
-function defaultReminder(invoice: Invoice, days: number): string {
-  return `Hello ${invoice.customer},\n\nInvoice ${invoice.docNumber} for ${money(invoice.totalMinor)} was due ${days} ${
-    days === 1 ? 'day' : 'days'
-  } ago, and ${money(invoice.balanceMinor)} is still open. Could you let us know when it will be paid?\n\nThank you.`;
-}
-
-// The question-and-email record a reminder thread hangs on (already decided:
-// the reminder is the decision). Returns its id for startFollowUp.
-export function createReminder(
-  ctx: Ctx,
-  docNumber: string,
-  message: string | undefined,
-  note: string
-): { itemId: bigint; eventId: bigint; invoice: Invoice } {
-  const found = findDoc(ctx, docNumber);
-  if (!found || found.kind !== 'invoice') throw new SenderError(`No invoice ${docNumber}`);
-  const invoice = found.doc;
-  if (invoice.balanceMinor <= 0n) throw new SenderError(`${docNumber} is already paid`);
-  const eventId = invoiceEventId(ctx, invoice);
-  if (eventId === undefined) throw new SenderError(`${docNumber} hasn't reached the books yet`);
-  if (reminding(ctx, eventId)) throw new SenderError(`${invoice.customer} is already being reminded about ${docNumber}`);
-  const days = daysOverdue(ctx, invoice);
-  const title = `${invoice.customer}: ${docNumber} ${days ? `${days} ${days === 1 ? 'day' : 'days'} overdue` : 'not yet paid'}`;
-  const item = ctx.db.reviewItem.insert({
-    id: 0n,
-    eventId,
-    runId: 0n,
-    question: `Remind ${invoice.customer} about ${docNumber}?`,
-    reason: `${money(invoice.balanceMinor)} of ${money(invoice.totalMinor)} is still open${days ? `, ${days} days past due` : ''}.`,
-    recommendation: 'follow_up',
-    confidence: 0,
-    duplicateOf: undefined,
-    status: 'applied',
-    decision: 'follow_up',
-    decidedBy: undefined,
-    decidedAt: ctx.timestamp,
-    resultNote: note,
-    createdAt: ctx.timestamp,
-  });
-  ctx.db.reviewDetail.insert({
-    itemId: item.id,
-    title,
-    whatHappened: `${money(invoice.balanceMinor)} is still open on ${docNumber}.`,
-    evidence: '[]',
-    fix: `Remind ${invoice.customer} to pay ${docNumber}.`,
-    followUpTo: invoice.customer,
-    followUpSubject: `Reminder: ${docNumber}, ${money(invoice.balanceMinor)} open`,
-    followUpMessage: (message && message.trim()) || defaultReminder(invoice, days),
-  });
-  return { itemId: item.id, eventId, invoice };
-}
-
 export function books(stdb: Schema) {
-  // Remind them: email the sponsor about an open invoice. Logged so the
-  // pattern learner can learn when people remind (and let the Bookkeeper do it).
-  const remindInvoice = stdb.procedure({ docNumber: t.string() }, t.string(), (ctx, { docNumber }) => {
-    const made = ctx.withTx(tx => {
-      const r = createReminder(tx, docNumber, undefined, 'Reminder sent by a person');
-      const days = daysOverdue(tx, r.invoice);
-      logAction(
-        tx,
-        ctx.sender,
-        'reminder',
-        `Reminded ${r.invoice.customer} about ${docNumber} (${money(r.invoice.balanceMinor)} open${days ? `, ${days} days overdue` : ''})`,
-        {
-          eventId: r.eventId,
-          learnable: true,
-          details: { customer: r.invoice.customer, docNumber, open: Number(r.invoice.balanceMinor) / 100, daysOverdue: days },
-        }
-      );
-      return r;
-    });
-    return startFollowUp(ctx, made.itemId);
+  // Remind them: email sending is off, so there is nothing to send.
+  const remindInvoice = stdb.procedure({ docNumber: t.string() }, t.string(), () => {
+    throw new SenderError(EMAIL_OFF);
   });
 
   return { remindInvoice };

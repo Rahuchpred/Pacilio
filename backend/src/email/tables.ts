@@ -1,7 +1,7 @@
 import { table, t } from 'spacetimedb/server';
 
-// Email follow-ups through AgentMail: a thread per flagged item that a person
-// chose to follow up on, nagged on a schedule until someone replies.
+// Email follow-up threads. Sending (AgentMail) was removed after the
+// hackathon; the tables stay so existing data keeps its shape.
 
 // Our AgentMail inbox (singleton, id 0), created on first use.
 export const emailInbox = table(
@@ -21,7 +21,7 @@ export const emailThread = table(
     eventId: t.u64(),
     // Who the email is about/for (the vendor or customer)
     counterparty: t.string(),
-    // Where it's actually sent (FOLLOWUP_EMAIL_TO, hardcoded for now)
+    // Where it was sent
     toAddress: t.string(),
     subject: t.string(),
     agentmailThreadId: t.string().optional(),
@@ -78,10 +78,3 @@ export const emailFollowUp = table(
 );
 
 export const emailTables = { emailInbox, emailThread, emailMessage, emailTickSchedule, emailFollowUp };
-
-// AGENTMAIL_API_KEY: from agentmail.to. FOLLOWUP_EMAIL_TO: where every
-// follow-up is sent for now (one test inbox standing in for every vendor).
-export const emailEnv = {
-  AGENTMAIL_API_KEY: t.string().optional(),
-  FOLLOWUP_EMAIL_TO: t.string().optional(),
-};

@@ -52,9 +52,6 @@ export interface PromptDecision {
 }
 
 // A one-off message from the team (sent through Ask Pacioli) for this run.
-// Emails the Bookkeeper may send on its own in one run (pipeline.ts enforces it)
-export const MAX_AUTO_EMAILS = 3;
-
 export interface PromptMessage {
   id: string;
   text: string;
@@ -165,12 +162,6 @@ Then do the work below. Your final JSON still decides; it may differ if you chan
    - status "ok": nothing wrong. Put a short match in "note" if there is one, e.g. "Pays bill AV-0423".
    - status "void": an obvious data-entry duplicate (same counterparty, same document, tiny differences). Set duplicate_of.
    - status "review": anything else that's wrong or unclear. A person decides, so write it up well (below).
-   - status "follow_up": email the other party yourself, now, without asking a person. Only when a pattern from the
-     team says to email in this kind of case: set "pattern" to that pattern's id and fill the review write-up with
-     follow_up_to, follow_up_subject and follow_up_message (Pacioli marks the row "following_up"). Never for our own
-     accounts or staff, never for money that left twice for
-     one document, and at most ${MAX_AUTO_EMAILS} per run: those stay "review" with the email
-     drafted. Pacioli checks this and turns anything outside it back into "review".
 
 ## Writing up a "review" item (a person reads this and decides in seconds)
 - title: what's wrong, in under 10 words, with the counterparty. "ACME charged twice for bill AV-0423".
@@ -181,7 +172,7 @@ Then do the work below. Your final JSON still decides; it may differ if you chan
     "void"      - the row is a duplicate entry in our books; remove it. No money moves.
     "refund"    - only for a Stripe charge we should give back; Pacioli refunds it on Stripe.
     "follow_up" - we need the other party to act or explain (refund an overpayment, send a missing bill,
-                  confirm a charge). Pacioli will email them.
+                  confirm a charge). A person reaches out to them.
     "keep"      - the row is fine on reflection; leave it.
 - fix: one sentence saying exactly what the action does to which row. "Void row 14, the second −$1,250.00 payment."
   For follow_up, say what we're asking for: "Ask ACME to refund the duplicate $1,250.00 payment."
@@ -213,9 +204,7 @@ ${
   overdue.length
     ? overdue.map(o => `- ${o.docNumber} · ${o.customer} · ${o.balance} open · ${o.daysOverdue} days overdue`).join('\n') +
       `
-Remind one only when a pattern from the team says to remind in that kind of case: add it to "reminders" with that
-pattern's id and a short, polite email (2-4 sentences: the invoice number, the amount open, how late it is, and a
-request to confirm when it will be paid; no dashes). At most 3 per run. Otherwise leave them: a person decides.`
+Don't remind anyone yourself (Pacioli sends no email): leave them for a person.`
     : '- none'
 }
 
@@ -228,13 +217,11 @@ When you're done, reply with ONLY this JSON and nothing else:
  "changes": [{"event_id": "...", "status": "ok|void|review|refunded|following_up", "category": "...", "note": "..."}],
  "messages": [{"id": "m…", "reply": "one sentence on what you did, with row numbers and amounts"}],
  "patterns_used": ["p…"],
- "reminders": [{"invoice": "INV-…", "pattern": "p…", "message": "..."}],
- "decisions": [{"event_id": "...", "status": "ok|void|review|follow_up", "category": "...", "note": "...",
-   "duplicate_of": "event_id or null", "pattern": "p… (follow_up only) or null", "pays": "bill or invoice number or null",
+ "decisions": [{"event_id": "...", "status": "ok|void|review", "category": "...", "note": "...",
+   "duplicate_of": "event_id or null", "pays": "bill or invoice number or null",
    "review": null or {"title": "...", "what_happened": "...", "evidence": ["...", "..."], "action": "void|refund|follow_up|keep",
      "fix": "...", "question": "...", "follow_up_to": "... or null", "follow_up_subject": "... or null",
      "follow_up_message": "... or null"}}]}
-"review" is required when status is "review" or "follow_up", and null otherwise.
-Include every new event exactly once. "changes" and "messages" are [] when there were no messages; "reminders" is []
-unless a pattern allowed one.`;
+"review" is required when status is "review", and null otherwise.
+Include every new event exactly once. "changes" and "messages" are [] when there were no messages.`;
 }
